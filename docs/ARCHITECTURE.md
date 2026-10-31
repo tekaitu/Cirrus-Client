@@ -1,11 +1,21 @@
 # Architecture (plan)
 
-Only the shell exists today. Everything below the "Implemented" line is a plan.
+Only what is listed under "Implemented" exists. Everything after it is a plan.
 
 ## Implemented
-- Tauri 2 window, React + TypeScript UI, one Rust command (`get_app_info`) reporting the app version and `launcher_ready: false`.
-- `src/core/java.ts`: parses `java -version` output and checks it against the Java 21 requirement, with unit tests.
-- Windows CI that builds and verifies the executable.
+- **UI** (React + TypeScript, plain CSS): sidebar with Home, Settings and Diagnostics; loading, empty and error states; an error screen instead of a blank window if rendering fails; responsive layout; a disabled Play section that states launching is not available.
+- **`src-tauri/src/system.rs`**: OS, CPU and RAM via the `sysinfo` crate.
+- **`src-tauri/src/java.rs`**: finds Java (Settings path, JAVA_HOME, PATH, common vendor folders, Minecraft launcher runtimes), runs `java -version` with a timeout and no console window, and returns the raw output.
+- **`src/core/java.ts`**: parses that output and checks it against the Java 21 requirement (one parser, unit-tested). The first compatible install in priority order is the one reported as "in use".
+- **`src-tauri/src/settings.rs`**: validated settings saved atomically (write a temp file, then rename) to `settings.json` in the app config folder; a damaged or too-new file is renamed to `settings.json.corrupt` and defaults are restored; reset command.
+- **Tauri commands**: `get_app_info`, `get_system_info`, `detect_java`, `inspect_java`, `load_settings`, `save_settings`, `reset_settings`.
+- **Diagnostics report**: plain text built in `src/core/report.ts` from the same live data.
+- Windows CI that tests, builds and verifies the executable.
+
+Settings for memory, Java path and game folder are saved and validated now, but nothing reads them to launch Minecraft yet. The Java path does change what detection checks.
+
+## Not implemented (plan only)
+Microsoft sign-in, game and Fabric installation, launching, mod management, and performance settings. These are described in the plan below.
 
 ## Planned modules
 

@@ -6,5 +6,6 @@ export default defineConfig({
   clearScreen: false,
   server: { port: 1420, strictPort: true },
   build: { target: "es2020", outDir: "dist" },
-  test: { environment: "node", include: ["tests/**/*.test.ts"] },
+  // Component tests opt in to jsdom with a `// @vitest-environment jsdom` comment.
+  test: { environment: "node", include: ["tests/**/*.test.{ts,tsx}"] },
 });
