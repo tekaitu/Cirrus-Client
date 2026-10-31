@@ -1,0 +1,31 @@
+# Dependencies and build output
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+*.exe
+*.msi
+*.log
+
+# Secrets and local configuration
+.env
+.env.*
+*.pem
+*.key
+*.p12
+secrets/
+
+# Minecraft data and account material must never be committed
+.minecraft/
+instances/
+saves/
+accounts.json
+launcher_profiles.json
+tokens*.json
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+coverage/

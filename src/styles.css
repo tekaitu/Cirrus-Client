@@ -1,0 +1,25 @@
+:root {
+  color-scheme: dark;
+  --bg: #0e1014;
+  --panel: #171a21;
+  --text: #e6e9ef;
+  --muted: #98a1b3;
+  --accent: #58a6ff;
+  --danger: #ff7b72;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.shell { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
+h1 { margin: 0 0 4px; font-size: 2rem; letter-spacing: 0.01em; }
+h2 { margin: 0 0 8px; font-size: 1.1rem; color: var(--accent); }
+.card { margin-top: 24px; padding: 20px; background: var(--panel); border-radius: 12px; }
+.muted { color: var(--muted); }
+.error { color: var(--danger); }

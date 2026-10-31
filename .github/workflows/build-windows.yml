@@ -1,0 +1,81 @@
+name: Build Limited FPS (Windows)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build files
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      # No package-lock.json is committed yet. Once it is, switch this to `npm ci`.
+      - name: Install JavaScript dependencies
+        run: npm install
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Build the frontend (needed by the Rust build)
+        run: npm run build
+
+      - name: Run Rust tests
+        working-directory: src-tauri
+        run: cargo test --lib
+
+      - name: Build the Windows executable (no installer)
+        run: npx tauri build --no-bundle
+
+      - name: Verify the executable exists and is not empty
+        shell: pwsh
+        run: |
+          $exe = "src-tauri/target/release/limited-fps.exe"
+          if (-not (Test-Path $exe)) { throw "Expected executable not found: $exe" }
+          $item = Get-Item $exe
+          if ($item.Length -le 0) { throw "Executable is empty: $exe" }
+          "{0}  ({1:N2} MB)" -f $item.FullName, ($item.Length / 1MB)
+          "SHA256: " + (Get-FileHash $exe -Algorithm SHA256).Hash
+
+      - name: Upload the executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: LimitedFPS-windows-exe
+          path: src-tauri/target/release/limited-fps.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      # Lets the generated lockfiles be reviewed and committed for reproducible builds.
+      - name: Upload generated lockfiles
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-lockfiles
+          path: |
+            package-lock.json
+            src-tauri/Cargo.lock
+          if-no-files-found: warn
+          retention-days: 14
