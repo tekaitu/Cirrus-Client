@@ -59,6 +59,11 @@ export function buildReport(input: ReportInput): string {
     lines.push(
       `  Selected: ${java.selected ? `Java ${java.selected.major} at ${java.selected.path}` : "none (no compatible Java)"}`,
     );
+    if (java.selected?.versionString) lines.push(`  Selected version: ${java.selected.versionString}`);
+    if (java.notes.length > 0) {
+      lines.push("  Searched:");
+      for (const n of java.notes) lines.push(`    - ${n}`);
+    }
   } else {
     lines.push(`  ${UNAVAILABLE}`);
   }

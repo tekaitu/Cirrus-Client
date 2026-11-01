@@ -1,6 +1,7 @@
 import { api } from "../api/client";
 import type { AppInfo, SettingsState, SystemInfo } from "../api/types";
 import { analyzeJava, toJavaView, type JavaView } from "../core/java";
+import { useJavaInstaller, type JavaInstaller } from "./useJavaInstaller";
 import { useResource, type ResourceState } from "./useResource";
 
 export interface AppData {
@@ -8,6 +9,7 @@ export interface AppData {
   system: ResourceState<SystemInfo>;
   settings: ResourceState<SettingsState>;
   java: ResourceState<JavaView>;
+  installer: JavaInstaller;
   reloadAll: () => void;
   reloadSettings: () => void;
   reloadJava: () => void;
@@ -26,10 +28,16 @@ export function useAppData(): AppData {
   const javaKey = s.status === "ready" ? (s.data.settings.javaPath ?? "") : s.status === "error" ? "" : null;
   const java = useResource<JavaView>(async () => {
     const raw = await api.detectJava(javaKey ? javaKey : null);
-    return toJavaView(raw.installs.map(analyzeJava), raw.candidatesChecked);
+    return toJavaView(raw.installs.map(analyzeJava), raw.candidatesChecked, raw.notes ?? []);
   }, javaKey);
 
+  const installer = useJavaInstaller({
+    onSettings: settings.set,
+    onNoSettingsChange: java.reload,
+  });
+
   return {
+    installer,
     app: app.state,
     system: system.state,
     settings: settings.state,

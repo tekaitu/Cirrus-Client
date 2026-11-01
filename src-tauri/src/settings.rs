@@ -87,7 +87,15 @@ pub fn defaults(total_ram_mb: u64, default_game_dir: &Path) -> Settings {
 pub fn normalize(mut s: Settings) -> Settings {
     s.java_path = s
         .java_path
-        .map(|p| p.trim().to_string())
+        .map(|p| {
+            // Quotes, a Java folder or javaw.exe are turned into the java.exe to run.
+            let cleaned = crate::java::strip_quotes(&p).to_string();
+            if cleaned.is_empty() {
+                cleaned
+            } else {
+                crate::java::resolve_user_input(&cleaned).display().to_string()
+            }
+        })
         .filter(|p| !p.is_empty());
     s.game_dir = s.game_dir.trim().to_string();
     s.version = SETTINGS_VERSION;
@@ -119,10 +127,12 @@ pub fn validate(s: &Settings, total_ram_mb: u64) -> Vec<FieldError> {
                 message: "Java path can't be blank. Clear it to use automatic detection."
                     .to_string(),
             });
-        } else if p.contains('\0') || !Path::new(p).is_file() {
+        } else if p.contains('\0') || !crate::java::resolve_user_input(p).is_file() {
             errors.push(FieldError {
                 field: "javaPath",
-                message: format!("No file found at {p}"),
+                message: format!(
+                    "No Java program found at {p}. Choose the java.exe file or the Java install folder."
+                ),
             });
         }
     }
@@ -277,6 +287,23 @@ mod tests {
         let errors = validate(&s, 16384);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].field, "javaPath");
+    }
+
+    #[test]
+    fn java_path_with_quotes_spaces_and_folders_is_normalized() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().join("Program Files").join("Java 21");
+        let exe = home.join("bin").join(crate::java::JAVA_EXE);
+        fs::create_dir_all(exe.parent().unwrap()).unwrap();
+        fs::write(&exe, b"stub").unwrap();
+        for raw in [
+            format!("\"{}\"", exe.display()),
+            home.display().to_string(),
+            format!("  \"{}\"  ", home.display()),
+        ] {
+            let s = normalize(Settings { java_path: Some(raw), ..Settings::default() });
+            assert_eq!(s.java_path.as_deref(), Some(exe.display().to_string().as_str()));
+        }
     }
 
     #[test]

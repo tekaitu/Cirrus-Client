@@ -1,11 +1,21 @@
 pub mod java;
+pub mod runtime;
 pub mod settings;
 pub mod system;
 
 use serde::Serialize;
 use settings::{FieldError, LoadStatus, Settings};
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Emitter, Manager, State};
+
+/// Event the installer sends to the window while it works.
+pub const INSTALL_PROGRESS_EVENT: &str = "java-install-progress";
+
+/// Cancel flag of the installation that is running right now, if any.
+#[derive(Default)]
+struct InstallState(Mutex<Option<Arc<AtomicBool>>>);
 
 pub const TARGET_MINECRAFT: &str = "1.21.11";
 
@@ -91,9 +101,20 @@ async fn get_system_info() -> Result<system::SystemInfo, String> {
         .map_err(|e| format!("System information could not be read: {e}"))
 }
 
+fn runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_local_data_dir()
+        .map(|dir| dir.join("runtime"))
+        .map_err(|e| format!("Could not find the app data folder: {e}"))
+}
+
 #[tauri::command]
-async fn detect_java(configured_path: Option<String>) -> Result<java::JavaDetection, String> {
-    tauri::async_runtime::spawn_blocking(move || java::detect(configured_path.as_deref()))
+async fn detect_java(
+    app: AppHandle,
+    configured_path: Option<String>,
+) -> Result<java::JavaDetection, String> {
+    let roots = runtime::managed_roots(&runtime_dir(&app)?);
+    tauri::async_runtime::spawn_blocking(move || java::detect(configured_path.as_deref(), &roots))
         .await
         .map_err(|e| format!("Java detection failed: {e}"))
 }
@@ -101,10 +122,132 @@ async fn detect_java(configured_path: Option<String>) -> Result<java::JavaDetect
 #[tauri::command]
 async fn inspect_java(path: String) -> Result<java::JavaInstall, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        java::inspect(std::path::Path::new(path.trim()), java::SRC_CONFIGURED)
+        java::inspect_user_path(&path, java::SRC_CONFIGURED)
     })
     .await
     .map_err(|e| format!("Java check failed: {e}"))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InstallResult {
+    /// "installed", "alreadyInstalled", "cancelled" or "failed"
+    status: &'static str,
+    message: Option<String>,
+    java_path: Option<String>,
+    version: Option<String>,
+    source: Option<String>,
+    /// True when Settings now points at the runtime.
+    configured: bool,
+    settings: Option<SettingsState>,
+}
+
+impl InstallResult {
+    fn bare(status: &'static str, message: Option<String>) -> InstallResult {
+        InstallResult {
+            status,
+            message,
+            java_path: None,
+            version: None,
+            source: None,
+            configured: false,
+            settings: None,
+        }
+    }
+}
+
+/// Point Settings at `java_path`, changing nothing else in the file.
+fn configure_java_path(app: &AppHandle, java_path: &str) -> Result<SettingsState, String> {
+    let total = system::total_ram_mb();
+    let defaults = default_settings(app, total)?;
+    let file = settings_file(app)?;
+    let mut loaded = settings::load(&file, &defaults);
+    loaded.settings.java_path = Some(java_path.to_string());
+    settings::save(&file, &loaded.settings)?;
+    build_state(app, loaded, total)
+}
+
+#[tauri::command]
+async fn install_java(app: AppHandle, state: State<'_, InstallState>) -> Result<InstallResult, String> {
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut slot = state.0.lock().map_err(|_| "Installer state is unavailable.".to_string())?;
+        if slot.is_some() {
+            return Err("A Java installation is already running.".to_string());
+        }
+        *slot = Some(cancel.clone());
+    }
+
+    let dir = runtime_dir(&app);
+    let configured = dir
+        .as_ref()
+        .ok()
+        .and_then(|_| settings_file(&app).ok())
+        .map(|file| {
+            let total = system::total_ram_mb();
+            let defaults = default_settings(&app, total).unwrap_or_default();
+            settings::load(&file, &defaults).settings.java_path
+        })
+        .flatten();
+
+    let emitter = app.clone();
+    let flag = cancel.clone();
+    let worker = tauri::async_runtime::spawn_blocking(move || {
+        let dir = dir?;
+        Ok::<_, String>(runtime::install_java(&dir, configured.as_deref(), &flag, &move |p| {
+            let _ = emitter.emit(INSTALL_PROGRESS_EVENT, p);
+        }))
+    })
+    .await;
+
+    if let Ok(mut slot) = state.0.lock() {
+        *slot = None;
+    }
+
+    let outcome = match worker {
+        Err(e) => return Ok(InstallResult::bare("failed", Some(format!("The installer stopped unexpectedly: {e}")))),
+        Ok(Err(e)) => return Ok(InstallResult::bare("failed", Some(e))),
+        Ok(Ok(outcome)) => outcome,
+    };
+    match outcome {
+        Err(runtime::InstallError::Cancelled) => Ok(InstallResult::bare("cancelled", None)),
+        Err(runtime::InstallError::Failed(message)) => Ok(InstallResult::bare("failed", Some(message))),
+        Ok(done) => {
+            // Only Limited FPS' own copy is written to Settings; an existing
+            // system Java is left alone and reported.
+            let (configured, settings_state, note) = if done.managed {
+                match configure_java_path(&app, &done.java_path) {
+                    Ok(s) => (true, Some(s), None),
+                    Err(e) => (false, None, Some(format!("Java is installed, but Settings could not be updated: {e}"))),
+                }
+            } else {
+                (false, None, None)
+            };
+            Ok(InstallResult {
+                status: done.status,
+                message: note,
+                java_path: Some(done.java_path),
+                version: done.version,
+                source: Some(done.source),
+                configured,
+                settings: settings_state,
+            })
+        }
+    }
+}
+
+#[tauri::command]
+fn cancel_java_install(state: State<'_, InstallState>) -> bool {
+    match state.0.lock() {
+        Ok(slot) => match slot.as_ref() {
+            Some(flag) => {
+                flag.store(true, Ordering::SeqCst);
+                true
+            }
+            None => false,
+        },
+        Err(_) => false,
+    }
 }
 
 #[tauri::command]
@@ -156,11 +299,14 @@ async fn reset_settings(app: AppHandle) -> Result<SettingsState, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(InstallState::default())
         .invoke_handler(tauri::generate_handler![
             get_app_info,
             get_system_info,
             detect_java,
             inspect_java,
+            install_java,
+            cancel_java_install,
             load_settings,
             save_settings,
             reset_settings

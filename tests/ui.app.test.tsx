@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "../src/App";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
+import type { InstallProgress, InstallResult } from "../src/api/types";
 import { appInfo, java17Raw, java21Raw, settingsState, systemInfo } from "./helpers/fixtures";
 
 vi.mock("../src/api/client", () => ({
@@ -12,6 +13,9 @@ vi.mock("../src/api/client", () => ({
     getSystemInfo: vi.fn(),
     detectJava: vi.fn(),
     inspectJava: vi.fn(),
+    installJava: vi.fn(),
+    cancelJavaInstall: vi.fn(),
+    onJavaInstallProgress: vi.fn(),
     loadSettings: vi.fn(),
     saveSettings: vi.fn(),
     resetSettings: vi.fn(),
@@ -25,7 +29,15 @@ function goTo(name: "Home" | "Settings" | "Diagnostics") {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
+let progressHandler: ((p: InstallProgress) => void) | null = null;
+
 beforeEach(() => {
+  progressHandler = null;
+  mocked.onJavaInstallProgress.mockImplementation(async (handler) => {
+    progressHandler = handler;
+    return () => {};
+  });
+  mocked.cancelJavaInstall.mockResolvedValue(true);
   mocked.getAppInfo.mockResolvedValue(appInfo);
   mocked.getSystemInfo.mockResolvedValue(systemInfo);
   mocked.loadSettings.mockResolvedValue(settingsState());
@@ -93,6 +105,136 @@ describe("Home", () => {
   });
 });
 
+const installedResult = (extra: Partial<InstallResult> = {}): InstallResult => ({
+  status: "installed",
+  message: null,
+  javaPath: "C:\\Users\\player\\AppData\\Local\\com.limitedfps.app\\runtime\\temurin-21\\jdk-21.0.5_11-jre\\bin\\java.exe",
+  version: "21.0.5",
+  source: "Limited FPS runtime",
+  configured: true,
+  settings: settingsState({
+    javaPath:
+      "C:\\Users\\player\\AppData\\Local\\com.limitedfps.app\\runtime\\temurin-21\\jdk-21.0.5_11-jre\\bin\\java.exe",
+  }),
+  ...extra,
+});
+
+describe("Java installer", () => {
+  beforeEach(() => {
+    mocked.detectJava.mockResolvedValue({ installs: [java17Raw], candidatesChecked: 3 });
+  });
+
+  it("offers the install button only when no compatible Java exists", async () => {
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "Install Java 21" })).toBeTruthy();
+    cleanup();
+    mocked.detectJava.mockResolvedValue({ installs: [java21Raw], candidatesChecked: 3 });
+    render(<App />);
+    await screen.findByText("Java 21");
+    expect(screen.queryByRole("button", { name: "Install Java 21" })).toBeNull();
+  });
+
+  it("shows progress, then re-detects with the new Java path after success", async () => {
+    let finish: (r: InstallResult) => void = () => {};
+    mocked.installJava.mockReturnValue(new Promise<InstallResult>((resolve) => (finish = resolve)));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
+
+    expect(await screen.findByText("Starting…")).toBeTruthy();
+    await waitFor(() => expect(progressHandler).not.toBeNull());
+    act(() =>
+      progressHandler?.({ stage: "downloading", downloaded: 25_000_000, total: 50_000_000, message: "Downloading" }),
+    );
+    expect(await screen.findByText("25.0 MB of 50.0 MB")).toBeTruthy();
+    const bar = screen.getByLabelText("Java download progress") as HTMLProgressElement;
+    expect(bar.value).toBe(50);
+
+    mocked.detectJava.mockResolvedValue({ installs: [java21Raw], candidatesChecked: 4 });
+    await act(async () => finish(installedResult()));
+
+    expect(await screen.findByText("Java 21 installed")).toBeTruthy();
+    await waitFor(() =>
+      expect(mocked.detectJava).toHaveBeenLastCalledWith(expect.stringContaining("temurin-21")),
+    );
+    expect(await screen.findByText("Java 21")).toBeTruthy();
+  });
+
+  it("can be cancelled while downloading", async () => {
+    let finish: (r: InstallResult) => void = () => {};
+    mocked.installJava.mockReturnValue(new Promise<InstallResult>((resolve) => (finish = resolve)));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
+    await waitFor(() => expect(progressHandler).not.toBeNull());
+    act(() => progressHandler?.({ stage: "downloading", downloaded: 1000, total: 50_000_000, message: "x" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(mocked.cancelJavaInstall).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Cancelling…")).toBeTruthy();
+
+    await act(async () => finish({ ...installedResult(), status: "cancelled", settings: null, configured: false }));
+    expect(await screen.findByText("Installation cancelled")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Install again" })).toBeTruthy();
+  });
+
+  it("shows the error and lets the user retry", async () => {
+    mocked.installJava.mockResolvedValueOnce({
+      ...installedResult(),
+      status: "failed",
+      message: "The downloaded file did not match the vendor's checksum, so it was deleted and NOT used.",
+      settings: null,
+      configured: false,
+      javaPath: null,
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
+    expect(await screen.findByText("Java could not be installed")).toBeTruthy();
+    expect(screen.getByText(/did not match the vendor's checksum/)).toBeTruthy();
+
+    mocked.installJava.mockResolvedValueOnce(installedResult());
+    fireEvent.click(screen.getByRole("button", { name: "Retry install" }));
+    expect(await screen.findByText("Java 21 installed")).toBeTruthy();
+    expect(mocked.installJava).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows an error when the install command itself fails", async () => {
+    mocked.installJava.mockRejectedValue(new Error("A Java installation is already running."));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
+    expect(await screen.findByText("A Java installation is already running.")).toBeTruthy();
+  });
+
+  it("starts only one installation at a time", async () => {
+    mocked.installJava.mockReturnValue(new Promise<InstallResult>(() => {}));
+    render(<App />);
+    const button = await screen.findByRole("button", { name: "Install Java 21" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(mocked.installJava).toHaveBeenCalledTimes(1));
+  });
+
+  it("reports an already-installed Java without changing Settings", async () => {
+    mocked.installJava.mockResolvedValue({
+      status: "alreadyInstalled",
+      message: null,
+      javaPath: java21Raw.path,
+      version: "21.0.4",
+      source: "Common install folder",
+      configured: false,
+      settings: null,
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
+    expect(await screen.findByText("Java 21 is already available")).toBeTruthy();
+    expect(screen.getByText(/Nothing in Settings was changed/)).toBeTruthy();
+  });
+
+  it("is also available on the Diagnostics page", async () => {
+    render(<App />);
+    goTo("Diagnostics");
+    expect(await screen.findByRole("button", { name: "Install Java 21" })).toBeTruthy();
+  });
+});
+
 describe("Diagnostics", () => {
   it("shows the system and Java results returned by the backend", async () => {
     render(<App />);
@@ -102,6 +244,20 @@ describe("Diagnostics", () => {
     expect((await screen.findAllByText(java21Raw.path)).length).toBeGreaterThan(0);
     expect(screen.getAllByText(java17Raw.path).length).toBeGreaterThan(0);
     expect(screen.getByText("Too old")).toBeTruthy();
+  });
+
+  it("shows the version and executable path of the Java in use, and where it looked", async () => {
+    mocked.detectJava.mockResolvedValue({
+      installs: [java21Raw, java17Raw],
+      candidatesChecked: 5,
+      notes: ["JAVA_HOME is not set.", "PATH: 2 entries contain Java."],
+    });
+    render(<App />);
+    goTo("Diagnostics");
+    expect(await screen.findByText("Java in use")).toBeTruthy();
+    expect(screen.getByText("Java 21 (21.0.4)")).toBeTruthy();
+    expect(screen.getByText("Where Limited FPS looked (2)")).toBeTruthy();
+    expect(screen.getByText("JAVA_HOME is not set.")).toBeTruthy();
   });
 
   it("shows an empty state when no Java is installed", async () => {

@@ -6,6 +6,7 @@ A Windows launcher for **Minecraft Java Edition 1.21.11** (Fabric), aimed at com
 > **This is not a working Minecraft launcher yet.** What works today:
 > - **Home** shows the Limited FPS branding, the Minecraft 1.21.11 target, Fabric status, the Java installation found on your PC, and a Play section.
 > - **Settings** (memory, custom Java path with a test button, game folder, reduce motion) are validated, saved to a file in your app config folder and restored on the next start. A damaged settings file is backed up and replaced with defaults, and Settings has a reset button.
+> - **Java installer**: when no compatible Java is found, "Install Java 21" downloads Eclipse Temurin 21 from Adoptium, verifies its SHA-256 checksum, and installs it into Limited FPS's own folder (no administrator rights; PATH, registry and Windows settings are untouched). See [docs/SECURITY.md](docs/SECURITY.md). **Not yet tested on a real PC.**
 > - **Diagnostics** shows real OS, CPU and RAM information and every Java installation found (JAVA_HOME, PATH, common install folders, the Minecraft launcher's runtimes), with a copyable report.
 >
 > **Not implemented yet:** the Play button is disabled on purpose. There is no Microsoft sign-in, no game download, no Fabric installation and no launching. Fabric and the game show as "Not installed" because nothing can install them yet.

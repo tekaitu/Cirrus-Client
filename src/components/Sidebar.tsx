@@ -1,4 +1,5 @@
-import { BrandMark, DiagnosticsIcon, HomeIcon, SettingsIcon } from "./Icons";
+import { DiagnosticsIcon, HomeIcon, SettingsIcon } from "./Icons";
+import { LogoMark, Wordmark } from "./Logo";
 
 export type PageId = "home" | "settings" | "diagnostics";
 
@@ -21,9 +22,11 @@ export function Sidebar({
     <aside className="sidebar">
       <div className="brand">
         <span className="brand-mark">
-          <BrandMark size={32} />
+          <LogoMark size={36} />
         </span>
-        <span className="brand-name">Limited FPS</span>
+        <span className="brand-name">
+          <Wordmark height={13} />
+        </span>
       </div>
       <nav aria-label="Main">
         <ul>

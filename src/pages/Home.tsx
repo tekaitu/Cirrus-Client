@@ -1,5 +1,6 @@
-import { BrandMark } from "../components/Icons";
+import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
+import { LogoMark, Wordmark } from "../components/Logo";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { formatMemory, joinParts } from "../core/format";
 import { REQUIRED_JAVA_MAJOR, TARGET_MINECRAFT_VERSION } from "../core/java";
@@ -7,8 +8,9 @@ import type { AppData } from "../hooks/useAppData";
 
 function JavaCard({ data }: { data: AppData }) {
   const state = data.java;
+  const needsJava = state.status === "ready" && !state.data.selected;
   return (
-    <Card title="Java">
+    <Card title="Java" className="java-card">
       {state.status === "loading" && <Skeleton label="Detecting Java" lines={2} />}
 
       {state.status === "error" && (
@@ -64,6 +66,8 @@ function JavaCard({ data }: { data: AppData }) {
           </button>
         </div>
       )}
+
+      <JavaInstallPanel installer={data.installer} needed={needsJava} />
     </Card>
   );
 }
@@ -118,11 +122,14 @@ export function HomePage({ data }: { data: AppData }) {
     <div className="page">
       <header className="hero">
         <span className="hero-mark">
-          <BrandMark size={56} />
+          <LogoMark size={88} />
         </span>
-        <div>
-          <h1>Limited FPS</h1>
+        <div className="hero-text">
+          <h1>
+            <Wordmark height={30} />
+          </h1>
           <p className="hero-sub">Minecraft Java Edition {TARGET_MINECRAFT_VERSION}</p>
+          <p className="hero-tag">Low-end-friendly Fabric PvP launcher · early build</p>
         </div>
       </header>
 

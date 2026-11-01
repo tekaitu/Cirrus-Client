@@ -31,6 +31,8 @@ export interface JavaInstallRaw {
 export interface JavaDetectionRaw {
   installs: JavaInstallRaw[];
   candidatesChecked: number;
+  /** Plain-language record of every place that was searched. */
+  notes?: string[];
 }
 
 export interface Settings {
@@ -62,4 +64,34 @@ export interface SaveOutcome {
   ok: boolean;
   errors: FieldError[];
   state: SettingsState | null;
+}
+
+export type InstallStage =
+  | "checking"
+  | "metadata"
+  | "downloading"
+  | "verifying"
+  | "extracting"
+  | "testing"
+  | "done";
+
+/** Sent by the backend while Java is being installed. */
+export interface InstallProgress {
+  stage: InstallStage;
+  downloaded: number;
+  total: number | null;
+  message: string;
+}
+
+export type InstallStatus = "installed" | "alreadyInstalled" | "cancelled" | "failed";
+
+export interface InstallResult {
+  status: InstallStatus;
+  message: string | null;
+  javaPath: string | null;
+  version: string | null;
+  source: string | null;
+  /** True when Settings now points at the installed runtime. */
+  configured: boolean;
+  settings: SettingsState | null;
 }

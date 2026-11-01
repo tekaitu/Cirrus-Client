@@ -18,7 +18,7 @@
         "height": 720,
         "minWidth": 900,
         "minHeight": 600,
-        "backgroundColor": "#0e1014"
+        "backgroundColor": "#070c1b"
       }
     ],
     "security": {
@@ -27,6 +27,10 @@
   },
   "bundle": {
     "active": false,
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"]
+    "publisher": "Limited FPS",
+    "category": "Game",
+    "shortDescription": "Limited FPS launcher for Minecraft Java Edition 1.21.11",
+    "longDescription": "Limited FPS is a Windows launcher for Minecraft Java Edition 1.21.11 with Fabric, aimed at fast, low-end-friendly PvP.",
+    "icon": ["icons/icon.ico", "icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png"]
   }
 }

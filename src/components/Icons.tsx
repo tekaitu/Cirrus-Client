@@ -37,12 +37,3 @@ export function DiagnosticsIcon() {
     </svg>
   );
 }
-
-export function BrandMark({ size = 40 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-      <rect x="3" y="3" width="42" height="42" rx="11" fill="none" stroke="currentColor" strokeWidth="3" />
-      <path d="M17 12v20h15" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="square" />
-    </svg>
-  );
-}

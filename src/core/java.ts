@@ -56,6 +56,8 @@ export interface JavaView {
   analyses: JavaAnalysis[];
   selected: JavaAnalysis | null;
   candidatesChecked: number;
+  /** Every place that was searched, in plain language. */
+  notes: string[];
 }
 
 /** Turn the raw `java -version` result from the backend into something displayable. */
@@ -91,6 +93,10 @@ export function selectJava(analyses: JavaAnalysis[]): JavaAnalysis | null {
   return analyses.find((a) => a.status === "compatible") ?? null;
 }
 
-export function toJavaView(analyses: JavaAnalysis[], candidatesChecked: number): JavaView {
-  return { analyses, selected: selectJava(analyses), candidatesChecked };
+export function toJavaView(
+  analyses: JavaAnalysis[],
+  candidatesChecked: number,
+  notes: string[] = [],
+): JavaView {
+  return { analyses, selected: selectJava(analyses), candidatesChecked, notes };
 }

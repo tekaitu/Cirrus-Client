@@ -1,6 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import type {
   AppInfo,
+  InstallProgress,
+  InstallResult,
   JavaDetectionRaw,
   JavaInstallRaw,
   SaveOutcome,
@@ -32,12 +35,21 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   }
 }
 
+export const JAVA_INSTALL_PROGRESS_EVENT = "java-install-progress";
+
 export const api = {
   getAppInfo: () => call<AppInfo>("get_app_info"),
   getSystemInfo: () => call<SystemInfo>("get_system_info"),
   detectJava: (configuredPath: string | null) =>
     call<JavaDetectionRaw>("detect_java", { configuredPath }),
   inspectJava: (path: string) => call<JavaInstallRaw>("inspect_java", { path }),
+  installJava: () => call<InstallResult>("install_java"),
+  cancelJavaInstall: () => call<boolean>("cancel_java_install"),
+  /** Subscribe to installer progress. Resolves to an unsubscribe function. */
+  onJavaInstallProgress: async (handler: (p: InstallProgress) => void): Promise<() => void> => {
+    if (!insideTauri()) return () => {};
+    return listen<InstallProgress>(JAVA_INSTALL_PROGRESS_EVENT, (event) => handler(event.payload));
+  },
   loadSettings: () => call<SettingsState>("load_settings"),
   saveSettings: (settings: Settings) => call<SaveOutcome>("save_settings", { settings }),
   resetSettings: () => call<SettingsState>("reset_settings"),

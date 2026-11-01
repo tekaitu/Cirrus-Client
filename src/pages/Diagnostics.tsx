@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import { Badge, Banner, Card, Skeleton, Stat } from "../components/ui";
 import { formatMemory, joinParts } from "../core/format";
@@ -45,8 +46,25 @@ function SystemCard({ data }: { data: AppData }) {
   );
 }
 
+function SearchNotes({ notes }: { notes: string[] }) {
+  if (notes.length === 0) return null;
+  return (
+    <details className="search-notes">
+      <summary>Where Limited FPS looked ({notes.length})</summary>
+      <ul className="notes">
+        {notes.map((n, i) => (
+          <li key={i} className="muted small">
+            {n}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 function JavaCard({ data }: { data: AppData }) {
   const j = data.java;
+  const needsJava = j.status === "ready" && !j.data.selected;
   return (
     <Card
       title="Java installations"
@@ -73,6 +91,16 @@ function JavaCard({ data }: { data: AppData }) {
             needs Java {REQUIRED_JAVA_MAJOR} or newer.
           </p>
         </div>
+      )}
+      {j.status === "ready" && j.data.selected && (
+        <dl className="stats selected-java">
+          <Stat
+            label="Java in use"
+            value={`${javaTitle(j.data.selected)}${j.data.selected.versionString ? ` (${j.data.selected.versionString})` : ""}`}
+            hint={j.data.selected.source}
+          />
+          <Stat label="Executable" value={<span className="path">{j.data.selected.path}</span>} />
+        </dl>
       )}
       {j.status === "ready" && j.data.analyses.length > 0 && (
         <>
@@ -106,6 +134,8 @@ function JavaCard({ data }: { data: AppData }) {
           </ul>
         </>
       )}
+      {j.status === "ready" && <SearchNotes notes={j.data.notes} />}
+      <JavaInstallPanel installer={data.installer} needed={needsJava} />
     </Card>
   );
 }
