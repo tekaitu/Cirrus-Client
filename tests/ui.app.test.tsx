@@ -143,7 +143,7 @@ describe("Java installer", () => {
     expect(await screen.findByText("Starting…")).toBeTruthy();
     await waitFor(() => expect(progressHandler).not.toBeNull());
     act(() =>
-      progressHandler?.({ stage: "downloading", downloaded: 25_000_000, total: 50_000_000, message: "Downloading" }),
+      progressHandler?.({ stage: "downloading", downloaded: 26_214_400, total: 52_428_800, message: "Downloading" }),
     );
     expect(await screen.findByText("25.0 MB of 50.0 MB")).toBeTruthy();
     const bar = screen.getByLabelText("Java download progress") as HTMLProgressElement;
