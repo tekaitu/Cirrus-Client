@@ -53,10 +53,51 @@ afterEach(() => {
 describe("Home", () => {
   it("shows the branding, the target version and the detected Java", async () => {
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1, name: "Limited FPS" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: /Sword PvP/ })).toBeTruthy();
     expect(screen.getByText("Minecraft Java Edition 1.21.11")).toBeTruthy();
     expect(await screen.findByText("Java 21")).toBeTruthy();
     expect(screen.getAllByText("Not installed")).toHaveLength(2); // game files and Fabric
+  });
+
+  it("has an icon-only sidebar with Home, Settings and Diagnostics", async () => {
+    render(<App />);
+    const nav = screen.getByRole("navigation", { name: "Main" });
+    for (const name of ["Home", "Settings", "Diagnostics"]) {
+      const button = screen.getByRole("button", { name });
+      expect(nav.contains(button)).toBe(true);
+      expect(button.textContent).toBe(""); // icon only
+    }
+    expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+    await screen.findByText("Java 21");
+  });
+
+  it("shows the real account state and marks sign-in as coming soon", async () => {
+    render(<App />);
+    expect(screen.getByText("Not signed in")).toBeTruthy();
+    const signIn = screen.getByRole("button", { name: /Microsoft sign-in · coming soon/ }) as HTMLButtonElement;
+    expect(signIn.disabled).toBe(true);
+    await screen.findByText("Java 21");
+  });
+
+  it("shows local news cards, clearly labelled, with dates and categories", async () => {
+    render(<App />);
+    expect(screen.getByText(/not live news/i)).toBeTruthy();
+    const cards = screen.getAllByRole("article");
+    expect(cards.length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText("1 Nov 2026")).toBeTruthy();
+    expect(screen.getAllByText("Update").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tip").length).toBeGreaterThan(0);
+    await screen.findByText("Java 21");
+  });
+
+  it("toolbar re-scans Java and opens Diagnostics for help", async () => {
+    render(<App />);
+    await screen.findByText("Java 21");
+    fireEvent.click(screen.getByRole("button", { name: "Re-scan Java" }));
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalledTimes(2));
+    expect((screen.getByRole("button", { name: /Community/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Get help" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Diagnostics" })).toBeTruthy();
   });
 
   it("shows a loading state while Java is being detected", () => {

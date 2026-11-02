@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Sidebar, type PageId } from "./components/Sidebar";
+import { Toolbar } from "./components/Toolbar";
 import { useAppData } from "./hooks/useAppData";
 import { DiagnosticsPage } from "./pages/Diagnostics";
 import { HomePage } from "./pages/Home";
@@ -16,16 +17,15 @@ export default function App() {
 
   return (
     <div className="layout">
-      <Sidebar
-        page={page}
-        onNavigate={setPage}
-        version={data.app.status === "ready" ? data.app.data.version : null}
-      />
-      <main className="content">
-        {page === "home" && <HomePage data={data} />}
-        {page === "settings" && <SettingsPage data={data} />}
-        {page === "diagnostics" && <DiagnosticsPage data={data} />}
-      </main>
+      <Sidebar page={page} onNavigate={setPage} />
+      <div className="workspace">
+        <Toolbar data={data} onNavigate={setPage} />
+        <main className="content">
+          {page === "home" && <HomePage data={data} />}
+          {page === "settings" && <SettingsPage data={data} />}
+          {page === "diagnostics" && <DiagnosticsPage data={data} />}
+        </main>
+      </div>
     </div>
   );
 }
