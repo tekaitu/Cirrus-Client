@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
-import { accountFromStatus, type AccountState } from "../core/auth";
+import { accountFromStatus, type AccountState, type SignInMethod } from "../core/auth";
 
 export interface Account {
   state: AccountState;
-  signIn: () => void;
+  /** "window" (default): Microsoft's page in a pop-up. "code": type a code in your own browser. */
+  signIn: (method?: SignInMethod) => void;
   cancel: () => void;
   signOut: () => void;
   openLink: (url: string) => void;
@@ -55,16 +56,20 @@ export function useAuth(clientId: string | null, ready: boolean): Account {
     };
   }, [clientId, ready, set]);
 
-  const signIn = useCallback(() => {
+  const signIn = useCallback((method: SignInMethod = "window") => {
     if (busy.current) return;
     busy.current = true;
     setLinkError(null);
-    set({ phase: "starting" });
+    set({ phase: "starting", method });
     void (async () => {
       let unlisten: () => void = () => {};
       try {
-        unlisten = await api.onAuthDeviceCode((code) => set({ phase: "waiting", code }));
-        set(accountFromStatus(await api.authSignIn()));
+        if (method === "code") {
+          unlisten = await api.onAuthDeviceCode((code) => set({ phase: "waiting", code }));
+          set(accountFromStatus(await api.authSignIn()));
+        } else {
+          set(accountFromStatus(await api.authSignInWindow()));
+        }
       } catch (e) {
         set({ phase: "error", message: errorMessage(e) });
       } finally {

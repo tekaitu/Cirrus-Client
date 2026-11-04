@@ -1,10 +1,12 @@
 import type { AuthProfile, AuthStatus, DeviceCodeInfo } from "../api/types";
 
+export type SignInMethod = "window" | "code";
+
 export type AccountState =
   | { phase: "checking" }
   | { phase: "notConfigured" }
   | { phase: "signedOut"; message: string | null }
-  | { phase: "starting" }
+  | { phase: "starting"; method: SignInMethod }
   | { phase: "waiting"; code: DeviceCodeInfo }
   | { phase: "signedIn"; profile: AuthProfile; note: string | null }
   | { phase: "error"; message: string };

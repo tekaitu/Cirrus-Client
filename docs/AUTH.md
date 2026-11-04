@@ -2,6 +2,16 @@
 
 Limited FPS signs in with the official Microsoft flow for Minecraft Java Edition. It never asks for, sees or stores a password.
 
+## What the player sees
+
+Click **Sign in with Microsoft**. A window opens on Microsoft's own sign-in page; the player signs in there and the window closes. No app ID, no code, no password typed into Limited FPS. The window can only show Microsoft sign-in pages and cannot call the app's commands. "Use a code instead" is a fallback that shows a short code to type at microsoft.com/link in the player's own browser.
+
+Technically this is the authorization-code flow with PKCE (no client secret) and the scope `XboxLive.signin offline_access`, the minimum needed for Minecraft.
+
+## Why an app ID still exists
+
+Microsoft and Mojang only allow Minecraft sign-in for an app that is registered and approved, so the launcher needs one app ID. Players never see it: the **owner registers it once** and it is built into the EXE. Another launcher's ID must never be used.
+
 ## What it does
 
 1. **Device code** (Microsoft identity platform): the app shows a short code; you enter it on a Microsoft page (microsoft.com/link) in your browser.
@@ -22,8 +32,9 @@ Limited FPS does not ship an app ID and never borrows another launcher's.
 
 1. In the Azure portal create an **App registration**. Supported account types: **Personal Microsoft accounts only** (or any account type that includes personal accounts).
 2. Under **Authentication**, turn on **Allow public client flows**.
-3. Copy the **Application (client) ID** into **Settings > Microsoft sign-in**. It is an ID, not a secret.
-4. Ask Mojang to approve the app for the Minecraft services (their app-registration review). Until it is approved, the last step fails with HTTP 403 and Limited FPS says so. This approval is outside Limited FPS's control.
+3. Under **Authentication > Add a platform > Mobile and desktop applications**, add the redirect address `https://login.microsoftonline.com/consumers/oauth2/nativeclient`.
+4. Copy the **Application (client) ID** (it is an ID, not a secret) and build it in: in the GitHub repository open Settings > Secrets and variables > Actions > **Variables** and add `LIMITEDFPS_MS_CLIENT_ID`; the next build embeds it. For a quick local test, paste it into Settings > Microsoft sign-in (advanced override).
+5. Ask Mojang to approve the app for the Minecraft services (their app-registration review). Until it is approved, the last step fails with HTTP 403 and Limited FPS says so. This approval is outside Limited FPS's control.
 
 ## Status
 

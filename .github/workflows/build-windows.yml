@@ -49,6 +49,9 @@ jobs:
         run: cargo test --lib
 
       - name: Build the Windows executable (no installer)
+        # Optional repository variable: the public Azure Application (client) ID built into the app.
+        env:
+          LIMITEDFPS_MS_CLIENT_ID: ${{ vars.LIMITEDFPS_MS_CLIENT_ID }}
         run: npx tauri build --no-bundle
 
       - name: Verify the executable exists and is not empty

@@ -56,6 +56,7 @@ export const api = {
   authStatus: () => call<AuthStatus>("auth_status"),
   authRestore: () => call<AuthStatus>("auth_restore"),
   authSignIn: () => call<AuthStatus>("auth_sign_in"),
+  authSignInWindow: () => call<AuthStatus>("auth_sign_in_window"),
   authCancel: () => call<boolean>("auth_cancel"),
   authSignOut: () => call<AuthStatus>("auth_sign_out"),
   openMicrosoftLink: (url: string) => call<void>("open_microsoft_link", { url }),

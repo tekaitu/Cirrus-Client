@@ -216,3 +216,5 @@ summary { cursor: pointer; color: var(--muted); }
   .hero { min-height: 340px; }
   .hero-shade { background: linear-gradient(0deg, rgba(7, 12, 27, 0.95) 0%, rgba(7, 12, 27, 0.5) 100%); }
 }
+
+.link-button { display: block; margin: 8px auto 4px; padding: 0; font: inherit; font-size: 0.8rem; color: var(--accent-bright); background: none; border: 0; cursor: pointer; text-decoration: underline; }

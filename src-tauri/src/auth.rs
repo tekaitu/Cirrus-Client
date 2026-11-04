@@ -33,6 +33,7 @@ const MAX_BODY: u64 = 1024 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct Endpoints {
+    pub authorize: String,
     pub device_code: String,
     pub token: String,
     pub xbox_user: String,
@@ -44,6 +45,7 @@ pub struct Endpoints {
 impl Endpoints {
     pub fn production() -> Endpoints {
         Endpoints {
+            authorize: "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize".into(),
             device_code: "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode".into(),
             token: "https://login.microsoftonline.com/consumers/oauth2/v2.0/token".into(),
             xbox_user: "https://user.auth.xboxlive.com/user/authenticate".into(),
@@ -304,6 +306,164 @@ fn wait(total: Duration, cancel: &AtomicBool) -> Result<(), AuthError> {
         }
         std::thread::sleep((end - now).min(Duration::from_millis(200)));
     }
+}
+
+// ------------------------------------------------- sign-in window (PKCE)
+
+/// Register this exact address under "Mobile and desktop applications" in Azure.
+pub const REDIRECT_URI: &str = "https://login.microsoftonline.com/consumers/oauth2/nativeclient";
+
+/// The public app ID built into this copy of Limited FPS, if the build had one.
+pub fn builtin_client_id() -> Option<&'static str> {
+    option_env!("LIMITEDFPS_MS_CLIENT_ID")
+        .map(str::trim)
+        .filter(|id| is_valid_client_id(id))
+}
+
+/// URL-safe base64 without padding (RFC 4648 section 5).
+pub fn b64url(bytes: &[u8]) -> String {
+    const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut out = String::with_capacity(bytes.len() * 4 / 3 + 4);
+    for chunk in bytes.chunks(3) {
+        let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
+        out.push(T[(n >> 18) as usize & 63] as char);
+        out.push(T[(n >> 12) as usize & 63] as char);
+        if chunk.len() > 1 {
+            out.push(T[(n >> 6) as usize & 63] as char);
+        }
+        if chunk.len() > 2 {
+            out.push(T[n as usize & 63] as char);
+        }
+    }
+    out
+}
+
+pub fn pkce_challenge(verifier: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    h.update(verifier.as_bytes());
+    b64url(&h.finalize())
+}
+
+fn random_token(len: usize) -> Result<String, AuthError> {
+    let mut bytes = vec![0u8; len];
+    getrandom::getrandom(&mut bytes).map_err(|_| failed("Windows could not provide secure random numbers."))?;
+    Ok(b64url(&bytes))
+}
+
+pub struct AuthRequest {
+    pub url: String,
+    pub state: String,
+    verifier: String,
+}
+
+pub fn build_auth_request(ep: &Endpoints, client_id: &str) -> Result<AuthRequest, AuthError> {
+    let verifier = random_token(48)?;
+    let state = random_token(24)?;
+    let challenge = pkce_challenge(&verifier);
+    let url = reqwest::Url::parse_with_params(
+        &ep.authorize,
+        &[
+            ("client_id", client_id),
+            ("response_type", "code"),
+            ("redirect_uri", REDIRECT_URI),
+            ("scope", SCOPE),
+            ("code_challenge", challenge.as_str()),
+            ("code_challenge_method", "S256"),
+            ("state", state.as_str()),
+            ("prompt", "select_account"),
+        ],
+    )
+    .map_err(|_| failed("Could not build the sign-in address."))?;
+    Ok(AuthRequest { url: url.to_string(), state, verifier })
+}
+
+/// True for the address Microsoft sends the browser to when sign-in is done.
+pub fn is_redirect(url: &str) -> bool {
+    url.starts_with(REDIRECT_URI)
+        && matches!(url.as_bytes().get(REDIRECT_URI.len()), None | Some(b'?') | Some(b'#') | Some(b'/'))
+}
+
+/// Pages the sign-in window may show: HTTPS pages on Microsoft's sign-in hosts.
+pub fn is_login_page(url: &reqwest::Url) -> bool {
+    if url.scheme() != "https" || url.port().is_some() || !url.username().is_empty() {
+        return false;
+    }
+    let host = url.host_str().unwrap_or("").to_ascii_lowercase();
+    ["microsoftonline.com", "microsoft.com", "live.com", "msauth.net", "msftauth.net", "microsoftonline-p.com"]
+        .iter()
+        .any(|d| host == *d || host.ends_with(&format!(".{d}")))
+}
+
+/// Pull the authorization code out of the final redirect, checking `state`.
+pub fn parse_redirect(redirect: &str, expected_state: &str) -> Result<String, AuthError> {
+    let url = reqwest::Url::parse(redirect).map_err(|_| failed("Microsoft's answer could not be read."))?;
+    let get = |k: &str| url.query_pairs().find(|(key, _)| key == k).map(|(_, v)| v.to_string());
+    if let Some(err) = get("error") {
+        return Err(if err == "access_denied" {
+            AuthError::Declined
+        } else {
+            let desc = get("error_description").unwrap_or_default();
+            let line = desc.lines().next().unwrap_or("").trim();
+            failed(if line.is_empty() { format!("Sign-in failed ({err}).") } else { format!("Sign-in failed: {line}") })
+        });
+    }
+    if get("state").as_deref() != Some(expected_state) {
+        return Err(failed("The sign-in answer did not match this request, so it was ignored."));
+    }
+    get("code").ok_or_else(|| failed("Microsoft's answer had no sign-in code."))
+}
+
+fn exchange_code(
+    client: &Client,
+    ep: &Endpoints,
+    client_id: &str,
+    code: &str,
+    verifier: &str,
+) -> Result<MsTokens, AuthError> {
+    let (status, v) = post_form(
+        client,
+        &ep.token,
+        &[
+            ("grant_type", "authorization_code"),
+            ("client_id", client_id),
+            ("code", code),
+            ("redirect_uri", REDIRECT_URI),
+            ("code_verifier", verifier),
+            ("scope", SCOPE),
+        ],
+    )?;
+    if status != 200 {
+        return Err(oauth_error(&v, "Sign-in failed"));
+    }
+    tokens_from(&v)
+}
+
+/// Sign in through Microsoft's own page shown in a window. `show_window` opens
+/// the given address, waits for the person to finish, and returns the final
+/// redirect address (or `Cancelled`).
+pub fn sign_in_window(
+    ep: &Endpoints,
+    client_id: &str,
+    store: &dyn SecretStore,
+    cancel: &AtomicBool,
+    show_window: &dyn Fn(&str) -> Result<String, AuthError>,
+) -> Result<Session, AuthError> {
+    if !is_valid_client_id(client_id) {
+        return Err(failed("Sign-in is not set up in this build of Limited FPS."));
+    }
+    let client = http_client()?;
+    let request = build_auth_request(ep, client_id)?;
+    let redirect = show_window(&request.url)?;
+    if cancel.load(Ordering::SeqCst) {
+        return Err(AuthError::Cancelled);
+    }
+    let code = parse_redirect(&redirect, &request.state)?;
+    let ms = exchange_code(&client, ep, client_id, &code, &request.verifier)?;
+    let (mc_token, profile) = finish(&client, ep, &ms.access_token)?;
+    let persisted = persist(store, &ms.refresh_token);
+    Ok(Session { profile, mc_token, persisted })
 }
 
 // ----------------------------------------------------------- Microsoft OAuth
@@ -613,6 +773,7 @@ mod tests {
 
     fn endpoints(base: &str) -> Endpoints {
         Endpoints {
+            authorize: format!("{base}/authorize"),
             device_code: format!("{base}/devicecode"),
             token: format!("{base}/token"),
             xbox_user: format!("{base}/xbl"),
@@ -643,6 +804,98 @@ mod tests {
                 _ => (404, "{}".to_string()),
             }
         })
+    }
+
+    #[test]
+    fn pkce_challenge_matches_the_rfc_7636_example() {
+        assert_eq!(
+            pkce_challenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"),
+            "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+        );
+    }
+
+    #[test]
+    fn base64url_handles_every_padding_case() {
+        assert_eq!(b64url(b""), "");
+        assert_eq!(b64url(b"f"), "Zg");
+        assert_eq!(b64url(b"fo"), "Zm8");
+        assert_eq!(b64url(b"foo"), "Zm9v");
+        assert_eq!(b64url(&[0xfb, 0xff]), "-_8");
+    }
+
+    #[test]
+    fn auth_request_carries_pkce_state_and_the_fixed_redirect() {
+        let a = build_auth_request(&Endpoints::production(), ID).unwrap();
+        let u = reqwest::Url::parse(&a.url).unwrap();
+        assert_eq!(u.host_str(), Some("login.microsoftonline.com"));
+        let q: std::collections::HashMap<_, _> = u.query_pairs().into_owned().collect();
+        assert_eq!(q["client_id"], ID);
+        assert_eq!(q["response_type"], "code");
+        assert_eq!(q["redirect_uri"], REDIRECT_URI);
+        assert_eq!(q["code_challenge_method"], "S256");
+        assert_eq!(q["scope"], SCOPE);
+        assert_eq!(q["state"], a.state);
+        assert_eq!(q["code_challenge"], pkce_challenge(&a.verifier));
+        assert!(a.verifier.len() >= 43);
+        let b = build_auth_request(&Endpoints::production(), ID).unwrap();
+        assert_ne!(a.state, b.state);
+    }
+
+    #[test]
+    fn redirect_detection_and_login_page_allow_list() {
+        assert!(is_redirect(&format!("{REDIRECT_URI}?code=abc&state=s")));
+        assert!(is_redirect(REDIRECT_URI));
+        assert!(!is_redirect(&format!("{REDIRECT_URI}evil?code=abc")));
+        assert!(!is_redirect("https://evil.example.com/?https://login.microsoftonline.com/consumers/oauth2/nativeclient"));
+        for ok in ["https://login.microsoftonline.com/x", "https://login.live.com/", "https://account.live.com/x", "https://aadcdn.msauth.net/a.js", "https://www.microsoft.com/"] {
+            assert!(is_login_page(&reqwest::Url::parse(ok).unwrap()), "{ok}");
+        }
+        for bad in ["http://login.live.com/", "https://evil.com/", "https://login.live.com.evil.com/", "https://notlive.com/", "https://login.live.com:8443/", "https://a@login.live.com/"] {
+            assert!(!is_login_page(&reqwest::Url::parse(bad).unwrap()), "{bad}");
+        }
+    }
+
+    #[test]
+    fn redirect_parsing_checks_state_and_reports_denials() {
+        let ok = format!("{REDIRECT_URI}?code=CODE%2B1&state=S");
+        assert_eq!(parse_redirect(&ok, "S").unwrap(), "CODE+1");
+        assert!(parse_redirect(&ok, "OTHER").unwrap_err().to_string().contains("did not match"));
+        assert!(parse_redirect(&format!("{REDIRECT_URI}?state=S"), "S").is_err());
+        assert_eq!(parse_redirect(&format!("{REDIRECT_URI}?error=access_denied&state=S"), "S").unwrap_err(), AuthError::Declined);
+        let e = parse_redirect(&format!("{REDIRECT_URI}?error=server_error&error_description=Oops%0D%0Atrace&state=S"), "S").unwrap_err();
+        assert!(e.to_string().contains("Oops"));
+    }
+
+    #[test]
+    fn window_sign_in_exchanges_the_code_with_the_pkce_verifier() {
+        let (base, _) = happy_chain(|path, body| {
+            (path == "/token").then(|| {
+                assert!(body.contains("grant_type=authorization_code"), "{body}");
+                assert!(body.contains("code=THE-CODE") && body.contains("code_verifier="), "{body}");
+                (200, json!({"access_token":"MS-ACCESS","refresh_token":"MS-REFRESH"}).to_string())
+            })
+        });
+        let store = MemoryStore::default();
+        let shown = Mutex::new(String::new());
+        let session = sign_in_window(&endpoints(&base), ID, &store, &AtomicBool::new(false), &|url| {
+            *shown.lock().unwrap() = url.to_string();
+            let state = reqwest::Url::parse(url).unwrap().query_pairs().find(|(k, _)| k == "state").unwrap().1.to_string();
+            Ok(format!("{REDIRECT_URI}?code=THE-CODE&state={state}"))
+        })
+        .unwrap();
+        assert_eq!(session.profile.name, "Steve");
+        assert!(shown.lock().unwrap().starts_with(&format!("{base}/authorize?")));
+        assert_eq!(store.load().unwrap().as_deref(), Some("MS-REFRESH"));
+    }
+
+    #[test]
+    fn window_sign_in_stops_on_cancel_or_forged_answers() {
+        let (base, hits) = happy_chain(|_, _| None);
+        let err = sign_in_window(&endpoints(&base), ID, &MemoryStore::default(), &AtomicBool::new(false), &|_| Err(AuthError::Cancelled)).unwrap_err();
+        assert_eq!(err, AuthError::Cancelled);
+        let err = sign_in_window(&endpoints(&base), ID, &MemoryStore::default(), &AtomicBool::new(false), &|_| Ok(format!("{REDIRECT_URI}?code=X&state=forged"))).unwrap_err();
+        assert!(err.to_string().contains("did not match"));
+        assert_eq!(hits.load(Ordering::SeqCst), 0); // no request ever left
     }
 
     #[test]

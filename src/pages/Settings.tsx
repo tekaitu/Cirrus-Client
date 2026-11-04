@@ -259,7 +259,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         <Field
           id="ms-client-id"
           label="Azure application (client) ID"
-          hint="Optional. Needed once to turn on Microsoft sign-in. It is an ID, not a secret. See docs/AUTH.md for how to register the app."
+          hint="Advanced and optional. Leave blank to use the app ID built into Limited FPS. It is an ID, not a secret. See docs/AUTH.md."
           error={errors.msClientId}
         >
           <input

@@ -275,14 +275,18 @@ struct AuthStatus {
     message: Option<String>,
 }
 
+/// The Settings override if there is one, otherwise the app ID built into this build.
 fn client_id_from_settings(app: &AppHandle) -> Option<String> {
-    let total = system::total_ram_mb();
-    let defaults = default_settings(app, total).ok()?;
-    let file = settings_file(app).ok()?;
-    settings::load(&file, &defaults)
-        .settings
-        .ms_client_id
-        .filter(|id| auth::is_valid_client_id(id))
+    let custom = (|| {
+        let total = system::total_ram_mb();
+        let defaults = default_settings(app, total).ok()?;
+        let file = settings_file(app).ok()?;
+        settings::load(&file, &defaults)
+            .settings
+            .ms_client_id
+            .filter(|id| auth::is_valid_client_id(id))
+    })();
+    custom.or_else(|| auth::builtin_client_id().map(str::to_string))
 }
 
 fn status(
@@ -392,6 +396,102 @@ async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<Aut
         Err(auth::AuthError::Cancelled) => status("cancelled", true, None, None),
         Err(e) => status("failed", true, None, Some(e.to_string())),
     })
+}
+
+/// Sign in through Microsoft's own page in a pop-up window. The window can
+/// only show Microsoft sign-in pages and has no access to the app's commands.
+#[tauri::command]
+async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Result<AuthStatus, String> {
+    let Some(client_id) = client_id_from_settings(&app) else {
+        return Ok(status(
+            "notConfigured",
+            false,
+            None,
+            Some("Sign-in is not set up in this build of Limited FPS.".to_string()),
+        ));
+    };
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut slot = state.cancel.lock().map_err(|_| "Sign-in state is unavailable.".to_string())?;
+        if slot.is_some() {
+            return Err("A sign-in is already in progress.".to_string());
+        }
+        *slot = Some(cancel.clone());
+    }
+    let handle = app.clone();
+    let flag = cancel.clone();
+    let worker = tauri::async_runtime::spawn_blocking(move || {
+        auth::sign_in_window(
+            &auth::Endpoints::production(),
+            &client_id,
+            &auth::KeyringStore,
+            &flag,
+            &|url| show_login_window(&handle, url, &flag),
+        )
+    })
+    .await;
+    if let Ok(mut slot) = state.cancel.lock() {
+        *slot = None;
+    }
+    let result = worker.map_err(|e| format!("Sign-in stopped unexpectedly: {e}"))?;
+    Ok(match result {
+        Ok(session) => {
+            let profile = session.profile.clone();
+            let note = if session.persisted {
+                None
+            } else {
+                Some("Signed in, but the login could not be saved, so you will need to sign in again next time.".to_string())
+            };
+            if let Ok(mut slot) = state.session.lock() {
+                *slot = Some(session);
+            }
+            status("signedIn", true, Some(profile), note)
+        }
+        Err(auth::AuthError::Cancelled) => status("cancelled", true, None, None),
+        Err(e) => status("failed", true, None, Some(e.to_string())),
+    })
+}
+
+/// Show `url` in a window and wait for the redirect that ends sign-in.
+fn show_login_window(app: &AppHandle, url: &str, cancel: &AtomicBool) -> Result<String, auth::AuthError> {
+    use std::sync::mpsc;
+    let parsed: tauri::Url = url
+        .parse()
+        .map_err(|_| auth::AuthError::Failed("Could not build the sign-in address.".to_string()))?;
+    let (tx, rx) = mpsc::channel::<Result<String, auth::AuthError>>();
+    let nav_tx = tx.clone();
+    let window = tauri::WebviewWindowBuilder::new(app, "ms-login", tauri::WebviewUrl::External(parsed))
+        .title("Sign in with Microsoft")
+        .inner_size(480.0, 680.0)
+        .center()
+        .on_navigation(move |next| {
+            if auth::is_redirect(next.as_str()) {
+                let _ = nav_tx.send(Ok(next.to_string()));
+                false
+            } else {
+                auth::is_login_page(next)
+            }
+        })
+        .build()
+        .map_err(|e| auth::AuthError::Failed(format!("Could not open the sign-in window: {e}")))?;
+    let close_tx = tx;
+    window.on_window_event(move |event| {
+        if matches!(event, tauri::WindowEvent::Destroyed) {
+            let _ = close_tx.send(Err(auth::AuthError::Cancelled));
+        }
+    });
+    let outcome = loop {
+        if cancel.load(Ordering::SeqCst) {
+            break Err(auth::AuthError::Cancelled);
+        }
+        match rx.recv_timeout(std::time::Duration::from_millis(200)) {
+            Ok(result) => break result,
+            Err(mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(mpsc::RecvTimeoutError::Disconnected) => break Err(auth::AuthError::Cancelled),
+        }
+    };
+    let _ = window.close();
+    outcome
 }
 
 #[tauri::command]
@@ -504,6 +604,7 @@ pub fn run() {
             auth_status,
             auth_restore,
             auth_sign_in,
+            auth_sign_in_window,
             auth_cancel,
             auth_sign_out,
             open_microsoft_link,

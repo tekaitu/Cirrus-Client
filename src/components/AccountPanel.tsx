@@ -21,13 +21,13 @@ export function AccountPanel({ account, onNavigate }: { account: Account; onNavi
             <div>
               <p className="account-name">Not signed in</p>
               <p className="muted small">
-                Microsoft sign-in needs an Azure app ID that you register yourself. Add it in Settings to turn
-                sign-in on.
+                Sign-in is not set up in this build yet: it needs an app ID registered with Microsoft and approved
+                by Mojang. Players never type one; the owner adds it once.
               </p>
             </div>
           </div>
           <button type="button" className="btn btn-block" onClick={() => onNavigate("settings")}>
-            Set up sign-in
+            Set up sign-in (owner)
           </button>
         </>
       )}
@@ -42,15 +42,24 @@ export function AccountPanel({ account, onNavigate }: { account: Account; onNavi
             </div>
           </div>
           {state.message && <p className="error-text" role="alert">{state.message}</p>}
-          <button type="button" className="btn btn-primary btn-block" onClick={account.signIn}>
+          <button type="button" className="btn btn-primary btn-block" onClick={() => account.signIn("window")}>
             Sign in with Microsoft
           </button>
+          <button type="button" className="link-button" onClick={() => account.signIn("code")}>
+            Use a code instead
+          </button>
+          <p className="muted small">
+            Opens Microsoft&apos;s own sign-in page. Limited FPS only asks to sign in to Minecraft and never sees
+            your password.
+          </p>
         </>
       )}
 
       {state.phase === "starting" && (
         <div role="status" aria-live="polite">
-          <p className="account-name">Contacting Microsoft…</p>
+          <p className="account-name">
+            {state.method === "window" ? "Finish signing in in the Microsoft window…" : "Contacting Microsoft…"}
+          </p>
           <div className="row">
             <button type="button" className="btn" onClick={account.cancel}>
               Cancel
@@ -117,7 +126,7 @@ export function AccountPanel({ account, onNavigate }: { account: Account; onNavi
           tone="bad"
           title="Sign-in problem"
           actions={
-            <button type="button" className="btn" onClick={account.signIn}>
+            <button type="button" className="btn" onClick={() => account.signIn("window")}>
               Try again
             </button>
           }
