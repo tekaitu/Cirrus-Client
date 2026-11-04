@@ -20,6 +20,9 @@ pub struct Settings {
     pub memory_mb: u32,
     pub game_dir: String,
     pub reduce_motion: bool,
+    /// Application (client) ID of the Azure app used for Microsoft sign-in.
+    /// It is public information (not a secret); `None` means sign-in is not set up.
+    pub ms_client_id: Option<String>,
 }
 
 impl Default for Settings {
@@ -30,6 +33,7 @@ impl Default for Settings {
             memory_mb: DEFAULT_MEMORY_MB,
             game_dir: String::new(),
             reduce_motion: false,
+            ms_client_id: None,
         }
     }
 }
@@ -97,6 +101,10 @@ pub fn normalize(mut s: Settings) -> Settings {
             }
         })
         .filter(|p| !p.is_empty());
+    s.ms_client_id = s
+        .ms_client_id
+        .map(|c| c.trim().to_string())
+        .filter(|c| !c.is_empty());
     s.game_dir = s.game_dir.trim().to_string();
     s.version = SETTINGS_VERSION;
     s
@@ -133,6 +141,15 @@ pub fn validate(s: &Settings, total_ram_mb: u64) -> Vec<FieldError> {
                 message: format!(
                     "No Java program found at {p}. Choose the java.exe file or the Java install folder."
                 ),
+            });
+        }
+    }
+
+    if let Some(id) = &s.ms_client_id {
+        if !crate::auth::is_valid_client_id(id) {
+            errors.push(FieldError {
+                field: "msClientId",
+                message: "This should look like 00000000-0000-0000-0000-000000000000 (the Application (client) ID from Azure).".to_string(),
             });
         }
     }
@@ -317,6 +334,22 @@ mod tests {
             ..Settings::default()
         };
         assert!(validate(&s, 16384).is_empty());
+    }
+
+    #[test]
+    fn microsoft_client_id_must_be_a_guid_or_blank() {
+        let ok = Settings {
+            ms_client_id: Some("12345678-90ab-cdef-1234-567890abcdef".into()),
+            game_dir: game_dir_ok(),
+            ..Settings::default()
+        };
+        assert!(validate(&ok, 16384).is_empty());
+        let bad = Settings { ms_client_id: Some("not-a-guid".into()), ..ok.clone() };
+        let errors = validate(&bad, 16384);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "msClientId");
+        let blank = normalize(Settings { ms_client_id: Some("  ".into()), ..ok });
+        assert_eq!(blank.ms_client_id, None);
     }
 
     #[test]

@@ -41,6 +41,8 @@ export interface Settings {
   memoryMb: number;
   gameDir: string;
   reduceMotion: boolean;
+  /** Azure Application (client) ID for Microsoft sign-in; public, not a secret. */
+  msClientId: string | null;
 }
 
 export type LoadStatus = "loaded" | "createdDefaults" | "recoveredFromCorruption";
@@ -56,7 +58,7 @@ export interface SettingsState {
 }
 
 export interface FieldError {
-  field: "memoryMb" | "javaPath" | "gameDir";
+  field: "memoryMb" | "javaPath" | "gameDir" | "msClientId";
   message: string;
 }
 
@@ -94,4 +96,28 @@ export interface InstallResult {
   /** True when Settings now points at the installed runtime. */
   configured: boolean;
   settings: SettingsState | null;
+}
+
+export type AuthState = "notConfigured" | "signedOut" | "signedIn" | "cancelled" | "failed";
+
+export interface AuthProfile {
+  id: string;
+  name: string;
+}
+
+/** Account state from the backend. Tokens never cross into the interface. */
+export interface AuthStatus {
+  state: AuthState;
+  configured: boolean;
+  /** A login is saved in Windows Credential Manager. */
+  savedLogin: boolean;
+  profile: AuthProfile | null;
+  message: string | null;
+}
+
+/** What the person must do on the Microsoft page to finish signing in. */
+export interface DeviceCodeInfo {
+  userCode: string;
+  verificationUri: string;
+  expiresIn: number;
 }

@@ -65,6 +65,7 @@ export function settingsState(
       memoryMb: 4096,
       gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\game",
       reduceMotion: false,
+      msClientId: null,
       ...settings,
     },
     status: "loaded",

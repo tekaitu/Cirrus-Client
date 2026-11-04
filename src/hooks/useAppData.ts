@@ -1,6 +1,7 @@
 import { api } from "../api/client";
 import type { AppInfo, SettingsState, SystemInfo } from "../api/types";
 import { analyzeJava, toJavaView, type JavaView } from "../core/java";
+import { useAuth, type Account } from "./useAuth";
 import { useJavaInstaller, type JavaInstaller } from "./useJavaInstaller";
 import { useResource, type ResourceState } from "./useResource";
 
@@ -10,6 +11,7 @@ export interface AppData {
   settings: ResourceState<SettingsState>;
   java: ResourceState<JavaView>;
   installer: JavaInstaller;
+  account: Account;
   reloadAll: () => void;
   reloadSettings: () => void;
   reloadJava: () => void;
@@ -36,8 +38,14 @@ export function useAppData(): AppData {
     onNoSettingsChange: java.reload,
   });
 
+  const account = useAuth(
+    s.status === "ready" ? (s.data.settings.msClientId ?? null) : null,
+    s.status !== "loading",
+  );
+
   return {
     installer,
+    account,
     app: app.state,
     system: system.state,
     settings: settings.state,

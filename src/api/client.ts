@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type {
   AppInfo,
+  AuthStatus,
+  DeviceCodeInfo,
   InstallProgress,
   InstallResult,
   JavaDetectionRaw,
@@ -35,6 +37,7 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   }
 }
 
+export const AUTH_CODE_EVENT = "auth-device-code";
 export const JAVA_INSTALL_PROGRESS_EVENT = "java-install-progress";
 
 export const api = {
@@ -49,6 +52,16 @@ export const api = {
   onJavaInstallProgress: async (handler: (p: InstallProgress) => void): Promise<() => void> => {
     if (!insideTauri()) return () => {};
     return listen<InstallProgress>(JAVA_INSTALL_PROGRESS_EVENT, (event) => handler(event.payload));
+  },
+  authStatus: () => call<AuthStatus>("auth_status"),
+  authRestore: () => call<AuthStatus>("auth_restore"),
+  authSignIn: () => call<AuthStatus>("auth_sign_in"),
+  authCancel: () => call<boolean>("auth_cancel"),
+  authSignOut: () => call<AuthStatus>("auth_sign_out"),
+  openMicrosoftLink: (url: string) => call<void>("open_microsoft_link", { url }),
+  onAuthDeviceCode: async (handler: (info: DeviceCodeInfo) => void): Promise<() => void> => {
+    if (!insideTauri()) return () => {};
+    return listen<DeviceCodeInfo>(AUTH_CODE_EVENT, (event) => handler(event.payload));
   },
   loadSettings: () => call<SettingsState>("load_settings"),
   saveSettings: (settings: Settings) => call<SaveOutcome>("save_settings", { settings }),

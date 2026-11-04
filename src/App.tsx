@@ -21,7 +21,7 @@ export default function App() {
       <div className="workspace">
         <Toolbar data={data} onNavigate={setPage} />
         <main className="content">
-          {page === "home" && <HomePage data={data} />}
+          {page === "home" && <HomePage data={data} onNavigate={setPage} />}
           {page === "settings" && <SettingsPage data={data} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
         </main>

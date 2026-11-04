@@ -7,14 +7,15 @@ export interface MemoryLimits {
   max: number;
 }
 
-export type SettingsErrors = Partial<Record<"memoryMb" | "javaPath" | "gameDir", string>>;
+export type SettingsErrors = Partial<Record<"memoryMb" | "javaPath" | "gameDir" | "msClientId", string>>;
 
 export const MEMORY_STEP_MB = 256;
 
 /** Trim text fields and turn a blank Java path into null ("detect automatically"). */
 export function normalizeDraft(s: Settings): Settings {
   const javaPath = s.javaPath?.trim() ? s.javaPath.trim() : null;
-  return { ...s, javaPath, gameDir: s.gameDir.trim() };
+  const msClientId = s.msClientId?.trim() ? s.msClientId.trim() : null;
+  return { ...s, javaPath, msClientId, gameDir: s.gameDir.trim() };
 }
 
 export function settingsEqual(a: Settings, b: Settings): boolean {
@@ -22,9 +23,13 @@ export function settingsEqual(a: Settings, b: Settings): boolean {
     a.javaPath === b.javaPath &&
     a.memoryMb === b.memoryMb &&
     a.gameDir === b.gameDir &&
-    a.reduceMotion === b.reduceMotion
+    a.reduceMotion === b.reduceMotion &&
+    a.msClientId === b.msClientId
   );
 }
+
+/** Azure application (client) IDs are GUIDs. */
+export const CLIENT_ID_PATTERN = /^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/;
 
 export function clampMemory(value: number, limits: MemoryLimits): number {
   if (!Number.isFinite(value)) return limits.min;
@@ -48,6 +53,11 @@ export function validateDraft(s: Settings, limits: MemoryLimits): SettingsErrors
     errors.gameDir = "Game directory is required.";
   } else if (!WINDOWS_ABSOLUTE.test(s.gameDir.trim()) && !s.gameDir.trim().startsWith("/")) {
     errors.gameDir = "Use a full path, for example C:\\Users\\you\\LimitedFPS.";
+  }
+  const id = s.msClientId?.trim();
+  if (id && !CLIENT_ID_PATTERN.test(id)) {
+    errors.msClientId =
+      "This should look like 00000000-0000-0000-0000-000000000000 (the Application (client) ID from Azure).";
   }
   return errors;
 }

@@ -255,6 +255,26 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Field>
       </Card>
 
+      <Card title="Microsoft sign-in">
+        <Field
+          id="ms-client-id"
+          label="Azure application (client) ID"
+          hint="Optional. Needed once to turn on Microsoft sign-in. It is an ID, not a secret. See docs/AUTH.md for how to register the app."
+          error={errors.msClientId}
+        >
+          <input
+            id="ms-client-id"
+            type="text"
+            spellCheck={false}
+            autoComplete="off"
+            placeholder="00000000-0000-0000-0000-000000000000"
+            value={draft.msClientId ?? ""}
+            aria-invalid={errors.msClientId ? true : undefined}
+            onChange={(e) => edit({ msClientId: e.target.value })}
+          />
+        </Field>
+      </Card>
+
       <Card title="Interface">
         <label className="check">
           <input

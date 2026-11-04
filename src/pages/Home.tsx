@@ -1,5 +1,7 @@
+import { AccountPanel } from "../components/AccountPanel";
 import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
+import type { PageId } from "../components/Sidebar";
 import { CardArt, HeroArt } from "../components/Art";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { formatMemory, joinParts } from "../core/format";
@@ -74,23 +76,25 @@ function JavaCard({ data }: { data: AppData }) {
   );
 }
 
-type CheckState = "ok" | "missing" | "checking" | "unbuilt";
+type CheckState = "ok" | "missing" | "checking" | "unbuilt" | "needed";
 
 const CHECK_LABEL: Record<CheckState, { tone: Tone; text: string }> = {
   ok: { tone: "good", text: "Ready" },
   missing: { tone: "warn", text: "Missing" },
   checking: { tone: "neutral", text: "Checking…" },
   unbuilt: { tone: "neutral", text: "Not built yet" },
+  needed: { tone: "warn", text: "Sign-in needed" },
 };
 
 function Hero({ data }: { data: AppData }) {
+  const signedIn = data.account.state.phase === "signedIn";
   const java = data.java;
   const javaCheck: CheckState =
     java.status === "loading" ? "checking" : java.status === "ready" && java.data.selected ? "ok" : "missing";
 
   const checks: Array<{ label: string; state: CheckState }> = [
     { label: `Java ${REQUIRED_JAVA_MAJOR} or newer`, state: javaCheck },
-    { label: "Microsoft account sign-in", state: "unbuilt" },
+    { label: "Microsoft account sign-in", state: signedIn ? "ok" : "needed" },
     { label: "Minecraft game files", state: "unbuilt" },
     { label: "Fabric loader", state: "unbuilt" },
   ];
@@ -125,23 +129,6 @@ function Hero({ data }: { data: AppData }) {
         </ul>
       </div>
     </section>
-  );
-}
-
-function AccountPanel() {
-  return (
-    <Card title="Account" className="account-card">
-      <div className="account-row">
-        <span className="avatar" aria-hidden="true">?</span>
-        <div>
-          <p className="account-name">Not signed in</p>
-          <p className="muted small">Microsoft sign-in has not been built yet, so no account is connected.</p>
-        </div>
-      </div>
-      <button type="button" className="btn btn-block" disabled>
-        Microsoft sign-in · coming soon
-      </button>
-    </Card>
   );
 }
 
@@ -198,13 +185,13 @@ function NewsRow() {
   );
 }
 
-export function HomePage({ data }: { data: AppData }) {
+export function HomePage({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
   return (
     <div className="home">
       <div className="home-top">
         <Hero data={data} />
         <div className="home-side">
-          <AccountPanel />
+          <AccountPanel account={data.account} onNavigate={onNavigate} />
           <StatusPanel data={data} />
         </div>
       </div>

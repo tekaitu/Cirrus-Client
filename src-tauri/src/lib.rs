@@ -1,9 +1,11 @@
+pub mod auth;
 pub mod java;
 pub mod runtime;
 pub mod settings;
 pub mod system;
 
 use serde::Serialize;
+use auth::SecretStore;
 use settings::{FieldError, LoadStatus, Settings};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -12,6 +14,16 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 /// Event the installer sends to the window while it works.
 pub const INSTALL_PROGRESS_EVENT: &str = "java-install-progress";
+
+/// Event that carries the Microsoft sign-in code to show.
+pub const AUTH_CODE_EVENT: &str = "auth-device-code";
+
+/// Signed-in session (kept in memory only) and the cancel flag of a running sign-in.
+#[derive(Default)]
+struct AuthState {
+    session: Mutex<Option<auth::Session>>,
+    cancel: Mutex<Option<Arc<AtomicBool>>>,
+}
 
 /// Cancel flag of the installation that is running right now, if any.
 #[derive(Default)]
@@ -250,6 +262,187 @@ fn cancel_java_install(state: State<'_, InstallState>) -> bool {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AuthStatus {
+    /// "notConfigured" | "signedOut" | "signedIn" | "cancelled" | "failed"
+    state: &'static str,
+    /// True when Settings holds a valid Azure client ID.
+    configured: bool,
+    /// True when a login is saved in Windows Credential Manager (or was just made).
+    saved_login: bool,
+    profile: Option<auth::Profile>,
+    message: Option<String>,
+}
+
+fn client_id_from_settings(app: &AppHandle) -> Option<String> {
+    let total = system::total_ram_mb();
+    let defaults = default_settings(app, total).ok()?;
+    let file = settings_file(app).ok()?;
+    settings::load(&file, &defaults)
+        .settings
+        .ms_client_id
+        .filter(|id| auth::is_valid_client_id(id))
+}
+
+fn status(
+    state: &'static str,
+    configured: bool,
+    profile: Option<auth::Profile>,
+    message: Option<String>,
+) -> AuthStatus {
+    AuthStatus {
+        state,
+        configured,
+        saved_login: profile.is_some(),
+        profile,
+        message,
+    }
+}
+
+/// Current state without any network traffic.
+#[tauri::command]
+fn auth_status(app: AppHandle, state: State<'_, AuthState>) -> AuthStatus {
+    let configured = client_id_from_settings(&app).is_some();
+    let session = state.session.lock().ok().and_then(|s| s.as_ref().map(|s| s.profile.clone()));
+    match session {
+        Some(profile) => status("signedIn", configured, Some(profile), None),
+        None if configured => {
+            let mut s = status("signedOut", true, None, None);
+            s.saved_login = matches!(auth::KeyringStore.load(), Ok(Some(_)));
+            s
+        }
+        None => status("notConfigured", false, None, None),
+    }
+}
+
+/// Silent sign-in from the saved login (needs the network).
+#[tauri::command]
+async fn auth_restore(app: AppHandle, state: State<'_, AuthState>) -> Result<AuthStatus, String> {
+    let Some(client_id) = client_id_from_settings(&app) else {
+        return Ok(status("notConfigured", false, None, None));
+    };
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        auth::restore(&auth::Endpoints::production(), &client_id, &auth::KeyringStore)
+    })
+    .await
+    .map_err(|e| format!("Sign-in check stopped unexpectedly: {e}"))?;
+    Ok(match result {
+        Ok(Some(session)) => {
+            let profile = session.profile.clone();
+            if let Ok(mut slot) = state.session.lock() {
+                *slot = Some(session);
+            }
+            status("signedIn", true, Some(profile), None)
+        }
+        Ok(None) => status("signedOut", true, None, None),
+        Err(e) => {
+            let mut s = status("signedOut", true, None, Some(e.to_string()));
+            s.saved_login = matches!(e, auth::AuthError::Failed(_));
+            s
+        }
+    })
+}
+
+/// Interactive device-code sign-in. Emits `auth-device-code` with the code to show,
+/// then returns when the person finishes, cancels, or it fails.
+#[tauri::command]
+async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<AuthStatus, String> {
+    let Some(client_id) = client_id_from_settings(&app) else {
+        return Ok(status(
+            "notConfigured",
+            false,
+            None,
+            Some("Enter your Azure Application (client) ID in Settings first.".to_string()),
+        ));
+    };
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut slot = state.cancel.lock().map_err(|_| "Sign-in state is unavailable.".to_string())?;
+        if slot.is_some() {
+            return Err("A sign-in is already in progress.".to_string());
+        }
+        *slot = Some(cancel.clone());
+    }
+    let emitter = app.clone();
+    let flag = cancel.clone();
+    let worker = tauri::async_runtime::spawn_blocking(move || {
+        auth::sign_in(&auth::Endpoints::production(), &client_id, &auth::KeyringStore, &flag, &move |info| {
+            let _ = emitter.emit(AUTH_CODE_EVENT, info.clone());
+        })
+    })
+    .await;
+    if let Ok(mut slot) = state.cancel.lock() {
+        *slot = None;
+    }
+    let result = worker.map_err(|e| format!("Sign-in stopped unexpectedly: {e}"))?;
+    Ok(match result {
+        Ok(session) => {
+            let profile = session.profile.clone();
+            let note = if session.persisted {
+                None
+            } else {
+                Some("Signed in, but the login could not be saved, so you will need to sign in again next time.".to_string())
+            };
+            if let Ok(mut slot) = state.session.lock() {
+                *slot = Some(session);
+            }
+            status("signedIn", true, Some(profile), note)
+        }
+        Err(auth::AuthError::Cancelled) => status("cancelled", true, None, None),
+        Err(e) => status("failed", true, None, Some(e.to_string())),
+    })
+}
+
+#[tauri::command]
+fn auth_cancel(state: State<'_, AuthState>) -> bool {
+    match state.cancel.lock() {
+        Ok(slot) => match slot.as_ref() {
+            Some(flag) => {
+                flag.store(true, Ordering::SeqCst);
+                true
+            }
+            None => false,
+        },
+        Err(_) => false,
+    }
+}
+
+#[tauri::command]
+fn auth_sign_out(app: AppHandle, state: State<'_, AuthState>) -> AuthStatus {
+    if let Ok(mut slot) = state.session.lock() {
+        *slot = None;
+    }
+    let configured = client_id_from_settings(&app).is_some();
+    match auth::sign_out(&auth::KeyringStore) {
+        Ok(()) => status(if configured { "signedOut" } else { "notConfigured" }, configured, None, None),
+        Err(e) => status("failed", configured, None, Some(e)),
+    }
+}
+
+/// Open the Microsoft sign-in page in the default browser. Only Microsoft
+/// pages are accepted, and no shell is involved.
+#[tauri::command]
+fn open_microsoft_link(url: String) -> Result<(), String> {
+    if !auth::is_allowed_link(&url) {
+        return Err("Only Microsoft sign-in pages can be opened from here.".to_string());
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", &url])
+            .creation_flags(0x0800_0000)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("Could not open the browser: {e}"))
+    }
+    #[cfg(not(windows))]
+    {
+        Err("Opening the browser is only supported on Windows.".to_string())
+    }
+}
+
 #[tauri::command]
 async fn load_settings(app: AppHandle) -> Result<SettingsState, String> {
     let total = system::total_ram_mb();
@@ -300,6 +493,7 @@ async fn reset_settings(app: AppHandle) -> Result<SettingsState, String> {
 pub fn run() {
     tauri::Builder::default()
         .manage(InstallState::default())
+        .manage(AuthState::default())
         .invoke_handler(tauri::generate_handler![
             get_app_info,
             get_system_info,
@@ -307,6 +501,12 @@ pub fn run() {
             inspect_java,
             install_java,
             cancel_java_install,
+            auth_status,
+            auth_restore,
+            auth_sign_in,
+            auth_cancel,
+            auth_sign_out,
+            open_microsoft_link,
             load_settings,
             save_settings,
             reset_settings
