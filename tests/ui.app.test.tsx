@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import App from "../src/App";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
@@ -209,7 +209,8 @@ describe("Microsoft account", () => {
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
     expect(await screen.findByText("Steve")).toBeTruthy();
     expect(screen.getByText("01234567-89ab-cdef-0123-456789abcdef")).toBeTruthy();
-    expect(screen.getByText("Ready", { selector: ".chips .badge" })).toBeTruthy();
+    const row = screen.getByText("Microsoft account sign-in").closest("li") as HTMLElement;
+    expect(within(row).getByText("Ready")).toBeTruthy();
   });
 
   it("does not offer to open a code page that is not on microsoft.com", async () => {
