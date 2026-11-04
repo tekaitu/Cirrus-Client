@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { DiagnosticsIcon, FolderIcon, JavaIcon, MemoryIcon } from "../components/Icons";
 import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import { Badge, Banner, Card, Skeleton, Stat } from "../components/ui";
@@ -15,7 +16,7 @@ function dataOrNull<T>(r: ResourceState<T>): T | null {
 function SystemCard({ data }: { data: AppData }) {
   const s = data.system;
   return (
-    <Card title="System">
+    <Card title="System" icon={<MemoryIcon />} description="Your PC, read live.">
       {s.status === "loading" && <Skeleton label="Reading system information" lines={4} />}
       {s.status === "error" && (
         <Banner tone="bad" title="System information unavailable">
@@ -68,6 +69,8 @@ function JavaCard({ data }: { data: AppData }) {
   return (
     <Card
       title="Java installations"
+      icon={<JavaIcon />}
+      description="Every Java found, in the order Limited FPS prefers them."
       action={
         <button type="button" className="btn" onClick={data.reloadJava} disabled={j.status === "loading"}>
           {j.status === "loading" ? "Detecting…" : "Detect again"}
@@ -168,6 +171,8 @@ function ReportCard({ data }: { data: AppData }) {
   return (
     <Card
       title="Report"
+      icon={<DiagnosticsIcon />}
+      description="Copy this when asking for help."
       action={
         <button type="button" className="btn" onClick={() => void copy()} disabled={loading}>
           Copy report
@@ -195,7 +200,7 @@ function ReportCard({ data }: { data: AppData }) {
 function SettingsCard({ data }: { data: AppData }) {
   const s = data.settings;
   return (
-    <Card title="Settings file">
+    <Card title="Settings file" icon={<FolderIcon />}>
       {s.status === "loading" && <Skeleton label="Loading settings" lines={2} />}
       {s.status === "error" && (
         <Banner tone="bad" title="Settings could not be loaded">

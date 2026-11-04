@@ -435,6 +435,32 @@ describe("Java installer", () => {
   });
 });
 
+describe("Settings layout", () => {
+  it("has section links, memory presets and a switch for reduce motion", async () => {
+    render(<App />);
+    goTo("Settings");
+    await screen.findByLabelText("Memory slider");
+    const nav = screen.getByRole("navigation", { name: "Settings sections" });
+    for (const name of ["Memory", "Java", "Game folder", "Sign-in", "Interface"]) {
+      expect(within(nav).getByRole("link", { name })).toBeTruthy();
+    }
+    expect(within(nav).getByRole("link", { name: "Java" }).getAttribute("href")).toBe("#sec-java");
+    expect(document.getElementById("sec-java")).not.toBeNull();
+    expect(screen.getByRole("checkbox", { name: /Reduce motion/ })).toBeTruthy();
+  });
+
+  it("memory presets fill in the memory and mark unsaved changes", async () => {
+    render(<App />);
+    goTo("Settings");
+    await screen.findByLabelText("Memory slider");
+    fireEvent.click(screen.getByRole("button", { name: "Use 2 GB" }));
+    expect((screen.getByLabelText("Memory in MB") as HTMLInputElement).value).toBe("2048");
+    expect(screen.getByRole("button", { name: "Use 2 GB" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Unsaved changes")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Save settings" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
 describe("Diagnostics", () => {
   it("shows the system and Java results returned by the backend", async () => {
     render(<App />);

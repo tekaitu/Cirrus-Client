@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api, errorMessage } from "../api/client";
 import type { SettingsState } from "../api/types";
+import { FolderIcon, JavaIcon, MemoryIcon, PaletteIcon, UserIcon } from "../components/Icons";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import { Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { formatMemory } from "../core/format";
@@ -142,6 +143,13 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
       <header className="page-head">
         <h1>Settings</h1>
         <p className="muted">Saved on this PC. Memory, Java and game folder are used once launching is implemented.</p>
+        <nav className="section-nav" aria-label="Settings sections">
+          <a href="#sec-memory">Memory</a>
+          <a href="#sec-java">Java</a>
+          <a href="#sec-folder">Game folder</a>
+          <a href="#sec-account">Sign-in</a>
+          <a href="#sec-interface">Interface</a>
+        </nav>
       </header>
 
       {state.status === "recoveredFromCorruption" && state.message && (
@@ -150,7 +158,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Banner>
       )}
 
-      <Card title="Memory">
+      <Card id="sec-memory" title="Memory" icon={<MemoryIcon />} description="How much RAM Minecraft may use.">
         <Field
           id="memory"
           label="Memory for Minecraft"
@@ -181,10 +189,25 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
             />
             <span className="muted">MB</span>
           </div>
+          <div className="presets" role="group" aria-label="Memory presets">
+            {[2048, 4096, 6144, 8192]
+              .filter((mb) => mb >= limits.min && mb <= limits.max)
+              .map((mb) => (
+                <button
+                  key={mb}
+                  type="button"
+                  className={`chip ${draft.memoryMb === mb ? "chip-on" : ""}`}
+                  aria-pressed={draft.memoryMb === mb}
+                  onClick={() => edit({ memoryMb: mb })}
+                >
+                  Use {mb / 1024} GB
+                </button>
+              ))}
+          </div>
         </Field>
       </Card>
 
-      <Card title="Java">
+      <Card id="sec-java" title="Java" icon={<JavaIcon />} description="Which Java runs the game (21 or newer).">
         <Field
           id="java-path"
           label="Java executable"
@@ -238,7 +261,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         )}
       </Card>
 
-      <Card title="Game folder">
+      <Card id="sec-folder" title="Game folder" icon={<FolderIcon />} description="Where game data will be stored.">
         <Field
           id="game-dir"
           label="Game directory"
@@ -255,7 +278,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Field>
       </Card>
 
-      <Card title="Microsoft sign-in">
+      <Card id="sec-account" title="Microsoft sign-in" icon={<UserIcon />} description="Advanced: normally nothing to change here.">
         <Field
           id="ms-client-id"
           label="Azure application (client) ID"
@@ -275,8 +298,8 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Field>
       </Card>
 
-      <Card title="Interface">
-        <label className="check">
+      <Card id="sec-interface" title="Interface" icon={<PaletteIcon />} description="How the launcher behaves.">
+        <label className="check switch">
           <input
             type="checkbox"
             checked={draft.reduceMotion}
@@ -307,7 +330,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         />
       )}
 
-      <div className="actions">
+      <div className="actions action-bar">
         <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
           {saving ? "Saving…" : "Save settings"}
         </button>
@@ -326,7 +349,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         <button type="button" className="btn btn-quiet" disabled={saving} onClick={() => setConfirmReset(true)}>
           Reset to defaults
         </button>
-        {dirty && <span className="muted small">Unsaved changes</span>}
+        {dirty && <span className="unsaved small">Unsaved changes</span>}
       </div>
 
       <p className="muted small">Settings file: {state.filePath}</p>

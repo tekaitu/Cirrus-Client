@@ -37,3 +37,49 @@ export function DiagnosticsIcon() {
     </svg>
   );
 }
+
+export function MemoryIcon() {
+  return (
+    <svg {...common}>
+      <rect x="3" y="7" width="18" height="10" rx="2" />
+      <path d="M7 7v10M11 7v10M15 7v10M5 20v-3M19 20v-3" />
+    </svg>
+  );
+}
+
+export function JavaIcon() {
+  return (
+    <svg {...common}>
+      <path d="M5 10h11v4a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4v-4Z" />
+      <path d="M16 11h1.5a2 2 0 0 1 0 4H16M8 3c1 1.2-1 2 0 3.5M12 3c1 1.2-1 2 0 3.5" />
+    </svg>
+  );
+}
+
+export function FolderIcon() {
+  return (
+    <svg {...common}>
+      <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H10l2 2.5h7.5A1.5 1.5 0 0 1 21 10v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18V7.5Z" />
+    </svg>
+  );
+}
+
+export function UserIcon() {
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c.8-3.6 3.4-5.5 7-5.5s6.2 1.9 7 5.5" />
+    </svg>
+  );
+}
+
+export function PaletteIcon() {
+  return (
+    <svg {...common}>
+      <path d="M12 3a9 9 0 1 0 0 18c1.3 0 2-.8 2-1.8 0-1.2-1-1.4-1-2.7 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4C21 6.5 17 3 12 3Z" />
+      <circle cx="7.5" cy="11" r="1" />
+      <circle cx="10.5" cy="7.5" r="1" />
+      <circle cx="15" cy="8" r="1" />
+    </svg>
+  );
+}

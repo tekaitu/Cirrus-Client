@@ -11,17 +11,31 @@ export function Card({
   action,
   children,
   className = "",
+  id,
+  icon,
+  description,
 }: {
   title?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  id?: string;
+  /** Small icon shown before the title. */
+  icon?: ReactNode;
+  /** One short line under the title. */
+  description?: string;
 }) {
   return (
-    <section className={`card ${className}`.trim()}>
+    <section id={id} className={`card ${className}`.trim()}>
       {(title || action) && (
         <header className="card-head">
-          {title && <h2>{title}</h2>}
+          <div className="card-title">
+            {icon && <span className="card-icon">{icon}</span>}
+            <div>
+              {title && <h2>{title}</h2>}
+              {description && <p className="card-desc">{description}</p>}
+            </div>
+          </div>
           {action}
         </header>
       )}
