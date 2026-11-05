@@ -4,12 +4,19 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import App from "../src/App";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
-import type { AuthStatus, DeviceCodeInfo, InstallProgress, InstallResult } from "../src/api/types";
+import type { AuthStatus, DeviceCodeInfo, GameExit, GameProgress, GameStatus, InstallProgress, InstallResult } from "../src/api/types";
 import { appInfo, java17Raw, java21Raw, settingsState, systemInfo } from "./helpers/fixtures";
 
 vi.mock("../src/api/client", () => ({
   api: {
     getAppInfo: vi.fn(),
+    gameStatus: vi.fn(),
+    installGame: vi.fn(),
+    cancelGameInstall: vi.fn(),
+    launchGame: vi.fn(),
+    stopGame: vi.fn(),
+    onGameProgress: vi.fn(),
+    onGameExited: vi.fn(),
     getSystemInfo: vi.fn(),
     detectJava: vi.fn(),
     inspectJava: vi.fn(),
@@ -54,9 +61,34 @@ const authStatus = (extra: Partial<AuthStatus> = {}): AuthStatus => ({
 const CLIENT_ID = "12345678-90ab-cdef-1234-567890abcdef";
 const steve = { id: "0123456789abcdef0123456789abcdef", name: "Steve" };
 
+const gameStatus = (extra: Partial<GameStatus> = {}): GameStatus => ({
+  installed: false,
+  minecraft: "1.21.11",
+  loader: null,
+  gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\game",
+  running: false,
+  ...extra,
+});
+let gameProgressHandler: ((p: GameProgress) => void) | null = null;
+let gameExitHandler: ((e: GameExit) => void) | null = null;
+
 let progressHandler: ((p: InstallProgress) => void) | null = null;
 
 beforeEach(() => {
+  window.localStorage.clear();
+  gameProgressHandler = null;
+  gameExitHandler = null;
+  mocked.gameStatus.mockResolvedValue(gameStatus());
+  mocked.onGameProgress.mockImplementation(async (handler) => {
+    gameProgressHandler = handler;
+    return () => {};
+  });
+  mocked.onGameExited.mockImplementation(async (handler) => {
+    gameExitHandler = handler;
+    return () => {};
+  });
+  mocked.cancelGameInstall.mockResolvedValue(true);
+  mocked.stopGame.mockResolvedValue(true);
   progressHandler = null;
   mocked.onJavaInstallProgress.mockImplementation(async (handler) => {
     progressHandler = handler;
@@ -88,7 +120,7 @@ describe("Home", () => {
     expect(screen.getByRole("heading", { level: 1, name: /Sword PvP/ })).toBeTruthy();
     expect(screen.getByText("Minecraft Java Edition 1.21.11")).toBeTruthy();
     expect(await screen.findByText("Java 21")).toBeTruthy();
-    expect(screen.getAllByText("Not installed")).toHaveLength(2); // game files and Fabric
+    expect((await screen.findAllByText("Not installed")).length).toBeGreaterThanOrEqual(2); // game files and Fabric
   });
 
   it("has an icon-only nav pill with Home, Settings and Diagnostics", async () => {
@@ -130,14 +162,10 @@ describe("Home", () => {
     expect(screen.getByRole("status", { name: "Detecting Java" })).toBeTruthy();
   });
 
-  it("keeps Play disabled and says launching is not available", async () => {
+  it("asks for the game files first, then offers Play", async () => {
     render(<App />);
-    const play = (await screen.findByRole("button", { name: /not available yet/i })) as HTMLButtonElement;
-    expect(play.disabled).toBe(true);
-    fireEvent.click(play);
-    expect(screen.getByText(/Launching Minecraft is not implemented yet/)).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Install game files" })).toBeTruthy();
     expect(screen.getByText("Microsoft account sign-in")).toBeTruthy();
-    expect(screen.getAllByText("Not built yet")).toHaveLength(2); // game files and Fabric
     expect(screen.getByText("Sign-in needed")).toBeTruthy();
   });
 
@@ -674,5 +702,119 @@ describe("ErrorBoundary", () => {
     );
     expect(screen.getByRole("alert").textContent).toContain("kaboom");
     spy.mockRestore();
+  });
+});
+
+describe("Play", () => {
+  const ready = () => mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+  const waitReady = async () => {
+    await screen.findByText("Java 21");
+    await screen.findAllByText("Installed");
+  };
+  const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
+
+  it("installs the game files with progress and can cancel", async () => {
+    let finish: (r: { status: "installed" | "cancelled" | "failed"; message: string | null; loader: string | null }) => void = () => {};
+    mocked.installGame.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install game files" }));
+    await waitFor(() => expect(gameProgressHandler).not.toBeNull());
+    act(() => gameProgressHandler?.({ stage: "downloading", done: 50, total: 200, message: "Downloading game files (50 of 200)" }));
+    expect(await screen.findByText("Downloading game files (50 of 200)")).toBeTruthy();
+    expect((screen.getByLabelText("Game download progress") as HTMLProgressElement).value).toBe(25);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(mocked.cancelGameInstall).toHaveBeenCalledTimes(1);
+    await act(async () => finish({ status: "cancelled", message: null, loader: null }));
+    expect(await screen.findByText(/Download cancelled/)).toBeTruthy();
+  });
+
+  it("shows why a download failed", async () => {
+    mocked.installGame.mockResolvedValue({ status: "failed", message: "Could not connect.", loader: null });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install game files" }));
+    expect(await screen.findByText("Game files could not be downloaded")).toBeTruthy();
+    expect(screen.getByText("Could not connect.")).toBeTruthy();
+  });
+
+  it("refreshes status after a successful download", async () => {
+    mocked.installGame.mockImplementation(async () => {
+      mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+      return { status: "installed", message: null, loader: "0.17.0" };
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Install game files" }));
+    expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
+  });
+
+  it("asks to sign in when playing with Microsoft while signed out", async () => {
+    ready();
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in to play" }));
+    expect(await screen.findByRole("dialog", { name: "Account" })).toBeTruthy();
+  });
+
+  it("validates the offline player name before Play is allowed", async () => {
+    ready();
+    render(<App />);
+    await waitReady();
+    chooseOffline();
+    const play = screen.getByRole("button", { name: "Play" }) as HTMLButtonElement;
+    expect(play.disabled).toBe(true);
+    const input = screen.getByLabelText("Player name");
+    fireEvent.change(input, { target: { value: "bad name" } });
+    fireEvent.blur(input);
+    expect(await screen.findByText("Use only letters, numbers and underscores.")).toBeTruthy();
+    expect(play.disabled).toBe(true);
+    fireEvent.change(input, { target: { value: "Steve_01" } });
+    expect(play.disabled).toBe(false);
+  });
+
+  it("launches offline with the chosen name and Java, then shows the running state", async () => {
+    ready();
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: "C:\\log.txt" });
+    render(<App />);
+    await waitReady();
+    chooseOffline();
+    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve_01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() =>
+      expect(mocked.launchGame).toHaveBeenCalledWith(expect.stringContaining("java"), "offline", "Steve_01"),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Stop Minecraft" }));
+    expect(mocked.stopGame).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(gameExitHandler).not.toBeNull());
+    act(() => gameExitHandler?.({ code: 0, logPath: "C:\\log.txt" }));
+    expect(await screen.findByText(/closed normally/)).toBeTruthy();
+  });
+
+  it("launches with the signed-in Microsoft account", async () => {
+    ready();
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
+    mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    render(<App />);
+    await screen.findAllByText("Steve");
+    await waitReady();
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() => expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "microsoft", null));
+  });
+
+  it("shows the reason when Minecraft cannot start", async () => {
+    ready();
+    mocked.launchGame.mockResolvedValue({ started: false, message: "A game file is missing.", logPath: null });
+    render(<App />);
+    await waitReady();
+    chooseOffline();
+    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve" } });
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    expect(await screen.findByText("Minecraft could not be started")).toBeTruthy();
+    expect(screen.getByText("A game file is missing.")).toBeTruthy();
+  });
+
+  it("will not offer Play without a compatible Java", async () => {
+    ready();
+    mocked.detectJava.mockResolvedValue({ installs: [java17Raw], candidatesChecked: 3 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "Install Java 21 first" })).toBeTruthy();
   });
 });

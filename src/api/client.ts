@@ -4,10 +4,15 @@ import type {
   AppInfo,
   AuthStatus,
   DeviceCodeInfo,
+  GameExit,
+  GameInstallResult,
+  GameProgress,
+  GameStatus,
   InstallProgress,
   InstallResult,
   JavaDetectionRaw,
   JavaInstallRaw,
+  LaunchResult,
   SaveOutcome,
   Settings,
   SettingsState,
@@ -38,6 +43,8 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 }
 
 export const AUTH_CODE_EVENT = "auth-device-code";
+export const GAME_PROGRESS_EVENT = "game-install-progress";
+export const GAME_EXITED_EVENT = "game-exited";
 export const JAVA_INSTALL_PROGRESS_EVENT = "java-install-progress";
 
 export const api = {
@@ -63,6 +70,20 @@ export const api = {
   onAuthDeviceCode: async (handler: (info: DeviceCodeInfo) => void): Promise<() => void> => {
     if (!insideTauri()) return () => {};
     return listen<DeviceCodeInfo>(AUTH_CODE_EVENT, (event) => handler(event.payload));
+  },
+  gameStatus: () => call<GameStatus>("game_status"),
+  installGame: () => call<GameInstallResult>("install_game"),
+  cancelGameInstall: () => call<boolean>("cancel_game_install"),
+  launchGame: (javaPath: string, mode: "offline" | "microsoft", username: string | null) =>
+    call<LaunchResult>("launch_game", { javaPath, mode, username }),
+  stopGame: () => call<boolean>("stop_game"),
+  onGameProgress: async (handler: (p: GameProgress) => void): Promise<() => void> => {
+    if (!insideTauri()) return () => {};
+    return listen<GameProgress>(GAME_PROGRESS_EVENT, (event) => handler(event.payload));
+  },
+  onGameExited: async (handler: (e: GameExit) => void): Promise<() => void> => {
+    if (!insideTauri()) return () => {};
+    return listen<GameExit>(GAME_EXITED_EVENT, (event) => handler(event.payload));
   },
   loadSettings: () => call<SettingsState>("load_settings"),
   saveSettings: (settings: Settings) => call<SaveOutcome>("save_settings", { settings }),

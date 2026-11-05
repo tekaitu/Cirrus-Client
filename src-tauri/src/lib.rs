@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod game;
 pub mod java;
 pub mod runtime;
 pub mod settings;
@@ -15,6 +16,10 @@ use tauri::{AppHandle, Emitter, Manager, State};
 /// Event the installer sends to the window while it works.
 pub const INSTALL_PROGRESS_EVENT: &str = "java-install-progress";
 
+/// Progress of the Minecraft download, and the end of a game session.
+pub const GAME_PROGRESS_EVENT: &str = "game-install-progress";
+pub const GAME_EXITED_EVENT: &str = "game-exited";
+
 /// Event that carries the Microsoft sign-in code to show.
 pub const AUTH_CODE_EVENT: &str = "auth-device-code";
 
@@ -23,6 +28,13 @@ pub const AUTH_CODE_EVENT: &str = "auth-device-code";
 struct AuthState {
     session: Mutex<Option<auth::Session>>,
     cancel: Mutex<Option<Arc<AtomicBool>>>,
+}
+
+/// The Minecraft download that is running, and the game process, if any.
+#[derive(Default)]
+struct GameState {
+    install_cancel: Mutex<Option<Arc<AtomicBool>>>,
+    child: Arc<Mutex<Option<std::process::Child>>>,
 }
 
 /// Cancel flag of the installation that is running right now, if any.
@@ -589,11 +601,253 @@ async fn reset_settings(app: AppHandle) -> Result<SettingsState, String> {
     build_state(&app, loaded, total)
 }
 
+
+// ---------------------------------------------------------------- game
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GameStatus {
+    installed: bool,
+    minecraft: &'static str,
+    loader: Option<String>,
+    game_dir: String,
+    running: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GameInstallResult {
+    /// "installed", "cancelled" or "failed"
+    status: &'static str,
+    message: Option<String>,
+    loader: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LaunchResult {
+    started: bool,
+    message: Option<String>,
+    log_path: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct GameExit {
+    code: Option<i32>,
+    log_path: String,
+}
+
+fn game_root(app: &AppHandle) -> Result<(PathBuf, u32), String> {
+    let total = system::total_ram_mb();
+    let defaults = default_settings(app, total)?;
+    let file = settings_file(app)?;
+    let loaded = settings::load(&file, &defaults).settings;
+    let dir = if loaded.game_dir.trim().is_empty() { defaults.game_dir } else { loaded.game_dir };
+    Ok((PathBuf::from(dir), loaded.memory_mb))
+}
+
+fn game_running(state: &GameState) -> bool {
+    match state.child.lock() {
+        Ok(mut slot) => match slot.as_mut() {
+            Some(child) => matches!(child.try_wait(), Ok(None)),
+            None => false,
+        },
+        Err(_) => false,
+    }
+}
+
+#[tauri::command]
+fn game_status(app: AppHandle, state: State<'_, GameState>) -> Result<GameStatus, String> {
+    let (root, _) = game_root(&app)?;
+    let info = game::installed(&root, TARGET_MINECRAFT);
+    Ok(GameStatus {
+        installed: info.is_some(),
+        minecraft: TARGET_MINECRAFT,
+        loader: info.map(|i| i.loader),
+        game_dir: root.display().to_string(),
+        running: game_running(&state),
+    })
+}
+
+#[tauri::command]
+async fn install_game(app: AppHandle, state: State<'_, GameState>) -> Result<GameInstallResult, String> {
+    let failed = |m: String| GameInstallResult { status: "failed", message: Some(m), loader: None };
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut slot = state.install_cancel.lock().map_err(|_| "Installer state is unavailable.".to_string())?;
+        if slot.is_some() {
+            return Err("The game files are already being downloaded.".to_string());
+        }
+        *slot = Some(cancel.clone());
+    }
+    let (root, _) = match game_root(&app) {
+        Ok(v) => v,
+        Err(e) => {
+            if let Ok(mut slot) = state.install_cancel.lock() {
+                *slot = None;
+            }
+            return Ok(failed(e));
+        }
+    };
+
+    let emitter = app.clone();
+    let flag = cancel.clone();
+    let worker = tauri::async_runtime::spawn_blocking(move || {
+        game::install(&root, TARGET_MINECRAFT, &flag, &move |p| {
+            let _ = emitter.emit(GAME_PROGRESS_EVENT, p);
+        })
+    })
+    .await;
+
+    if let Ok(mut slot) = state.install_cancel.lock() {
+        *slot = None;
+    }
+    Ok(match worker {
+        Err(e) => failed(format!("The download stopped unexpectedly: {e}")),
+        Ok(Err(game::GameError::Cancelled)) => GameInstallResult { status: "cancelled", message: None, loader: None },
+        Ok(Err(game::GameError::Failed(m))) => failed(m),
+        Ok(Ok(info)) => GameInstallResult { status: "installed", message: None, loader: Some(info.loader) },
+    })
+}
+
+#[tauri::command]
+fn cancel_game_install(state: State<'_, GameState>) -> bool {
+    match state.install_cancel.lock() {
+        Ok(slot) => match slot.as_ref() {
+            Some(flag) => {
+                flag.store(true, Ordering::SeqCst);
+                true
+            }
+            None => false,
+        },
+        Err(_) => false,
+    }
+}
+
+/// Start Minecraft. `mode` is "offline" (needs `username`) or "microsoft"
+/// (uses the account that is signed in right now).
+#[tauri::command]
+async fn launch_game(
+    app: AppHandle,
+    state: State<'_, GameState>,
+    auth: State<'_, AuthState>,
+    java_path: String,
+    mode: String,
+    username: Option<String>,
+) -> Result<LaunchResult, String> {
+    let refuse = |m: &str| Ok(LaunchResult { started: false, message: Some(m.to_string()), log_path: None });
+    if game_running(&state) {
+        return refuse("Minecraft is already running.");
+    }
+    let player = match mode.as_str() {
+        "offline" => match game::Player::offline(username.as_deref().unwrap_or("").trim()) {
+            Ok(p) => p,
+            Err(m) => return refuse(&m),
+        },
+        "microsoft" => {
+            let session = auth.session.lock().ok().and_then(|s| s.clone());
+            match session {
+                Some(s) => game::Player {
+                    name: s.profile.name.clone(),
+                    uuid: s.profile.id.clone(),
+                    access_token: s.mc_token.clone(),
+                    user_type: "msa",
+                },
+                None => return refuse("Sign in with Microsoft first, or play offline."),
+            }
+        }
+        _ => return refuse("Unknown play mode."),
+    };
+
+    let java = PathBuf::from(java_path.trim());
+    if !java.is_file() {
+        return refuse("Java was not found at the saved location. Re-scan Java and try again.");
+    }
+    let (root, memory) = game_root(&app)?;
+    let Some(info) = game::installed(&root, TARGET_MINECRAFT) else {
+        return refuse("The game files are not installed yet.");
+    };
+
+    let spec = match game::build_launch(&root, &info, &java, memory, &player, env!("CARGO_PKG_VERSION")) {
+        Ok(s) => s,
+        Err(m) => return refuse(&m),
+    };
+
+    let log_dir = root.join("logs");
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_path = log_dir.join("unlimited-launch.log");
+    let (out, err) = match std::fs::File::create(&log_path).and_then(|f| f.try_clone().map(|g| (f, g))) {
+        Ok(pair) => pair,
+        Err(e) => return refuse(&format!("Could not create the log file: {e}")),
+    };
+
+    let mut command = std::process::Command::new(&spec.program);
+    command
+        .args(&spec.args)
+        .current_dir(&spec.cwd)
+        .stdin(std::process::Stdio::null())
+        .stdout(out)
+        .stderr(err);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000); // no console window
+    }
+    let child = match command.spawn() {
+        Ok(c) => c,
+        Err(e) => return refuse(&format!("Minecraft could not be started: {e}")),
+    };
+    if let Ok(mut slot) = state.child.lock() {
+        *slot = Some(child);
+    }
+
+    // Report when the game closes.
+    let handle = app.clone();
+    let slot = state.child.clone();
+    let log_text = log_path.display().to_string();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(700));
+        let finished = match slot.lock() {
+            Ok(mut guard) => match guard.as_mut() {
+                Some(child) => match child.try_wait() {
+                    Ok(Some(status)) => Some(status.code()),
+                    Ok(None) => None,
+                    Err(_) => Some(None),
+                },
+                None => Some(None), // stopped from the app
+            },
+            Err(_) => Some(None),
+        };
+        if let Some(code) = finished {
+            if let Ok(mut guard) = slot.lock() {
+                *guard = None;
+            }
+            let _ = handle.emit(GAME_EXITED_EVENT, GameExit { code, log_path: log_text });
+            return;
+        }
+    });
+
+    Ok(LaunchResult { started: true, message: None, log_path: Some(log_path.display().to_string()) })
+}
+
+#[tauri::command]
+fn stop_game(state: State<'_, GameState>) -> bool {
+    match state.child.lock() {
+        Ok(mut slot) => match slot.as_mut() {
+            Some(child) => child.kill().is_ok(),
+            None => false,
+        },
+        Err(_) => false,
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(InstallState::default())
         .manage(AuthState::default())
+        .manage(GameState::default())
         .invoke_handler(tauri::generate_handler![
             get_app_info,
             get_system_info,
@@ -610,7 +864,12 @@ pub fn run() {
             open_microsoft_link,
             load_settings,
             save_settings,
-            reset_settings
+            reset_settings,
+            game_status,
+            install_game,
+            cancel_game_install,
+            launch_game,
+            stop_game
         ])
         .run(tauri::generate_context!())
         .expect("error while running Unlimited");

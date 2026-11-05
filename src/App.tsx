@@ -42,7 +42,7 @@ export default function App() {
       <div className="workspace">
         <TopBar data={data} onAccount={toggleAccount} accountOpen={accountOpen} />
         <main className="content">
-          {page === "home" && <HomePage data={data} onNavigate={navigate} />}
+          {page === "home" && <HomePage data={data} onNavigate={navigate} onOpenAccount={() => setAccountOpen(true)} />}
           {page === "settings" && <SettingsPage data={data} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
         </main>

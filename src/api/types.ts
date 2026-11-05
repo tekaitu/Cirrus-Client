@@ -121,3 +121,35 @@ export interface DeviceCodeInfo {
   verificationUri: string;
   expiresIn: number;
 }
+
+export interface GameStatus {
+  installed: boolean;
+  minecraft: string;
+  loader: string | null;
+  gameDir: string;
+  running: boolean;
+}
+
+export interface GameProgress {
+  stage: "metadata" | "downloading" | "finishing";
+  done: number;
+  total: number;
+  message: string;
+}
+
+export interface GameInstallResult {
+  status: "installed" | "cancelled" | "failed";
+  message: string | null;
+  loader: string | null;
+}
+
+export interface LaunchResult {
+  started: boolean;
+  message: string | null;
+  logPath: string | null;
+}
+
+export interface GameExit {
+  code: number | null;
+  logPath: string;
+}

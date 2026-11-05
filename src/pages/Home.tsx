@@ -1,3 +1,4 @@
+import { PlayPanel } from "../components/PlayPanel";
 import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import type { PageId } from "../components/Sidebar";
@@ -75,27 +76,28 @@ function JavaCard({ data }: { data: AppData }) {
   );
 }
 
-type CheckState = "ok" | "missing" | "checking" | "unbuilt" | "needed";
+type CheckState = "ok" | "missing" | "checking" | "notInstalled" | "needed";
 
 const CHECK_LABEL: Record<CheckState, { tone: Tone; text: string }> = {
   ok: { tone: "good", text: "Ready" },
   missing: { tone: "warn", text: "Missing" },
   checking: { tone: "neutral", text: "Checking…" },
-  unbuilt: { tone: "neutral", text: "Not built yet" },
+  notInstalled: { tone: "neutral", text: "Not installed" },
   needed: { tone: "warn", text: "Sign-in needed" },
 };
 
-function Hero({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
+function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: (page: PageId) => void; onOpenAccount: () => void }) {
   const signedIn = data.account.state.phase === "signedIn";
   const java = data.java;
   const javaCheck: CheckState =
     java.status === "loading" ? "checking" : java.status === "ready" && java.data.selected ? "ok" : "missing";
 
+  const gameState: CheckState = data.game.status?.installed ? "ok" : "notInstalled";
   const checks: Array<{ label: string; state: CheckState }> = [
     { label: `Java ${REQUIRED_JAVA_MAJOR} or newer`, state: javaCheck },
     { label: "Microsoft account sign-in", state: signedIn ? "ok" : "needed" },
-    { label: "Minecraft game files", state: "unbuilt" },
-    { label: "Fabric loader", state: "unbuilt" },
+    { label: "Minecraft game files", state: gameState },
+    { label: "Fabric loader", state: gameState },
   ];
 
   return (
@@ -103,20 +105,10 @@ function Hero({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) 
       <p className="pill eyebrow">Minecraft Java Edition {TARGET_MINECRAFT_VERSION}</p>
       <h1 id="hero-title">Sword PvP, tuned for low-end PCs</h1>
       <p className="hero-copy">
-        A lightweight Fabric launcher built around steady frame rates and low input delay. Early build: setup
-        tools work, launching does not yet.
+        A lightweight Fabric launcher built around steady frame rates and low input delay. Early build: the
+        game download and launch are new and have not been tried on many PCs yet.
       </p>
-      <div className="hero-actions">
-        <button type="button" className="btn btn-primary btn-pill" disabled aria-describedby="play-note">
-          Play (not available yet)
-        </button>
-        <button type="button" className="btn btn-pill" onClick={() => onNavigate("settings")}>
-          Configure
-        </button>
-      </div>
-      <p id="play-note" className="muted small hero-note">
-        Launching Minecraft is not implemented yet. The button is disabled so it cannot pretend to start the game.
-      </p>
+      <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
       <ul className="chips" aria-label="What Play needs">
         {checks.map((c) => (
           <li key={c.label}>
@@ -140,13 +132,18 @@ function StatusPanel({ data }: { data: AppData }) {
             <strong>Minecraft {TARGET_MINECRAFT_VERSION}</strong>
             {memory && <span className="muted small"> · memory {memory}</span>}
           </div>
-          <Badge>Not installed</Badge>
+          <Badge tone={data.game.status?.installed ? "good" : "neutral"}>
+            {data.game.status?.installed ? "Installed" : "Not installed"}
+          </Badge>
         </li>
         <li>
           <div>
             <strong>Fabric</strong>
+            {data.game.status?.loader && <span className="muted small"> · loader {data.game.status.loader}</span>}
           </div>
-          <Badge>Not installed</Badge>
+          <Badge tone={data.game.status?.installed ? "good" : "neutral"}>
+            {data.game.status?.installed ? "Installed" : "Not installed"}
+          </Badge>
         </li>
       </ul>
       <JavaCard data={data} />
@@ -182,11 +179,11 @@ function NewsRow() {
   );
 }
 
-export function HomePage({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
+export function HomePage({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: (page: PageId) => void; onOpenAccount: () => void }) {
   return (
     <div className="home">
       <div className="home-top">
-        <Hero data={data} onNavigate={onNavigate} />
+        <Hero data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
         <div className="home-side">
           <StatusPanel data={data} />
         </div>

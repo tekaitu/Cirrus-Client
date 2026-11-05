@@ -2,6 +2,7 @@ import { api } from "../api/client";
 import type { AppInfo, SettingsState, SystemInfo } from "../api/types";
 import { analyzeJava, toJavaView, type JavaView } from "../core/java";
 import { useAuth, type Account } from "./useAuth";
+import { useGame, type Game } from "./useGame";
 import { useJavaInstaller, type JavaInstaller } from "./useJavaInstaller";
 import { useResource, type ResourceState } from "./useResource";
 
@@ -12,6 +13,7 @@ export interface AppData {
   java: ResourceState<JavaView>;
   installer: JavaInstaller;
   account: Account;
+  game: Game;
   reloadAll: () => void;
   reloadSettings: () => void;
   reloadJava: () => void;
@@ -43,9 +45,12 @@ export function useAppData(): AppData {
     s.status !== "loading",
   );
 
+  const game = useGame();
+
   return {
     installer,
     account,
+    game,
     app: app.state,
     system: system.state,
     settings: settings.state,
