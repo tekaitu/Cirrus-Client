@@ -4,61 +4,41 @@
  */
 
 export function HeroArt() {
+  const towers: Array<[number, number, number]> = [
+    [0, 70, 210], [70, 56, 180], [126, 84, 232], [210, 48, 196], [258, 92, 240],
+    [350, 60, 188], [410, 76, 218], [486, 52, 170], [538, 102, 226],
+  ];
   return (
-    <svg className="hero-art" viewBox="0 0 640 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <svg className="scene" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="hSky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#1b1f4f" />
-          <stop offset="0.6" stopColor="#0d1633" />
-          <stop offset="1" stopColor="#070c1b" />
+        <linearGradient id="sSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#3a2570" />
+          <stop offset="0.55" stopColor="#1d1240" />
+          <stop offset="1" stopColor="#0b0714" />
         </linearGradient>
-        <linearGradient id="hGlow" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#2f7bff" stopOpacity="0" />
-          <stop offset="1" stopColor="#5aaeff" stopOpacity="0.55" />
-        </linearGradient>
-        <linearGradient id="hBlade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" />
-          <stop offset="1" stopColor="#9ec5ff" />
-        </linearGradient>
+        <radialGradient id="sMoon" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#e9ddff" stopOpacity="0.95" />
+          <stop offset="0.35" stopColor="#a78bfa" stopOpacity="0.45" />
+          <stop offset="1" stopColor="#7c5cd6" stopOpacity="0" />
+        </radialGradient>
       </defs>
-      <rect width="640" height="300" fill="url(#hSky)" />
-      {/* blocky skyline */}
-      <g fill="#0a1128">
-        <rect x="0" y="206" width="70" height="94" />
-        <rect x="70" y="182" width="56" height="118" />
-        <rect x="126" y="224" width="84" height="76" />
-        <rect x="210" y="196" width="48" height="104" />
-        <rect x="258" y="232" width="92" height="68" />
-        <rect x="350" y="190" width="60" height="110" />
-        <rect x="410" y="214" width="76" height="86" />
-        <rect x="486" y="176" width="52" height="124" />
-        <rect x="538" y="222" width="102" height="78" />
+      <rect width="640" height="360" fill="url(#sSky)" />
+      <circle cx="470" cy="110" r="120" fill="url(#sMoon)" />
+      <rect x="452" y="92" width="36" height="36" fill="#efe7ff" />
+      <g fill="#c4b5fd" opacity="0.5">
+        <rect x="60" y="40" width="3" height="3" /><rect x="150" y="70" width="3" height="3" />
+        <rect x="260" y="30" width="3" height="3" /><rect x="340" y="64" width="3" height="3" />
+        <rect x="580" y="50" width="3" height="3" /><rect x="610" y="120" width="3" height="3" />
       </g>
-      <g fill="#14224a">
-        <rect x="0" y="206" width="70" height="8" />
-        <rect x="70" y="182" width="56" height="8" />
-        <rect x="210" y="196" width="48" height="8" />
-        <rect x="350" y="190" width="60" height="8" />
-        <rect x="486" y="176" width="52" height="8" />
+      <g fill="#2a1d5c" opacity="0.8" transform="translate(0 -26)">
+        {towers.map(([x, w, h]) => <rect key={`b${x}`} x={x + 20} y={360 - h} width={w} height={h} />)}
       </g>
-      {/* speed streaks, echoing the logo */}
-      <g>
-        <polygon points="40,80 330,80 322,92 28,92" fill="url(#hGlow)" opacity="0.5" />
-        <polygon points="90,112 360,112 354,122 80,122" fill="url(#hGlow)" opacity="0.4" />
-        <polygon points="10,146 300,146 292,156 0,156" fill="url(#hGlow)" opacity="0.3" />
+      <g fill="#150d2e">
+        {towers.map(([x, w, h]) => <rect key={x} x={x} y={360 - h + 40} width={w} height={h} />)}
       </g>
-      {/* crossed swords */}
-      <g transform="translate(440 150)">
-        <g transform="rotate(38)">
-          <polygon points="-6,-110 6,-110 9,40 -9,40" fill="url(#hBlade)" />
-          <rect x="-30" y="40" width="60" height="9" fill="#2f7bff" />
-          <rect x="-5" y="49" width="10" height="34" fill="#5aaeff" />
-        </g>
-        <g transform="rotate(-38)">
-          <polygon points="-6,-110 6,-110 9,40 -9,40" fill="url(#hBlade)" opacity="0.92" />
-          <rect x="-30" y="40" width="60" height="9" fill="#7a5cff" />
-          <rect x="-5" y="49" width="10" height="34" fill="#5aaeff" />
-        </g>
+      <g fill="#8b6cf0" opacity="0.35">
+        <polygon points="30,150 330,150 322,162 18,162" />
+        <polygon points="110,186 400,186 394,196 100,196" opacity="0.7" />
       </g>
     </svg>
   );
@@ -69,13 +49,13 @@ export function CardArt({ kind }: { kind: "blocks" | "speed" | "sword" }) {
     <svg className="card-art" viewBox="0 0 160 72" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id={`ca-${kind}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={kind === "sword" ? "#2a1f63" : "#14275a"} />
-          <stop offset="1" stopColor="#0a1128" />
+          <stop offset="0" stopColor={kind === "sword" ? "#3a2570" : "#2a1d5c"} />
+          <stop offset="1" stopColor="#120b26" />
         </linearGradient>
       </defs>
       <rect width="160" height="72" fill={`url(#ca-${kind})`} />
       {kind === "blocks" && (
-        <g fill="#2f7bff">
+        <g fill="#7c5cd6">
           <rect x="24" y="36" width="22" height="22" opacity="0.8" />
           <rect x="52" y="22" width="22" height="36" opacity="0.55" />
           <rect x="80" y="30" width="22" height="28" opacity="0.7" />
@@ -83,7 +63,7 @@ export function CardArt({ kind }: { kind: "blocks" | "speed" | "sword" }) {
         </g>
       )}
       {kind === "speed" && (
-        <g fill="#5aaeff">
+        <g fill="#a78bfa">
           <polygon points="20,18 120,18 116,26 14,26" opacity="0.8" />
           <polygon points="40,34 140,34 136,42 34,42" opacity="0.55" />
           <polygon points="12,50 100,50 96,58 6,58" opacity="0.35" />
@@ -91,9 +71,9 @@ export function CardArt({ kind }: { kind: "blocks" | "speed" | "sword" }) {
       )}
       {kind === "sword" && (
         <g transform="translate(80 36) rotate(40)">
-          <polygon points="-3,-34 3,-34 4,12 -4,12" fill="#dbe8ff" />
-          <rect x="-12" y="12" width="24" height="4" fill="#7a5cff" />
-          <rect x="-2" y="16" width="4" height="12" fill="#5aaeff" />
+          <polygon points="-3,-34 3,-34 4,12 -4,12" fill="#efe7ff" />
+          <rect x="-12" y="12" width="24" height="4" fill="#c084fc" />
+          <rect x="-2" y="16" width="4" height="12" fill="#a78bfa" />
         </g>
       )}
     </svg>

@@ -282,7 +282,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         <Field
           id="ms-client-id"
           label="Azure application (client) ID"
-          hint="Advanced and optional. Leave blank to use the app ID built into Limited FPS. It is an ID, not a secret. See docs/AUTH.md."
+          hint="Advanced and optional. Leave blank to use the app ID built into Unlimited. It is an ID, not a secret. See docs/AUTH.md."
           error={errors.msClientId}
         >
           <input

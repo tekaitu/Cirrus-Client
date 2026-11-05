@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import { AccountPanel } from "./components/AccountPanel";
+import { HeroArt } from "./components/Art";
+import { FooterBar } from "./components/FooterBar";
+import { CloseIcon } from "./components/Icons";
 import { Sidebar, type PageId } from "./components/Sidebar";
-import { Toolbar } from "./components/Toolbar";
+import { TopBar } from "./components/TopBar";
 import { useAppData } from "./hooks/useAppData";
 import { DiagnosticsPage } from "./pages/Diagnostics";
 import { HomePage } from "./pages/Home";
@@ -9,23 +13,49 @@ import { SettingsPage } from "./pages/Settings";
 export default function App() {
   const data = useAppData();
   const [page, setPage] = useState<PageId>("home");
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const reduceMotion = data.settings.status === "ready" && data.settings.data.settings.reduceMotion;
   useEffect(() => {
     document.documentElement.dataset.reduceMotion = reduceMotion ? "true" : "false";
   }, [reduceMotion]);
 
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAccountOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [accountOpen]);
+
+  const navigate = (next: PageId) => {
+    setPage(next);
+    setAccountOpen(false);
+  };
+  const toggleAccount = () => setAccountOpen((v) => !v);
+  const scanning = data.java.status === "loading";
+
   return (
     <div className="layout">
-      <Sidebar page={page} onNavigate={setPage} />
+      <HeroArt />
+      <div className="scene-shade" />
+      <Sidebar page={page} onNavigate={navigate} onAccount={toggleAccount} onRescan={data.reloadJava} scanning={scanning} />
       <div className="workspace">
-        <Toolbar data={data} onNavigate={setPage} />
+        <TopBar data={data} onAccount={toggleAccount} accountOpen={accountOpen} />
         <main className="content">
-          {page === "home" && <HomePage data={data} onNavigate={setPage} />}
+          {page === "home" && <HomePage data={data} onNavigate={navigate} />}
           {page === "settings" && <SettingsPage data={data} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
         </main>
+        <FooterBar data={data} onNavigate={navigate} />
       </div>
+      {accountOpen && (
+        <div className="popover" role="dialog" aria-label="Account">
+          <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>
+            <CloseIcon />
+          </button>
+          <AccountPanel account={data.account} onNavigate={navigate} />
+        </div>
+      )}
     </div>
   );
 }

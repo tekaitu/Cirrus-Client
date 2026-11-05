@@ -7,7 +7,7 @@ import type {
 } from "../../src/api/types";
 
 export const appInfo: AppInfo = {
-  name: "Limited FPS",
+  name: "Unlimited",
   version: "0.1.0",
   target_minecraft: "1.21.11",
   launcher_ready: false,

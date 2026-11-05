@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Limited FPS",
+  "productName": "Unlimited",
   "version": "0.1.0",
   "identifier": "com.limitedfps.app",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Limited FPS",
+        "title": "Unlimited",
         "width": 1100,
         "height": 720,
         "minWidth": 900,
@@ -27,10 +27,10 @@
   },
   "bundle": {
     "active": false,
-    "publisher": "Limited FPS",
+    "publisher": "Unlimited",
     "category": "Game",
-    "shortDescription": "Limited FPS launcher for Minecraft Java Edition 1.21.11",
-    "longDescription": "Limited FPS is a Windows launcher for Minecraft Java Edition 1.21.11 with Fabric, aimed at fast, low-end-friendly PvP.",
+    "shortDescription": "Unlimited launcher for Minecraft Java Edition 1.21.11",
+    "longDescription": "Unlimited is a Windows launcher for Minecraft Java Edition 1.21.11 with Fabric, aimed at fast, low-end-friendly PvP.",
     "icon": ["icons/icon.ico", "icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png"]
   }
 }

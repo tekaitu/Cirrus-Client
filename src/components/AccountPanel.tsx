@@ -49,7 +49,7 @@ export function AccountPanel({ account, onNavigate }: { account: Account; onNavi
             Use a code instead
           </button>
           <p className="muted small">
-            Opens Microsoft&apos;s own sign-in page. Limited FPS only asks to sign in to Minecraft and never sees
+            Opens Microsoft&apos;s own sign-in page. Unlimited only asks to sign in to Minecraft and never sees
             your password.
           </p>
         </>
@@ -76,7 +76,7 @@ export function AccountPanel({ account, onNavigate }: { account: Account; onNavi
           </p>
           <p className="muted small">
             Waiting for you to finish in your browser. The code works for about{" "}
-            {minutesLeft(state.code.expiresIn)} minutes. Limited FPS never sees your password.
+            {minutesLeft(state.code.expiresIn)} minutes. Unlimited never sees your password.
           </p>
           <div className="row">
             {isMicrosoftLink(state.code.verificationUri) && (

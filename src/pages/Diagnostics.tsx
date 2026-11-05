@@ -51,7 +51,7 @@ function SearchNotes({ notes }: { notes: string[] }) {
   if (notes.length === 0) return null;
   return (
     <details className="search-notes">
-      <summary>Where Limited FPS looked ({notes.length})</summary>
+      <summary>Where Unlimited looked ({notes.length})</summary>
       <ul className="notes">
         {notes.map((n, i) => (
           <li key={i} className="muted small">
@@ -70,7 +70,7 @@ function JavaCard({ data }: { data: AppData }) {
     <Card
       title="Java installations"
       icon={<JavaIcon />}
-      description="Every Java found, in the order Limited FPS prefers them."
+      description="Every Java found, in the order Unlimited prefers them."
       action={
         <button type="button" className="btn" onClick={data.reloadJava} disabled={j.status === "loading"}>
           {j.status === "loading" ? "Detecting…" : "Detect again"}
@@ -230,7 +230,7 @@ export function DiagnosticsPage({ data }: { data: AppData }) {
         <h1>Diagnostics</h1>
         <p className="muted">
           Live results from this PC.
-          {app && ` Limited FPS v${app.version}, target Minecraft ${app.target_minecraft}.`}
+          {app && ` Unlimited v${app.version}, target Minecraft ${app.target_minecraft}.`}
         </p>
       </header>
       {data.app.status === "error" && (

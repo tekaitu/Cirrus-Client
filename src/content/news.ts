@@ -21,7 +21,7 @@ export const NEWS: NewsItem[] = [
     kind: "Update",
     date: "2026-11-01",
     title: "Java 21 installer and better detection",
-    body: "Limited FPS can now find Java in more places and install a checked, portable Java 21 for you.",
+    body: "Unlimited can now find Java in more places and install a checked, portable Java 21 for you.",
     art: "speed",
   },
   {

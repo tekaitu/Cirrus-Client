@@ -42,7 +42,7 @@ pub struct AppInfo {
 
 pub fn app_info() -> AppInfo {
     AppInfo {
-        name: "Limited FPS",
+        name: "Unlimited",
         version: env!("CARGO_PKG_VERSION"),
         target_minecraft: TARGET_MINECRAFT,
         launcher_ready: false,
@@ -407,7 +407,7 @@ async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Res
             "notConfigured",
             false,
             None,
-            Some("Sign-in is not set up in this build of Limited FPS.".to_string()),
+            Some("Sign-in is not set up in this build of Unlimited.".to_string()),
         ));
     };
     let cancel = Arc::new(AtomicBool::new(false));
@@ -613,7 +613,7 @@ pub fn run() {
             reset_settings
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Limited FPS");
+        .expect("error while running Unlimited");
 }
 
 #[cfg(test)]

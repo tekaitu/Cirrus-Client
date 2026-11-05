@@ -1,8 +1,7 @@
-import { AccountPanel } from "../components/AccountPanel";
 import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import type { PageId } from "../components/Sidebar";
-import { CardArt, HeroArt } from "../components/Art";
+import { CardArt } from "../components/Art";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { formatMemory, joinParts } from "../core/format";
 import { NEWS, formatNewsDate } from "../content/news";
@@ -86,7 +85,7 @@ const CHECK_LABEL: Record<CheckState, { tone: Tone; text: string }> = {
   needed: { tone: "warn", text: "Sign-in needed" },
 };
 
-function Hero({ data }: { data: AppData }) {
+function Hero({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
   const signedIn = data.account.state.phase === "signedIn";
   const java = data.java;
   const javaCheck: CheckState =
@@ -101,33 +100,31 @@ function Hero({ data }: { data: AppData }) {
 
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <HeroArt />
-      <div className="hero-shade" />
-      <div className="hero-body">
-        <p className="eyebrow">Minecraft Java Edition {TARGET_MINECRAFT_VERSION}</p>
-        <h1 id="hero-title">Sword PvP, tuned for low-end PCs</h1>
-        <p className="hero-copy">
-          A lightweight Fabric launcher built around steady frame rates and low input delay. Early build:
-          setup tools work, launching does not yet.
-        </p>
-        <div className="hero-actions">
-          <button type="button" className="btn btn-primary btn-play" disabled aria-describedby="play-note">
-            Play (not available yet)
-          </button>
-          <p id="play-note" className="muted small">
-            Launching Minecraft is not implemented yet. The button is disabled so it cannot pretend to start the
-            game.
-          </p>
-        </div>
-        <ul className="chips" aria-label="What Play needs">
-          {checks.map((c) => (
-            <li key={c.label}>
-              <span>{c.label}</span>
-              <Badge tone={CHECK_LABEL[c.state].tone}>{CHECK_LABEL[c.state].text}</Badge>
-            </li>
-          ))}
-        </ul>
+      <p className="pill eyebrow">Minecraft Java Edition {TARGET_MINECRAFT_VERSION}</p>
+      <h1 id="hero-title">Sword PvP, tuned for low-end PCs</h1>
+      <p className="hero-copy">
+        A lightweight Fabric launcher built around steady frame rates and low input delay. Early build: setup
+        tools work, launching does not yet.
+      </p>
+      <div className="hero-actions">
+        <button type="button" className="btn btn-primary btn-pill" disabled aria-describedby="play-note">
+          Play (not available yet)
+        </button>
+        <button type="button" className="btn btn-pill" onClick={() => onNavigate("settings")}>
+          Configure
+        </button>
       </div>
+      <p id="play-note" className="muted small hero-note">
+        Launching Minecraft is not implemented yet. The button is disabled so it cannot pretend to start the game.
+      </p>
+      <ul className="chips" aria-label="What Play needs">
+        {checks.map((c) => (
+          <li key={c.label}>
+            <span>{c.label}</span>
+            <Badge tone={CHECK_LABEL[c.state].tone}>{CHECK_LABEL[c.state].text}</Badge>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -189,9 +186,8 @@ export function HomePage({ data, onNavigate }: { data: AppData; onNavigate: (pag
   return (
     <div className="home">
       <div className="home-top">
-        <Hero data={data} />
+        <Hero data={data} onNavigate={onNavigate} />
         <div className="home-side">
-          <AccountPanel account={data.account} onNavigate={onNavigate} />
           <StatusPanel data={data} />
         </div>
       </div>

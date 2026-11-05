@@ -37,6 +37,10 @@ function goTo(name: "Home" | "Settings" | "Diagnostics") {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
+function openAccount() {
+  fireEvent.click(screen.getByRole("button", { name: "Account" }));
+}
+
 let codeHandler: ((c: DeviceCodeInfo) => void) | null = null;
 
 const authStatus = (extra: Partial<AuthStatus> = {}): AuthStatus => ({
@@ -87,7 +91,7 @@ describe("Home", () => {
     expect(screen.getAllByText("Not installed")).toHaveLength(2); // game files and Fabric
   });
 
-  it("has an icon-only sidebar with Home, Settings and Diagnostics", async () => {
+  it("has an icon-only nav pill with Home, Settings and Diagnostics", async () => {
     render(<App />);
     const nav = screen.getByRole("navigation", { name: "Main" });
     for (const name of ["Home", "Settings", "Diagnostics"]) {
@@ -110,7 +114,7 @@ describe("Home", () => {
     await screen.findByText("Java 21");
   });
 
-  it("toolbar re-scans Java and opens Diagnostics for help", async () => {
+  it("rail re-scans Java and the footer opens Diagnostics for help", async () => {
     render(<App />);
     await screen.findByText("Java 21");
     fireEvent.click(screen.getByRole("button", { name: "Re-scan Java" }));
@@ -186,6 +190,7 @@ describe("Microsoft account", () => {
 
   it("explains that sign-in needs an Azure app ID and links to Settings", async () => {
     render(<App />);
+    openAccount();
     expect(await screen.findByText("Not signed in")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Sign in with Microsoft" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Set up sign-in (owner)" }));
@@ -198,6 +203,7 @@ describe("Microsoft account", () => {
     mocked.authSignIn.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     mocked.openMicrosoftLink.mockResolvedValue(undefined);
     render(<App />);
+    openAccount();
     fireEvent.click(await screen.findByRole("button", { name: "Use a code instead" }));
     expect(await screen.findByText("Contacting Microsoft…")).toBeTruthy();
 
@@ -208,7 +214,7 @@ describe("Microsoft account", () => {
     expect(mocked.openMicrosoftLink).toHaveBeenCalledWith("https://www.microsoft.com/link");
 
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
-    expect(await screen.findByText("Steve")).toBeTruthy();
+    expect(await screen.findAllByText("Steve")).toBeTruthy();
     expect(screen.getByText("01234567-89ab-cdef-0123-456789abcdef")).toBeTruthy();
     const row = screen.getByText("Microsoft account sign-in").closest("li") as HTMLElement;
     expect(within(row).getByText("Ready")).toBeTruthy();
@@ -219,11 +225,12 @@ describe("Microsoft account", () => {
     let finish: (s: AuthStatus) => void = () => {};
     mocked.authSignInWindow.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
+    openAccount();
     fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     expect(await screen.findByText("Finish signing in in the Microsoft window…")).toBeTruthy();
     expect(mocked.authSignIn).not.toHaveBeenCalled();
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
-    expect(await screen.findByText("Steve")).toBeTruthy();
+    expect(await screen.findAllByText("Steve")).toBeTruthy();
   });
 
   it("can cancel the sign-in window", async () => {
@@ -231,6 +238,7 @@ describe("Microsoft account", () => {
     let finish: (s: AuthStatus) => void = () => {};
     mocked.authSignInWindow.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
+    openAccount();
     fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(mocked.authCancel).toHaveBeenCalledTimes(1);
@@ -242,6 +250,7 @@ describe("Microsoft account", () => {
     mocked.authStatus.mockResolvedValue(configured());
     mocked.authSignIn.mockReturnValue(new Promise<AuthStatus>(() => {}));
     render(<App />);
+    openAccount();
     fireEvent.click(await screen.findByRole("button", { name: "Use a code instead" }));
     await waitFor(() => expect(codeHandler).not.toBeNull());
     act(() => codeHandler?.({ userCode: "ZZZZ", verificationUri: "https://evil.example.com/link", expiresIn: 900 }));
@@ -254,6 +263,7 @@ describe("Microsoft account", () => {
     let finish: (s: AuthStatus) => void = () => {};
     mocked.authSignIn.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
+    openAccount();
     fireEvent.click(await screen.findByRole("button", { name: "Use a code instead" }));
     await waitFor(() => expect(codeHandler).not.toBeNull());
     act(() => codeHandler?.({ userCode: "ABCD1234", verificationUri: "https://www.microsoft.com/link", expiresIn: 900 }));
@@ -273,12 +283,13 @@ describe("Microsoft account", () => {
       }),
     );
     render(<App />);
+    openAccount();
     fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     expect(await screen.findByText("Sign-in problem")).toBeTruthy();
     expect(screen.getByText(/does not own Minecraft/)).toBeTruthy();
     mocked.authSignInWindow.mockResolvedValueOnce(authStatus({ state: "signedIn", configured: true, profile: steve }));
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByText("Steve")).toBeTruthy();
+    expect(await screen.findAllByText("Steve")).toBeTruthy();
   });
 
   it("restores a saved login at startup and can sign out", async () => {
@@ -286,7 +297,8 @@ describe("Microsoft account", () => {
     mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
     mocked.authSignOut.mockResolvedValue(authStatus({ state: "signedOut", configured: true }));
     render(<App />);
-    expect(await screen.findByText("Steve")).toBeTruthy();
+    openAccount();
+    expect(await screen.findAllByText("Steve")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("button", { name: "Sign in with Microsoft" })).toBeTruthy();
     expect(mocked.authSignOut).toHaveBeenCalledTimes(1);
@@ -298,6 +310,7 @@ describe("Microsoft account", () => {
       authStatus({ state: "signedOut", configured: true, message: "Your Microsoft sign-in expired or was revoked. Please sign in again." }),
     );
     render(<App />);
+    openAccount();
     expect(await screen.findByText(/expired or was revoked/)).toBeTruthy();
   });
 
@@ -482,7 +495,7 @@ describe("Diagnostics", () => {
     goTo("Diagnostics");
     expect(await screen.findByText("Java in use")).toBeTruthy();
     expect(screen.getByText("Java 21 (21.0.4)")).toBeTruthy();
-    expect(screen.getByText("Where Limited FPS looked (2)")).toBeTruthy();
+    expect(screen.getByText("Where Unlimited looked (2)")).toBeTruthy();
     expect(screen.getByText("JAVA_HOME is not set.")).toBeTruthy();
   });
 
@@ -512,7 +525,7 @@ describe("Diagnostics", () => {
     fireEvent.click(copy);
     expect(await screen.findByText("Report copied to the clipboard.")).toBeTruthy();
     expect(writeText).toHaveBeenCalledTimes(1);
-    expect(String(writeText.mock.calls[0][0])).toContain("Limited FPS diagnostics report");
+    expect(String(writeText.mock.calls[0][0])).toContain("Unlimited diagnostics report");
   });
 
   it("tells the user when the clipboard is unavailable", async () => {

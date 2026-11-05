@@ -83,3 +83,46 @@ export function PaletteIcon() {
     </svg>
   );
 }
+
+export function PlayIcon() {
+  return (
+    <svg {...common}>
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function RefreshIcon() {
+  return (
+    <svg {...common}>
+      <path d="M20 11a8 8 0 0 0-14.3-4.5M4 4v3.5h3.5" />
+      <path d="M4 13a8 8 0 0 0 14.3 4.5M20 20v-3.5h-3.5" />
+    </svg>
+  );
+}
+
+export function HelpIcon() {
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 17h.01" />
+    </svg>
+  );
+}
+
+export function UsersIcon() {
+  return (
+    <svg {...common}>
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5M16 6a3 3 0 0 1 0 5.5M17.5 14.7c1.8.6 2.7 2 3 4.3" />
+    </svg>
+  );
+}
+
+export function CloseIcon() {
+  return (
+    <svg {...common}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}

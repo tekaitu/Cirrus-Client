@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate every Limited FPS brand asset from one set of shapes.
+"""Generate every Unlimited brand asset from one set of shapes.
 
-Original artwork: a bold, forward-leaning "L" with speed streaks trailing behind it.
+Original artwork: a bold, forward-leaning "U" with speed streaks trailing behind it.
 Two icon variants share the idea:
   * full   - used at 64 px and above (4 streaks, finer detail)
   * small  - used at 48 px and below (2 thick streaks, bolder L) so it stays readable
@@ -29,10 +29,10 @@ from PIL import Image, ImageDraw
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # Brand colours
-NAVY_TOP = "#10204A"
-NAVY_BOTTOM = "#070C1B"
-BLUE = "#2F7BFF"
-BLUE_BRIGHT = "#5AAEFF"
+NAVY_TOP = "#2A1D55"  # tile top (deep violet)
+NAVY_BOTTOM = "#0C0816"  # tile bottom (near black)
+BLUE = "#7C5CD6"  # accent purple
+BLUE_BRIGHT = "#A78BFA"  # bright accent
 WHITE = "#FFFFFF"
 
 SKEW = 0.18  # forward lean, shared by the icon and the wordmark
@@ -51,14 +51,14 @@ def lean(x: float, y: float, base: float, dx: float) -> tuple[float, float]:
 def build_variant(name: str) -> dict:
     if name == "full":
         radius, base, dx = 58, 198, 17
-        l_raw = [(92, 56), (136, 56), (136, 158), (192, 158), (192, 198), (92, 198)]
-        stem_left = 92
+        l_raw = [(84, 56), (126, 56), (126, 154), (162, 154), (162, 56), (204, 56), (204, 170), (176, 198), (112, 198), (84, 170)]
+        stem_left = 84
         streaks_raw = [(70, 14, 26), (97, 14, 48), (124, 14, 12), (151, 14, 38)]  # y, height, x start
         alpha_start = 0.12
     else:  # small
         radius, base, dx = 64, 206, 0
-        l_raw = [(80, 40), (136, 40), (136, 150), (204, 150), (204, 206), (80, 206)]
-        stem_left = 80
+        l_raw = [(70, 42), (118, 42), (118, 148), (158, 148), (158, 42), (206, 42), (206, 176), (176, 206), (100, 206), (70, 176)]
+        stem_left = 70
         streaks_raw = [(66, 24, 20), (112, 24, 38)]
         alpha_start = 0.35
 
@@ -103,7 +103,7 @@ def icon_svg(variant: dict, uid: str = "") -> str:
     body.append(f'<polygon points="{fmt_pts(v["l"])}" fill="{WHITE}"/>')
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">'
-        f'<title>Limited FPS</title><defs>{"".join(defs)}</defs>{"".join(body)}</svg>\n'
+        f'<title>Unlimited</title><defs>{"".join(defs)}</defs>{"".join(body)}</svg>\n'
     )
 
 
@@ -178,6 +178,8 @@ def rect(x0, y0, x1, y1):
 
 
 GLYPHS: dict[str, tuple[float, list]] = {
+    "U": (7.2, [rect(0, 0, T, 10), rect(7.2 - T, 0, 7.2, 10), rect(T, 10 - T, 7.2 - T, 10)]),
+    "N": (7.8, [[(0, 0), (2.4, 0), (5.4, 5.6), (5.4, 0), (7.8, 0), (7.8, 10), (5.4, 10), (2.4, 4.4), (2.4, 10), (0, 10)]]),
     "L": (6.2, [rect(0, 0, T, 10), rect(T, 10 - T, 6.2, 10)]),
     "I": (T, [rect(0, 0, T, 10)]),
     "M": (9.6, [[(0, 0), (2.6, 0), (4.8, 4.4), (7.0, 0), (9.6, 0), (9.6, 10), (7.2, 10), (7.2, 4.6),
@@ -208,20 +210,20 @@ def word_path(text: str, start_x: float) -> tuple[str, float]:
 
 
 def build_wordmark() -> dict:
-    limited, end = word_path("LIMITED", 0.0)
-    fps, end2 = word_path("FPS", end + 5.0)
-    width = end2 + 10 * SKEW + 1.0
-    return {"viewBox": f"-0.5 -0.5 {width:.2f} 11", "limited": limited, "fps": fps, "width": width}
+    accent, end = word_path("UN", 0.0)
+    plain, end2 = word_path("LIMITED", end + 2.0)
+    width = end2 + 10 * SKEW + 2.5
+    return {"viewBox": f"-0.5 -0.5 {width:.2f} 11", "accent": accent, "plain": plain, "width": width}
 
 
 def wordmark_svg(w: dict) -> str:
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{w["viewBox"]}" height="40">'
-        "<title>Limited FPS</title>"
-        f'<defs><linearGradient id="fps" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{BLUE}"/>'
+        "<title>Unlimited</title>"
+        f'<defs><linearGradient id="acc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{BLUE}"/>'
         f'<stop offset="1" stop-color="{BLUE_BRIGHT}"/></linearGradient></defs>'
-        f'<path fill="{WHITE}" fill-rule="evenodd" d="{w["limited"]}"/>'
-        f'<path fill="url(#fps)" fill-rule="evenodd" d="{w["fps"]}"/></svg>\n'
+        f'<path fill="url(#acc)" fill-rule="evenodd" d="{w["accent"]}"/>'
+        f'<path fill="{WHITE}" fill-rule="evenodd" d="{w["plain"]}"/></svg>\n'
     )
 
 
@@ -252,7 +254,7 @@ def main() -> None:
     write(ROOT / "public" / "favicon.svg", icon_svg(VARIANTS["small"]))
 
     ts = {
-        "colors": {"navyTop": NAVY_TOP, "navyBottom": NAVY_BOTTOM, "blue": BLUE, "blueBright": BLUE_BRIGHT, "white": WHITE},
+        "colors": {"tileTop": NAVY_TOP, "tileBottom": NAVY_BOTTOM, "accent": BLUE, "accentBright": BLUE_BRIGHT, "white": WHITE},
         "variants": {
             n: {
                 "radius": v["radius"],
@@ -264,7 +266,7 @@ def main() -> None:
             }
             for n, v in VARIANTS.items()
         },
-        "wordmark": {"viewBox": word["viewBox"], "limited": word["limited"], "fps": word["fps"]},
+        "wordmark": {"viewBox": word["viewBox"], "accent": word["accent"], "plain": word["plain"]},
     }
     write(
         ROOT / "src" / "branding" / "logo.generated.ts",

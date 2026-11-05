@@ -27,7 +27,7 @@ function insideTauri(): boolean {
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (!insideTauri()) {
     throw new Error(
-      "This page is not running inside the Limited FPS desktop app, so system features are unavailable.",
+      "This page is not running inside the Unlimited desktop app, so system features are unavailable.",
     );
   }
   try {

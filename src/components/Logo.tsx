@@ -5,7 +5,7 @@ import { LOGO } from "../branding/logo.generated";
 const SMALL_MAX_PX = 48;
 
 /**
- * The Limited FPS app icon: a bold forward-leaning L with blue speed streaks on
+ * The Unlimited app icon: a bold forward-leaning U with blue speed streaks on
  * a navy tile. Shapes come from branding/generate_assets.py so the in-app logo,
  * the window icon and the EXE icon are the same drawing.
  */
@@ -21,13 +21,13 @@ export function LogoMark({ size = 40 }: { size?: number }) {
       height={size}
       viewBox="0 0 256 256"
       role="img"
-      aria-label="Limited FPS logo"
+      aria-label="Unlimited logo"
       focusable="false"
     >
       <defs>
         <linearGradient id={tile} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={c.navyTop} />
-          <stop offset="1" stopColor={c.navyBottom} />
+          <stop offset="0" stopColor={c.tileTop} />
+          <stop offset="1" stopColor={c.tileBottom} />
         </linearGradient>
         {variant.streaks.map((s, i) => (
           <linearGradient
@@ -39,8 +39,8 @@ export function LogoMark({ size = 40 }: { size?: number }) {
             x2={s.x2}
             y2="0"
           >
-            <stop offset="0" stopColor={c.blue} stopOpacity={s.alphaStart} />
-            <stop offset="1" stopColor={c.blueBright} />
+            <stop offset="0" stopColor={c.accent} stopOpacity={s.alphaStart} />
+            <stop offset="1" stopColor={c.accentBright} />
           </linearGradient>
         ))}
       </defs>
@@ -53,7 +53,7 @@ export function LogoMark({ size = 40 }: { size?: number }) {
   );
 }
 
-/** "LIMITED FPS" lettering, separate from the icon. Height is in pixels. */
+/** "UNLIMITED" lettering, separate from the icon. Height is in pixels. */
 export function Wordmark({ height = 22 }: { height?: number }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const w = LOGO.wordmark;
@@ -66,17 +66,17 @@ export function Wordmark({ height = 22 }: { height?: number }) {
       height={height}
       viewBox={w.viewBox}
       role="img"
-      aria-label="Limited FPS"
+      aria-label="Unlimited"
       focusable="false"
     >
       <defs>
         <linearGradient id={grad} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor={LOGO.colors.blue} />
-          <stop offset="1" stopColor={LOGO.colors.blueBright} />
+          <stop offset="0" stopColor={LOGO.colors.accent} />
+          <stop offset="1" stopColor={LOGO.colors.accentBright} />
         </linearGradient>
       </defs>
-      <path fill={LOGO.colors.white} fillRule="evenodd" d={w.limited} />
-      <path fill={`url(#${grad})`} fillRule="evenodd" d={w.fps} />
+      <path fill={`url(#${grad})`} fillRule="evenodd" d={w.accent} />
+      <path fill={LOGO.colors.white} fillRule="evenodd" d={w.plain} />
     </svg>
   );
 }
