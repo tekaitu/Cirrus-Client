@@ -5,7 +5,7 @@ export type SignInMethod = "window" | "code";
 export type AccountState =
   | { phase: "checking" }
   | { phase: "notConfigured" }
-  | { phase: "signedOut"; message: string | null }
+  | { phase: "signedOut"; message: string | null; savedLogin?: boolean }
   | { phase: "starting"; method: SignInMethod }
   | { phase: "waiting"; code: DeviceCodeInfo }
   | { phase: "signedIn"; profile: AuthProfile; note: string | null }
@@ -24,7 +24,7 @@ export function accountFromStatus(s: AuthStatus): AccountState {
       return { phase: "error", message: s.message ?? "Sign-in failed." };
     default:
       // signedOut and cancelled
-      return { phase: "signedOut", message: s.message };
+      return { phase: "signedOut", message: s.message, savedLogin: s.savedLogin };
   }
 }
 

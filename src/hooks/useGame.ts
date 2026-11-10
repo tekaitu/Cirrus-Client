@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { GameStatus } from "../api/types";
-import type { GameInstallerState, PlayMode, RunState } from "../core/game";
+import type { GameInstallerState, LoaderId, PlayMode, RunState } from "../core/game";
 
 export interface Game {
   status: GameStatus | null;
@@ -15,7 +15,7 @@ export interface Game {
   refresh: () => void;
 }
 
-export function useGame(): Game {
+export function useGame(version: string, loader: LoaderId): Game {
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [installer, setInstaller] = useState<GameInstallerState>({ phase: "idle" });
   const [run, setRun] = useState<RunState>({ phase: "idle" });
@@ -30,8 +30,8 @@ export function useGame(): Game {
   }, []);
 
   const refresh = useCallback(() => {
-    api
-      .gameStatus()
+    void Promise.resolve()
+      .then(() => api.gameStatus(version, loader))
       .then((s) => {
         if (!mounted.current) return;
         setStatus(s);
@@ -40,7 +40,11 @@ export function useGame(): Game {
       .catch(() => {
         /* outside the desktop app there is no game status */
       });
-  }, []);
+  }, [version, loader]);
+
+  useEffect(() => {
+    setStatus(null);
+  }, [version, loader]);
 
   useEffect(() => {
     refresh();
@@ -67,11 +71,17 @@ export function useGame(): Game {
           if (!mounted.current) return;
           setInstaller((prev) => (prev.phase === "running" ? { ...prev, progress } : prev));
         });
-        const result = await api.installGame();
+        const result = await api.installGame(version, loader);
         if (!mounted.current) return;
         if (result.status === "installed") {
-          setInstaller({ phase: "idle" });
-          refresh();
+          // Update the status first so nothing sees "idle" with stale "not installed".
+          try {
+            const fresh = await api.gameStatus(version, loader);
+            if (mounted.current) setStatus(fresh);
+          } catch {
+            /* the next refresh will correct it */
+          }
+          if (mounted.current) setInstaller({ phase: "idle" });
         } else if (result.status === "cancelled") {
           setInstaller({ phase: "cancelled" });
         } else {
@@ -84,7 +94,7 @@ export function useGame(): Game {
         installing.current = false;
       }
     })();
-  }, [refresh]);
+  }, [version, loader]);
 
   const cancelInstall = useCallback(() => {
     setInstaller((prev) => (prev.phase === "running" ? { ...prev, cancelling: true } : prev));
@@ -94,7 +104,7 @@ export function useGame(): Game {
   const play = useCallback((javaPath: string, mode: PlayMode, username: string) => {
     setRun({ phase: "starting" });
     api
-      .launchGame(javaPath, mode, mode === "offline" ? username.trim() : null)
+      .launchGame(javaPath, mode, mode === "offline" ? username.trim() : null, version, loader)
       .then((r) => {
         if (!mounted.current) return;
         setRun(r.started ? { phase: "running" } : { phase: "error", message: r.message ?? "Minecraft could not be started." });
@@ -102,7 +112,7 @@ export function useGame(): Game {
       .catch((e) => {
         if (mounted.current) setRun({ phase: "error", message: errorMessage(e) });
       });
-  }, []);
+  }, [version, loader]);
 
   const stop = useCallback(() => {
     api.stopGame().catch(() => {});

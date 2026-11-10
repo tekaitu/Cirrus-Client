@@ -153,3 +153,31 @@ export interface GameExit {
   code: number | null;
   logPath: string;
 }
+
+export type ModProvider = "modrinth" | "curseforge";
+
+export interface ModHit {
+  provider: ModProvider;
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  downloads: number;
+  iconUrl: string | null;
+  pageUrl: string | null;
+}
+
+export interface ModSearchResult {
+  hits: ModHit[];
+  total: number;
+}
+
+export interface ModInstallReport {
+  installed: string[];
+  present: string[];
+}
+
+export interface InstalledMod {
+  fileName: string;
+  size: number;
+}

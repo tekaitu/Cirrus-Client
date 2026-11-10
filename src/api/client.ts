@@ -10,6 +10,10 @@ import type {
   GameStatus,
   InstallProgress,
   InstallResult,
+  InstalledMod,
+  ModInstallReport,
+  ModProvider,
+  ModSearchResult,
   JavaDetectionRaw,
   JavaInstallRaw,
   LaunchResult,
@@ -71,11 +75,25 @@ export const api = {
     if (!insideTauri()) return () => {};
     return listen<DeviceCodeInfo>(AUTH_CODE_EVENT, (event) => handler(event.payload));
   },
-  gameStatus: () => call<GameStatus>("game_status"),
-  installGame: () => call<GameInstallResult>("install_game"),
+  gameStatus: (version: string, loader: string) => call<GameStatus>("game_status", { version, loader }),
+  listGameVersions: () => call<string[]>("list_game_versions"),
+  installGame: (version: string, loader: string) => call<GameInstallResult>("install_game", { version, loader }),
   cancelGameInstall: () => call<boolean>("cancel_game_install"),
-  launchGame: (javaPath: string, mode: "offline" | "microsoft", username: string | null) =>
-    call<LaunchResult>("launch_game", { javaPath, mode, username }),
+  launchGame: (
+    javaPath: string,
+    mode: "offline" | "microsoft",
+    username: string | null,
+    version: string,
+    loader: string,
+  ) => call<LaunchResult>("launch_game", { javaPath, mode, username, version, loader }),
+  quitApp: () => call<void>("quit_app"),
+  curseforgeAvailable: () => call<boolean>("curseforge_available"),
+  searchMods: (provider: ModProvider, query: string, version: string, offset: number) =>
+    call<ModSearchResult>("search_mods", { provider, query, version, offset }),
+  installMod: (provider: ModProvider, id: string, version: string) =>
+    call<ModInstallReport>("install_mod", { provider, id, version }),
+  listMods: (version: string) => call<InstalledMod[]>("list_mods", { version }),
+  removeMod: (version: string, fileName: string) => call<void>("remove_mod", { version, fileName }),
   stopGame: () => call<boolean>("stop_game"),
   onGameProgress: async (handler: (p: GameProgress) => void): Promise<() => void> => {
     if (!insideTauri()) return () => {};

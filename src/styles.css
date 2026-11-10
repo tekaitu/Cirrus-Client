@@ -329,3 +329,35 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
 
 @media (prefers-reduced-motion: reduce) { .btn-glow::after { animation: none; display: none; } }
 :root[data-reduce-motion="true"] .btn-glow::after { display: none; }
+
+/* ---------- Mods, license, version pickers ---------- */
+.pick-row { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; width: 100%; }
+.pick { display: flex; flex-direction: column; gap: 5px; }
+.pick > span { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.pick select { border-radius: 999px; padding: 8px 14px; min-width: 130px; }
+.why-optifine { width: 100%; font-size: 0.8rem; }
+.why-optifine p { margin: 6px 0 0; }
+
+.search-row { display: flex; gap: 8px; margin: 12px 0; }
+.search-row input { flex: 1; border-radius: 999px; padding: 10px 16px; }
+.pack-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.mod-list, .installed-list { list-style: none; margin: 12px 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mod-card { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 16px; background: rgba(33, 24, 74, 0.55); border: 1px solid var(--border); transition: transform 0.15s, border-color 0.15s; }
+.mod-card:hover { transform: translateY(-2px); border-color: var(--accent-bright); }
+.mod-icon { width: 48px; height: 48px; flex: none; border-radius: 12px; object-fit: cover; background: var(--panel-2); }
+.mod-icon-empty { display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; color: #fff; background: linear-gradient(135deg, var(--accent), var(--violet)); }
+.mod-body { flex: 1; min-width: 0; }
+.mod-body h3 { margin: 0 0 2px; }
+.mod-body p { margin: 0 0 2px; overflow-wrap: anywhere; }
+.installed-list li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 12px; background: rgba(33, 24, 74, 0.55); }
+.installed-list .path { flex: 1; margin: 0; }
+
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(8, 5, 16, 0.78); backdrop-filter: blur(8px); }
+.modal { width: min(640px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 22px; background: rgba(24, 16, 48, 0.96); border: 1px solid var(--border); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), var(--glow); }
+.modal-title { font-size: 1.2rem; text-transform: none; letter-spacing: 0; color: var(--text); }
+.license-text { overflow-y: auto; padding-right: 8px; max-height: 50vh; }
+.license-text h3 { margin: 12px 0 2px; color: #e6dcff; }
+.license-text p { margin: 0; color: #cfc6ee; }
+.modal .row { margin-top: 4px; }
+
+@media (max-width: 640px) { .mod-card { flex-wrap: wrap; } }

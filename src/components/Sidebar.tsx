@@ -1,10 +1,11 @@
-import { DiagnosticsIcon, HomeIcon, RefreshIcon, SettingsIcon, UserIcon } from "./Icons";
+import { DiagnosticsIcon, HomeIcon, ModsIcon, RefreshIcon, SettingsIcon, UserIcon } from "./Icons";
 import { LogoMark } from "./Logo";
 
-export type PageId = "home" | "settings" | "diagnostics";
+export type PageId = "home" | "mods" | "settings" | "diagnostics";
 
 const ITEMS: Array<{ id: PageId; label: string; icon: JSX.Element }> = [
   { id: "home", label: "Home", icon: <HomeIcon /> },
+  { id: "mods", label: "Mods", icon: <ModsIcon /> },
   { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "diagnostics", label: "Diagnostics", icon: <DiagnosticsIcon /> },
 ];

@@ -3,6 +3,7 @@ import type { AppInfo, SettingsState, SystemInfo } from "../api/types";
 import { analyzeJava, toJavaView, type JavaView } from "../core/java";
 import { useAuth, type Account } from "./useAuth";
 import { useGame, type Game } from "./useGame";
+import { useSelection, type Selection } from "./useSelection";
 import { useJavaInstaller, type JavaInstaller } from "./useJavaInstaller";
 import { useResource, type ResourceState } from "./useResource";
 
@@ -14,6 +15,7 @@ export interface AppData {
   installer: JavaInstaller;
   account: Account;
   game: Game;
+  selection: Selection;
   reloadAll: () => void;
   reloadSettings: () => void;
   reloadJava: () => void;
@@ -45,12 +47,14 @@ export function useAppData(): AppData {
     s.status !== "loading",
   );
 
-  const game = useGame();
+  const selection = useSelection();
+  const game = useGame(selection.version, selection.loader);
 
   return {
     installer,
     account,
     game,
+    selection,
     app: app.state,
     system: system.state,
     settings: settings.state,

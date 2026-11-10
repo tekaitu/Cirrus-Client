@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod game;
 pub mod java;
+pub mod mods;
 pub mod runtime;
 pub mod settings;
 pub mod system;
@@ -608,7 +609,7 @@ async fn reset_settings(app: AppHandle) -> Result<SettingsState, String> {
 #[serde(rename_all = "camelCase")]
 struct GameStatus {
     installed: bool,
-    minecraft: &'static str,
+    minecraft: String,
     loader: Option<String>,
     game_dir: String,
     running: bool,
@@ -647,6 +648,23 @@ fn game_root(app: &AppHandle) -> Result<(PathBuf, u32), String> {
     Ok((PathBuf::from(dir), loaded.memory_mb))
 }
 
+/// "fabric" or "vanilla"; anything else is refused so a bad value never reaches a file path.
+fn parse_loader(loader: &str) -> Result<bool, String> {
+    match loader {
+        "fabric" => Ok(true),
+        "vanilla" => Ok(false),
+        _ => Err("Unknown loader.".to_string()),
+    }
+}
+
+fn check_version(version: &str) -> Result<(), String> {
+    if game::supported_release(version) {
+        Ok(())
+    } else {
+        Err(format!("Minecraft {version} is not supported by this launcher."))
+    }
+}
+
 fn game_running(state: &GameState) -> bool {
     match state.child.lock() {
         Ok(mut slot) => match slot.as_mut() {
@@ -657,22 +675,47 @@ fn game_running(state: &GameState) -> bool {
     }
 }
 
+/// Minecraft releases the launcher can set up, newest first. Falls back to the
+/// built-in target when Mojang's list cannot be reached.
 #[tauri::command]
-fn game_status(app: AppHandle, state: State<'_, GameState>) -> Result<GameStatus, String> {
+async fn list_game_versions() -> Result<Vec<String>, String> {
+    let fetched = tauri::async_runtime::spawn_blocking(game::list_versions).await;
+    Ok(match fetched {
+        Ok(Ok(list)) if !list.is_empty() => list,
+        _ => vec![TARGET_MINECRAFT.to_string()],
+    })
+}
+
+#[tauri::command]
+fn game_status(
+    app: AppHandle,
+    state: State<'_, GameState>,
+    version: String,
+    loader: String,
+) -> Result<GameStatus, String> {
+    check_version(&version)?;
+    let fabric = parse_loader(&loader)?;
     let (root, _) = game_root(&app)?;
-    let info = game::installed(&root, TARGET_MINECRAFT);
+    let info = game::installed(&root, &version, fabric);
     Ok(GameStatus {
         installed: info.is_some(),
-        minecraft: TARGET_MINECRAFT,
-        loader: info.map(|i| i.loader),
+        minecraft: version,
+        loader: info.and_then(|i| i.loader),
         game_dir: root.display().to_string(),
         running: game_running(&state),
     })
 }
 
 #[tauri::command]
-async fn install_game(app: AppHandle, state: State<'_, GameState>) -> Result<GameInstallResult, String> {
+async fn install_game(
+    app: AppHandle,
+    state: State<'_, GameState>,
+    version: String,
+    loader: String,
+) -> Result<GameInstallResult, String> {
     let failed = |m: String| GameInstallResult { status: "failed", message: Some(m), loader: None };
+    check_version(&version)?;
+    let fabric = parse_loader(&loader)?;
     let cancel = Arc::new(AtomicBool::new(false));
     {
         let mut slot = state.install_cancel.lock().map_err(|_| "Installer state is unavailable.".to_string())?;
@@ -694,7 +737,7 @@ async fn install_game(app: AppHandle, state: State<'_, GameState>) -> Result<Gam
     let emitter = app.clone();
     let flag = cancel.clone();
     let worker = tauri::async_runtime::spawn_blocking(move || {
-        game::install(&root, TARGET_MINECRAFT, &flag, &move |p| {
+        game::install(&root, &version, fabric, &flag, &move |p| {
             let _ = emitter.emit(GAME_PROGRESS_EVENT, p);
         })
     })
@@ -707,7 +750,7 @@ async fn install_game(app: AppHandle, state: State<'_, GameState>) -> Result<Gam
         Err(e) => failed(format!("The download stopped unexpectedly: {e}")),
         Ok(Err(game::GameError::Cancelled)) => GameInstallResult { status: "cancelled", message: None, loader: None },
         Ok(Err(game::GameError::Failed(m))) => failed(m),
-        Ok(Ok(info)) => GameInstallResult { status: "installed", message: None, loader: Some(info.loader) },
+        Ok(Ok(info)) => GameInstallResult { status: "installed", message: None, loader: info.loader },
     })
 }
 
@@ -726,7 +769,9 @@ fn cancel_game_install(state: State<'_, GameState>) -> bool {
 }
 
 /// Start Minecraft. `mode` is "offline" (needs `username`) or "microsoft"
-/// (uses the account that is signed in right now).
+/// (uses the account that is signed in right now). Either way the launcher
+/// requires a Microsoft account that owns Minecraft: it must be signed in now
+/// or have signed in on this PC before.
 #[tauri::command]
 async fn launch_game(
     app: AppHandle,
@@ -735,28 +780,34 @@ async fn launch_game(
     java_path: String,
     mode: String,
     username: Option<String>,
+    version: String,
+    loader: String,
 ) -> Result<LaunchResult, String> {
     let refuse = |m: &str| Ok(LaunchResult { started: false, message: Some(m.to_string()), log_path: None });
+    check_version(&version)?;
+    let fabric = parse_loader(&loader)?;
     if game_running(&state) {
         return refuse("Minecraft is already running.");
+    }
+    let session = auth.session.lock().ok().and_then(|s| s.clone());
+    let owns_minecraft = session.is_some() || matches!(auth::KeyringStore.load(), Ok(Some(_)));
+    if !owns_minecraft {
+        return refuse("Unlimited needs a Microsoft account that owns Minecraft: Java Edition. Sign in first.");
     }
     let player = match mode.as_str() {
         "offline" => match game::Player::offline(username.as_deref().unwrap_or("").trim()) {
             Ok(p) => p,
             Err(m) => return refuse(&m),
         },
-        "microsoft" => {
-            let session = auth.session.lock().ok().and_then(|s| s.clone());
-            match session {
-                Some(s) => game::Player {
-                    name: s.profile.name.clone(),
-                    uuid: s.profile.id.clone(),
-                    access_token: s.mc_token.clone(),
-                    user_type: "msa",
-                },
-                None => return refuse("Sign in with Microsoft first, or play offline."),
-            }
-        }
+        "microsoft" => match session {
+            Some(s) => game::Player {
+                name: s.profile.name.clone(),
+                uuid: s.profile.id.clone(),
+                access_token: s.mc_token.clone(),
+                user_type: "msa",
+            },
+            None => return refuse("Sign in with Microsoft first, or play offline."),
+        },
         _ => return refuse("Unknown play mode."),
     };
 
@@ -765,7 +816,7 @@ async fn launch_game(
         return refuse("Java was not found at the saved location. Re-scan Java and try again.");
     }
     let (root, memory) = game_root(&app)?;
-    let Some(info) = game::installed(&root, TARGET_MINECRAFT) else {
+    let Some(info) = game::installed(&root, &version, fabric) else {
         return refuse("The game files are not installed yet.");
     };
 
@@ -842,6 +893,73 @@ fn stop_game(state: State<'_, GameState>) -> bool {
     }
 }
 
+#[tauri::command]
+fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
+
+// ---------------------------------------------------------------- mods
+
+/// CurseForge's API needs a key; it is supplied when the launcher is built.
+fn curseforge_key() -> Option<&'static str> {
+    option_env!("LIMITEDFPS_CF_API_KEY").filter(|k| !k.trim().is_empty())
+}
+
+#[tauri::command]
+fn curseforge_available() -> bool {
+    curseforge_key().is_some()
+}
+
+/// The mods folder of the Fabric profile for `version`. Mods only apply to
+/// Fabric, so the game has to be installed with Fabric first.
+fn mods_folder(app: &AppHandle, version: &str) -> Result<PathBuf, String> {
+    check_version(version)?;
+    let (root, _) = game_root(app)?;
+    let info = game::installed(&root, version, true)
+        .ok_or_else(|| format!("Install Minecraft {version} with Fabric first (use Play on the Home page)."))?;
+    Ok(game::instance_dir(&root, &info.profile_id).join("mods"))
+}
+
+#[tauri::command]
+async fn search_mods(
+    provider: String,
+    query: String,
+    version: String,
+    offset: u32,
+) -> Result<mods::SearchResult, String> {
+    check_version(&version)?;
+    let provider = mods::Provider::parse(&provider).ok_or("Unknown mod site.")?;
+    tauri::async_runtime::spawn_blocking(move || mods::search(provider, &query, &version, offset, curseforge_key()))
+        .await
+        .map_err(|e| format!("The search stopped unexpectedly: {e}"))?
+}
+
+#[tauri::command]
+async fn install_mod(
+    app: AppHandle,
+    provider: String,
+    id: String,
+    version: String,
+) -> Result<mods::InstallReport, String> {
+    let provider = mods::Provider::parse(&provider).ok_or("Unknown mod site.")?;
+    let dir = mods_folder(&app, &version)?;
+    tauri::async_runtime::spawn_blocking(move || mods::install(provider, &id, &version, &dir, curseforge_key()))
+        .await
+        .map_err(|e| format!("The install stopped unexpectedly: {e}"))?
+}
+
+#[tauri::command]
+fn list_mods(app: AppHandle, version: String) -> Result<Vec<mods::InstalledMod>, String> {
+    let dir = mods_folder(&app, &version)?;
+    Ok(mods::list_installed(&dir))
+}
+
+#[tauri::command]
+fn remove_mod(app: AppHandle, version: String, file_name: String) -> Result<(), String> {
+    let dir = mods_folder(&app, &version)?;
+    mods::remove(&dir, &file_name)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -869,7 +987,14 @@ pub fn run() {
             install_game,
             cancel_game_install,
             launch_game,
-            stop_game
+            stop_game,
+            quit_app,
+            list_game_versions,
+            curseforge_available,
+            search_mods,
+            install_mod,
+            list_mods,
+            remove_mod
         ])
         .run(tauri::generate_context!())
         .expect("error while running Unlimited");

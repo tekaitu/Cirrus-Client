@@ -1,6 +1,9 @@
 import type { GameProgress } from "../api/types";
 
 export type PlayMode = "microsoft" | "offline";
+export type LoaderId = "fabric" | "vanilla";
+
+export const FALLBACK_VERSION = "1.21.11";
 
 /** Same rules Minecraft uses for a player name. Returns an error message or null. */
 export function usernameError(name: string): string | null {

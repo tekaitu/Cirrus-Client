@@ -52,6 +52,7 @@ jobs:
         # Optional repository variable: the public Azure Application (client) ID built into the app.
         env:
           LIMITEDFPS_MS_CLIENT_ID: ${{ vars.LIMITEDFPS_MS_CLIENT_ID }}
+          LIMITEDFPS_CF_API_KEY: ${{ secrets.LIMITEDFPS_CF_API_KEY }}
         run: npx tauri build --no-bundle
 
       - name: Verify the executable exists and is not empty

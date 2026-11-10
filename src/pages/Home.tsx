@@ -102,7 +102,7 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
 
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <p className="pill eyebrow">Minecraft Java Edition {TARGET_MINECRAFT_VERSION}</p>
+      <p className="pill eyebrow">Minecraft Java Edition {data.selection.version}</p>
       <h1 id="hero-title">Sword PvP, tuned for low-end PCs</h1>
       <p className="hero-copy">
         A lightweight Fabric launcher built around steady frame rates and low input delay. Early build: the
@@ -129,7 +129,7 @@ function StatusPanel({ data }: { data: AppData }) {
       <ul className="status-rows">
         <li>
           <div>
-            <strong>Minecraft {TARGET_MINECRAFT_VERSION}</strong>
+            <strong>Minecraft {data.selection.version}</strong>
             {memory && <span className="muted small"> · memory {memory}</span>}
           </div>
           <Badge tone={data.game.status?.installed ? "good" : "neutral"}>

@@ -11,6 +11,13 @@ vi.mock("../src/api/client", () => ({
   api: {
     getAppInfo: vi.fn(),
     gameStatus: vi.fn(),
+    listGameVersions: vi.fn(),
+    quitApp: vi.fn(),
+    curseforgeAvailable: vi.fn(),
+    searchMods: vi.fn(),
+    installMod: vi.fn(),
+    listMods: vi.fn(),
+    removeMod: vi.fn(),
     installGame: vi.fn(),
     cancelGameInstall: vi.fn(),
     launchGame: vi.fn(),
@@ -40,7 +47,7 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
-function goTo(name: "Home" | "Settings" | "Diagnostics") {
+function goTo(name: "Home" | "Mods" | "Settings" | "Diagnostics") {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
@@ -76,6 +83,11 @@ let progressHandler: ((p: InstallProgress) => void) | null = null;
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.localStorage.setItem("unlimited.license", "1");
+  mocked.listGameVersions.mockResolvedValue(["1.21.11", "1.21.1", "1.20.6"]);
+  mocked.curseforgeAvailable.mockResolvedValue(false);
+  mocked.listMods.mockResolvedValue([]);
+  mocked.searchMods.mockResolvedValue({ hits: [], total: 0 });
   gameProgressHandler = null;
   gameExitHandler = null;
   mocked.gameStatus.mockResolvedValue(gameStatus());
@@ -162,9 +174,10 @@ describe("Home", () => {
     expect(screen.getByRole("status", { name: "Detecting Java" })).toBeTruthy();
   });
 
-  it("asks for the game files first, then offers Play", async () => {
+  it("asks people to sign in with the Minecraft account that owns the game before Play", async () => {
     render(<App />);
-    expect(await screen.findByRole("button", { name: "Install game files" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
+    expect(screen.getByText(/for people who own Minecraft: Java Edition/)).toBeTruthy();
     expect(screen.getByText("Microsoft account sign-in")).toBeTruthy();
     expect(screen.getByText("Sign-in needed")).toBeTruthy();
   });
@@ -707,17 +720,37 @@ describe("ErrorBoundary", () => {
 
 describe("Play", () => {
   const ready = () => mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+  const owned = () => {
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
+    mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
+  };
   const waitReady = async () => {
     await screen.findByText("Java 21");
     await screen.findAllByText("Installed");
+    await screen.findAllByText("Steve");
   };
   const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
+  beforeEach(() => owned());
 
-  it("installs the game files with progress and can cancel", async () => {
+  it("sets everything up in one click: downloads the game, then starts it", async () => {
+    mocked.installGame.mockImplementation(async () => {
+      mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+      return { status: "installed", message: null, loader: "0.17.0" };
+    });
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
+    await waitFor(() => expect(mocked.installGame).toHaveBeenCalledWith("1.21.11", "fabric"));
+    await waitFor(() =>
+      expect(mocked.launchGame).toHaveBeenCalledWith(expect.stringContaining("java"), "microsoft", null, "1.21.11", "fabric"),
+    );
+  });
+
+  it("shows download progress and can cancel", async () => {
     let finish: (r: { status: "installed" | "cancelled" | "failed"; message: string | null; loader: string | null }) => void = () => {};
     mocked.installGame.mockReturnValue(new Promise((resolve) => (finish = resolve)));
     render(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Install game files" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
     await waitFor(() => expect(gameProgressHandler).not.toBeNull());
     act(() => gameProgressHandler?.({ stage: "downloading", done: 50, total: 200, message: "Downloading game files (50 of 200)" }));
     expect(await screen.findByText("Downloading game files (50 of 200)")).toBeTruthy();
@@ -726,27 +759,43 @@ describe("Play", () => {
     expect(mocked.cancelGameInstall).toHaveBeenCalledTimes(1);
     await act(async () => finish({ status: "cancelled", message: null, loader: null }));
     expect(await screen.findByText(/Download cancelled/)).toBeTruthy();
+    expect(mocked.launchGame).not.toHaveBeenCalled();
   });
 
-  it("shows why a download failed", async () => {
+  it("shows why a download failed and does not start the game", async () => {
     mocked.installGame.mockResolvedValue({ status: "failed", message: "Could not connect.", loader: null });
     render(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Install game files" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
     expect(await screen.findByText("Game files could not be downloaded")).toBeTruthy();
     expect(screen.getByText("Could not connect.")).toBeTruthy();
+    expect(mocked.launchGame).not.toHaveBeenCalled();
   });
 
-  it("refreshes status after a successful download", async () => {
-    mocked.installGame.mockImplementation(async () => {
-      mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
-      return { status: "installed", message: null, loader: "0.17.0" };
-    });
+  it("installs Java first when it is missing", async () => {
+    mocked.detectJava.mockResolvedValue({ installs: [], candidatesChecked: 2 });
+    mocked.installJava.mockReturnValue(new Promise<InstallResult>(() => {}));
     render(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Install game files" }));
-    expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
+    expect(screen.getByText(/Installs Java 21/)).toBeTruthy();
+    await waitFor(() => expect(mocked.installJava).toHaveBeenCalledTimes(1));
   });
 
-  it("asks to sign in when playing with Microsoft while signed out", async () => {
+  it("lets the player pick the Minecraft version and the loader", async () => {
+    ready();
+    render(<App />);
+    await waitReady();
+    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(["1.21.11", "1.21.1", "1.20.6"]);
+    fireEvent.change(select, { target: { value: "1.20.6" } });
+    await waitFor(() => expect(mocked.gameStatus).toHaveBeenLastCalledWith("1.20.6", "fabric"));
+    fireEvent.click(screen.getByRole("radio", { name: "Vanilla" }));
+    await waitFor(() => expect(mocked.gameStatus).toHaveBeenLastCalledWith("1.20.6", "vanilla"));
+    expect(window.localStorage.getItem("unlimited.version")).toBe("1.20.6");
+    expect(screen.getByText("Why is there no OptiFine?")).toBeTruthy();
+  });
+
+  it("asks to sign in when the Minecraft account is not signed in", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus());
     ready();
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Sign in to play" }));
@@ -769,7 +818,7 @@ describe("Play", () => {
     expect(play.disabled).toBe(false);
   });
 
-  it("launches offline with the chosen name and Java, then shows the running state", async () => {
+  it("launches offline with the chosen name, version and loader, then shows the running state", async () => {
     ready();
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: "C:\\log.txt" });
     render(<App />);
@@ -778,7 +827,7 @@ describe("Play", () => {
     fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve_01" } });
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
     await waitFor(() =>
-      expect(mocked.launchGame).toHaveBeenCalledWith(expect.stringContaining("java"), "offline", "Steve_01"),
+      expect(mocked.launchGame).toHaveBeenCalledWith(expect.stringContaining("java"), "offline", "Steve_01", "1.21.11", "fabric"),
     );
     fireEvent.click(await screen.findByRole("button", { name: "Stop Minecraft" }));
     expect(mocked.stopGame).toHaveBeenCalledTimes(1);
@@ -789,14 +838,13 @@ describe("Play", () => {
 
   it("launches with the signed-in Microsoft account", async () => {
     ready();
-    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
-    mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
-    await screen.findAllByText("Steve");
     await waitReady();
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
-    await waitFor(() => expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "microsoft", null));
+    await waitFor(() =>
+      expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "microsoft", null, "1.21.11", "fabric"),
+    );
   });
 
   it("shows the reason when Minecraft cannot start", async () => {
@@ -810,11 +858,127 @@ describe("Play", () => {
     expect(await screen.findByText("Minecraft could not be started")).toBeTruthy();
     expect(screen.getByText("A game file is missing.")).toBeTruthy();
   });
+});
 
-  it("will not offer Play without a compatible Java", async () => {
-    ready();
-    mocked.detectJava.mockResolvedValue({ installs: [java17Raw], candidatesChecked: 3 });
+describe("License", () => {
+  it("must be accepted before the launcher is used", async () => {
+    window.localStorage.removeItem("unlimited.license");
     render(<App />);
-    expect(await screen.findByRole("button", { name: "Install Java 21 first" })).toBeTruthy();
+    const dialog = await screen.findByRole("dialog", { name: "Unlimited license" });
+    expect(within(dialog).getByText(/You need Minecraft/)).toBeTruthy();
+    const accept = within(dialog).getByRole("button", { name: "Accept and continue" }) as HTMLButtonElement;
+    expect(accept.disabled).toBe(true);
+    fireEvent.click(within(dialog).getByRole("checkbox"));
+    fireEvent.click(accept);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull());
+    expect(window.localStorage.getItem("unlimited.license")).toBe("1");
+  });
+
+  it("quits when declined", async () => {
+    window.localStorage.removeItem("unlimited.license");
+    mocked.quitApp.mockResolvedValue(undefined);
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline and quit" }));
+    expect(mocked.quitApp).toHaveBeenCalledTimes(1);
+  });
+
+  it("can be read again from the footer", async () => {
+    render(<App />);
+    expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "License" }));
+    const dialog = await screen.findByRole("dialog", { name: "Unlimited license" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull();
+  });
+});
+
+describe("Mods", () => {
+  const sodium = {
+    provider: "modrinth" as const,
+    id: "AANobbMI",
+    title: "Sodium",
+    description: "Fast rendering",
+    author: "jellysquid3",
+    downloads: 1_500_000,
+    iconUrl: null,
+    pageUrl: null,
+  };
+  const withFabric = () => mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+
+  it("explains that Vanilla cannot load mods and can switch to Fabric", async () => {
+    window.localStorage.setItem("unlimited.loader", "vanilla");
+    render(<App />);
+    goTo("Mods");
+    expect(await screen.findByText("Mods need Fabric")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Fabric" }));
+    await waitFor(() => expect(screen.queryByText("Mods need Fabric")).toBeNull());
+  });
+
+  it("asks to install the game with Fabric first", async () => {
+    render(<App />);
+    goTo("Mods");
+    expect(await screen.findByText(/Install Minecraft 1.21.11 with Fabric first/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Install FPS pack" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("searches Modrinth for the chosen version and installs a mod", async () => {
+    withFabric();
+    mocked.searchMods.mockResolvedValue({ hits: [sodium], total: 1 });
+    mocked.installMod.mockResolvedValue({ installed: ["sodium.jar", "fabric-api.jar"], present: [] });
+    render(<App />);
+    goTo("Mods");
+    expect(await screen.findByRole("heading", { name: "Sodium" })).toBeTruthy();
+    expect(mocked.searchMods).toHaveBeenCalledWith("modrinth", "", "1.21.11", 0);
+    expect(screen.getByText(/1.5M downloads/)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Search mods"), { target: { value: "sod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() => expect(mocked.searchMods).toHaveBeenLastCalledWith("modrinth", "sod", "1.21.11", 0));
+
+    const install = await screen.findByRole("button", { name: "Install Sodium" });
+    await waitFor(() => expect((install as HTMLButtonElement).disabled).toBe(false));
+    mocked.listMods.mockResolvedValue([{ fileName: "sodium.jar", size: 2_097_152 }]);
+    fireEvent.click(install);
+    await waitFor(() => expect(mocked.installMod).toHaveBeenCalledWith("modrinth", "AANobbMI", "1.21.11"));
+    expect(await screen.findByText(/Sodium installed \(2 files/)).toBeTruthy();
+    expect(await screen.findByText("sodium.jar")).toBeTruthy();
+    expect(screen.getByText("2.0 MB")).toBeTruthy();
+  });
+
+  it("installs the FPS pack and removes an installed mod", async () => {
+    withFabric();
+    mocked.installMod.mockResolvedValue({ installed: ["x.jar"], present: [] });
+    mocked.listMods.mockResolvedValue([{ fileName: "lithium.jar", size: 1024 }]);
+    mocked.removeMod.mockResolvedValue(undefined);
+    render(<App />);
+    goTo("Mods");
+    const pack = await screen.findByRole("button", { name: "Install FPS pack" });
+    await waitFor(() => expect((pack as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(pack);
+    await waitFor(() => expect(mocked.installMod).toHaveBeenCalledTimes(5));
+    expect(mocked.installMod).toHaveBeenCalledWith("modrinth", "sodium", "1.21.11");
+    expect(await screen.findByText(/FPS pack installed/)).toBeTruthy();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Remove lithium.jar" }));
+    await waitFor(() => expect(mocked.removeMod).toHaveBeenCalledWith("1.21.11", "lithium.jar"));
+  });
+
+  it("shows why a mod could not be installed", async () => {
+    withFabric();
+    mocked.searchMods.mockResolvedValue({ hits: [sodium], total: 1 });
+    mocked.installMod.mockRejectedValue(new Error("No version of this mod is available."));
+    render(<App />);
+    goTo("Mods");
+    const install = await screen.findByRole("button", { name: "Install Sodium" });
+    await waitFor(() => expect((install as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(install);
+    expect(await screen.findByText(/No version of this mod is available/)).toBeTruthy();
+  });
+
+  it("says CurseForge needs a key when this build has none", async () => {
+    render(<App />);
+    goTo("Mods");
+    fireEvent.click(await screen.findByRole("tab", { name: "CurseForge" }));
+    expect(await screen.findByText(/needs an API key/)).toBeTruthy();
   });
 });
