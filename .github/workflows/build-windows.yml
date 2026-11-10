@@ -39,7 +39,8 @@ jobs:
         run: npm run typecheck
 
       - name: Run frontend tests
-        run: npm test
+        timeout-minutes: 8
+        run: npm test -- --reporter=verbose
 
       - name: Build the frontend (needed by the Rust build)
         run: npm run build

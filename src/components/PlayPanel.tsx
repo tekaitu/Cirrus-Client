@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { exitText, gameProgressView, usernameError, type LoaderId, type PlayMode } from "../core/game";
 import { REQUIRED_JAVA_MAJOR } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
@@ -35,6 +35,8 @@ export function PlayPanel({
   const [name, setName] = useState(() => read("unlimited.username") ?? "");
   const [touched, setTouched] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
+  // Each setup step is tried once per click, so a step that "succeeds" without changing anything cannot repeat forever.
+  const tried = useRef({ java: false, game: false });
 
   useEffect(() => write("unlimited.playMode", mode), [mode]);
   useEffect(() => write("unlimited.username", name), [name]);
@@ -66,13 +68,17 @@ export function PlayPanel({
       return;
     }
     if (!java) {
-      if (javaPhase === "idle") data.installer.start();
-      else setAutoPlay(false);
+      if (javaPhase === "idle" && !tried.current.java) {
+        tried.current.java = true;
+        data.installer.start();
+      } else setAutoPlay(false);
       return;
     }
     if (!game.status.installed) {
-      if (gamePhase === "idle") game.install();
-      else setAutoPlay(false);
+      if (gamePhase === "idle" && !tried.current.game) {
+        tried.current.game = true;
+        game.install();
+      } else setAutoPlay(false);
       return;
     }
     setAutoPlay(false);
@@ -101,7 +107,10 @@ export function PlayPanel({
   } else if (needsSetup || autoPlay) {
     action = {
       label: autoPlay ? "Setting up…" : "Set up & play",
-      onClick: () => setAutoPlay(true),
+      onClick: () => {
+        tried.current = { java: false, game: false };
+        setAutoPlay(true);
+      },
       disabled: autoPlay || installing,
       hint: !java
         ? `Installs Java ${REQUIRED_JAVA_MAJOR}${game.status?.installed ? "" : ", Minecraft"}${selection.loader === "fabric" && !game.status?.installed ? " and Fabric" : ""}, then starts the game.`
