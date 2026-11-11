@@ -38,22 +38,9 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
-      - name: Bisect hanging test (temporary)
-        continue-on-error: true
-        timeout-minutes: 12
-        shell: pwsh
-        run: |
-          $names = @('sets everything up')
-          foreach ($n in $names) {
-            $p = Start-Process -FilePath npx.cmd -ArgumentList @('vitest','run','tests/ui.app.test.tsx','-t',('"' + $n + '"')) -PassThru -NoNewWindow -RedirectStandardOutput out.txt -RedirectStandardError err.txt
-            if (-not $p.WaitForExit(40000)) { taskkill /T /F /PID $p.Id | Out-Null; Write-Host "HANG: $n"; Get-Content err.txt -Tail 60; Get-Content out.txt -Tail 30 }
-            else { Write-Host "exit $($p.ExitCode): $n" }
-          }
-
       - name: Run frontend tests
-        continue-on-error: true
-        timeout-minutes: 3
-        run: npm test -- --reporter=verbose
+        timeout-minutes: 8
+        run: npm test
 
       - name: Build the frontend (needed by the Rust build)
         run: npm run build

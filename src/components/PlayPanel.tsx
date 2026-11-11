@@ -20,11 +20,6 @@ function write(key: string, value: string) {
   }
 }
 
-function trace(message: string) {
-  const g = globalThis as { __TRACE__?: boolean; process?: { stderr?: { write: (s: string) => void } } };
-  if (g.__TRACE__) g.process?.stderr?.write(`[trace] ${message}\n`);
-}
-
 /** Version, loader and player choice, plus the one button that sets up, signs in, or starts the game. */
 export function PlayPanel({
   data,
@@ -75,7 +70,6 @@ export function PlayPanel({
 
   useEffect(() => {
     if (!auto.current) return;
-    trace(`effect java=${javaPhase} game=${gamePhase} jl=${javaLoading} hasJava=${javaPath !== null} installed=${String(gameInstalled)}`);
     if (javaPhase === "running" || gamePhase === "running" || javaLoading || gameInstalled === null) return;
     const stop = () => {
       auto.current = false;
@@ -101,7 +95,6 @@ export function PlayPanel({
       return;
     }
     stop();
-    trace("play");
     now.game.play(javaPath, now.mode, now.name);
   }, [autoPlay, javaPhase, gamePhase, javaLoading, javaPath, gameInstalled]);
 
@@ -128,7 +121,6 @@ export function PlayPanel({
     action = {
       label: autoPlay ? "Setting up…" : "Set up & play",
       onClick: () => {
-        trace("click");
         tried.current = { java: false, game: false };
         auto.current = true;
         setAutoPlay(true);

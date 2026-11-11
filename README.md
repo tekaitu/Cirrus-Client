@@ -45,3 +45,11 @@ The workflow also uploads a `generated-lockfiles` artifact. No lockfiles are com
 - The `.exe` is not code-signed, so Windows SmartScreen may warn.
 - Running it needs the Microsoft WebView2 runtime.
 - No license has been chosen for this repository yet, so all rights are reserved by default. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Playing, versions and mods
+
+- **Account requirement:** Unlimited is for people who own Minecraft: Java Edition. Play (online or offline name) needs a Microsoft account that owns the game to be signed in, or to have signed in on this PC before. The Rust side checks this too, not only the UI. See `LICENSE`.
+- **Versions:** Minecraft 1.20.5 and newer (all Java 21), with Fabric or plain Vanilla. Each version/loader pair has its own folder under `instances/` for worlds, options and mods. Older versions need Java 8/17 installs, which are not built yet.
+- **Set up & play:** one click installs Java 21 (checksum verified), then Minecraft and Fabric, then starts the game.
+- **Mods:** the Mods tab searches Modrinth (no key needed) and CurseForge (needs `LIMITEDFPS_CF_API_KEY` as a GitHub secret at build time). Downloads come only from the providers' hosts and are checked against published hashes. Required dependencies are installed too.
+- **OptiFine:** not installed automatically (its download requires a manual step and its license forbids redistribution). On Fabric, the FPS pack (Sodium, Lithium, FerriteCore, Entity Culling, ImmediatelyFast) is the alternative.
