@@ -65,31 +65,45 @@ export function PlayPanel({
   const needsSetup = !javaLoading && game.status !== null && (!java || !game.status.installed);
 
   // "Set up & play": install Java, then the game files, then start, one step after another.
+  // `auto` is the real switch; it is cleared before the game starts, so this can never repeat.
+  // The effect reads the latest values through `latest` and only reacts to simple values.
+  const auto = useRef(false);
+  const latest = useRef({ game, installer: data.installer, mode, name, javaPath: java?.path ?? null });
+  latest.current = { game, installer: data.installer, mode, name, javaPath: java?.path ?? null };
+  const javaPath = java?.path ?? null;
+  const gameInstalled = game.status?.installed ?? null;
+
   useEffect(() => {
-    if (!autoPlay) return;
-    trace(`effect autoPlay java=${javaPhase} game=${gamePhase} jl=${javaLoading} hasJava=${!!java} status=${game.status ? game.status.installed : "null"}`);
-    if (javaPhase === "running" || gamePhase === "running" || javaLoading || !game.status) return;
-    if (javaPhase === "error" || javaPhase === "cancelled" || gamePhase === "error" || gamePhase === "cancelled") {
+    if (!auto.current) return;
+    trace(`effect java=${javaPhase} game=${gamePhase} jl=${javaLoading} hasJava=${javaPath !== null} installed=${String(gameInstalled)}`);
+    if (javaPhase === "running" || gamePhase === "running" || javaLoading || gameInstalled === null) return;
+    const stop = () => {
+      auto.current = false;
       setAutoPlay(false);
+    };
+    if (javaPhase === "error" || javaPhase === "cancelled" || gamePhase === "error" || gamePhase === "cancelled") {
+      stop();
       return;
     }
-    if (!java) {
+    const now = latest.current;
+    if (javaPath === null) {
       if (javaPhase === "idle" && !tried.current.java) {
         tried.current.java = true;
-        data.installer.start();
-      } else setAutoPlay(false);
+        now.installer.start();
+      } else stop();
       return;
     }
-    if (!game.status.installed) {
+    if (!gameInstalled) {
       if (gamePhase === "idle" && !tried.current.game) {
         tried.current.game = true;
-        game.install();
-      } else setAutoPlay(false);
+        now.game.install();
+      } else stop();
       return;
     }
-    setAutoPlay(false);
-    game.play(java.path, mode, name);
-  }, [autoPlay, javaPhase, gamePhase, javaLoading, java, game, data.installer, mode, name]);
+    stop();
+    trace("play");
+    now.game.play(javaPath, now.mode, now.name);
+  }, [autoPlay, javaPhase, gamePhase, javaLoading, javaPath, gameInstalled]);
 
   let action: { label: string; onClick?: () => void; disabled?: boolean; danger?: boolean; hint?: string };
   if (running) {
@@ -114,7 +128,9 @@ export function PlayPanel({
     action = {
       label: autoPlay ? "Setting up…" : "Set up & play",
       onClick: () => {
+        trace("click");
         tried.current = { java: false, game: false };
+        auto.current = true;
         setAutoPlay(true);
       },
       disabled: autoPlay || installing,
