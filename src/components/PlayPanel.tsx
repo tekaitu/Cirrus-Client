@@ -142,8 +142,26 @@ export function PlayPanel({
     game.cancelInstall();
   };
 
+  const steps: Array<{ label: string; done: boolean; active: boolean }> = [
+    { label: "Account", done: owned, active: !owned },
+    { label: "Java", done: java !== null, active: owned && java === null },
+    { label: "Game files", done: game.status?.installed === true, active: owned && java !== null && game.status?.installed !== true },
+  ];
+  const doneCount = steps.filter((x) => x.done).length;
+
   return (
     <div className="play-panel">
+      <ol className="steps" aria-label="Setup progress">
+        {steps.map((st, i) => (
+          <li key={st.label} className={`${st.done ? "step-done" : ""} ${st.active ? "step-active" : ""}`.trim()}>
+            <span className="step-dot" aria-hidden="true">{st.done ? "✓" : i + 1}</span>
+            <span className="step-label">{st.label}</span>
+          </li>
+        ))}
+        <li className="steps-meter" aria-hidden="true">
+          <span className={`steps-fill steps-fill-${doneCount}`} />
+        </li>
+      </ol>
       <div className="pick-row">
         <label className="pick">
           <span>Minecraft version</span>

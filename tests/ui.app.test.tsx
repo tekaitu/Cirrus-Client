@@ -238,6 +238,33 @@ describe("Microsoft account", () => {
     expect(await screen.findByLabelText("Azure application (client) ID")).toBeTruthy();
   });
 
+  it("lets the owner paste the app ID in the account menu and saves it", async () => {
+    mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ msClientId: CLIENT_ID }) });
+    render(<App />);
+    openAccount();
+    expect(await screen.findByText("How to get the app ID (one time, free)")).toBeTruthy();
+    expect(screen.getByText("https://login.microsoftonline.com/consumers/oauth2/nativeclient")).toBeTruthy();
+    const input = screen.getByLabelText("Application (client) ID");
+    fireEvent.change(input, { target: { value: "not-a-guid" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    expect(await screen.findByText(/00000000-0000-0000-0000-000000000000 \(the Application/)).toBeTruthy();
+    expect(mocked.saveSettings).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: CLIENT_ID } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    await waitFor(() =>
+      expect(mocked.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ msClientId: CLIENT_ID })),
+    );
+  });
+
+  it("shows the reason when the app ID cannot be saved", async () => {
+    mocked.saveSettings.mockResolvedValue({ ok: false, errors: [{ field: "msClientId", message: "Rejected by the backend." }], state: null });
+    render(<App />);
+    openAccount();
+    fireEvent.change(await screen.findByLabelText("Application (client) ID"), { target: { value: CLIENT_ID } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    expect(await screen.findByText("Rejected by the backend.")).toBeTruthy();
+  });
+
   it("signs in with a device code and shows the real profile", async () => {
     mocked.authStatus.mockResolvedValue(configured());
     let finish: (s: AuthStatus) => void = () => {};
@@ -731,6 +758,25 @@ describe("Play", () => {
   };
   const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
   beforeEach(() => owned());
+
+  it("shows setup progress that fills in as each step is done", async () => {
+    ready();
+    render(<App />);
+    await waitReady();
+    const steps = screen.getByRole("list", { name: "Setup progress" });
+    expect(within(steps).getByText("Account")).toBeTruthy();
+    expect(within(steps).getByText("Java")).toBeTruthy();
+    expect(within(steps).getByText("Game files")).toBeTruthy();
+    expect(within(steps).getAllByText("✓")).toHaveLength(3);
+  });
+
+  it("starts with the game files still to do when they are missing", async () => {
+    render(<App />);
+    await screen.findByText("Java 21");
+    await screen.findAllByText("Steve");
+    const steps = screen.getByRole("list", { name: "Setup progress" });
+    await waitFor(() => expect(within(steps).getAllByText("✓")).toHaveLength(2));
+  });
 
   it("sets everything up in one click: downloads the game, then starts it", async () => {
     mocked.installGame.mockImplementation(async () => {

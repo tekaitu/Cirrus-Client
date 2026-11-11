@@ -7,7 +7,7 @@ import { CloseIcon } from "./components/Icons";
 import { Sidebar, type PageId } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { LICENSE_VERSION } from "./content/license";
-import { api } from "./api/client";
+import { api, errorMessage } from "./api/client";
 import { useAppData } from "./hooks/useAppData";
 import { DiagnosticsPage } from "./pages/Diagnostics";
 import { HomePage } from "./pages/Home";
@@ -54,6 +54,21 @@ export default function App() {
   const toggleAccount = () => setAccountOpen((v) => !v);
   const scanning = data.java.status === "loading";
 
+  /** Saves the pasted Azure app ID so sign-in can start right away. Returns an error message or null. */
+  const saveClientId = async (id: string): Promise<string | null> => {
+    if (data.settings.status !== "ready") return "Settings are not loaded yet. Try again in a moment.";
+    try {
+      const outcome = await api.saveSettings({ ...data.settings.data.settings, msClientId: id });
+      if (outcome.ok && outcome.state) {
+        data.applySettings(outcome.state);
+        return null;
+      }
+      return outcome.errors[0]?.message ?? "The app ID could not be saved.";
+    } catch (e) {
+      return errorMessage(e);
+    }
+  };
+
   return (
     <div className="layout">
       <HeroArt />
@@ -62,10 +77,12 @@ export default function App() {
       <div className="workspace">
         <TopBar data={data} onAccount={toggleAccount} accountOpen={accountOpen} />
         <main className="content">
+          <div key={page} className="page-enter">
           {page === "home" && <HomePage data={data} onNavigate={navigate} onOpenAccount={() => setAccountOpen(true)} />}
           {page === "mods" && <ModsPage data={data} />}
           {page === "settings" && <SettingsPage data={data} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
+          </div>
         </main>
         <FooterBar data={data} onNavigate={navigate} onLicense={() => setLicenseOpen(true)} />
       </div>
@@ -78,7 +95,7 @@ export default function App() {
           <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>
             <CloseIcon />
           </button>
-          <AccountPanel account={data.account} onNavigate={navigate} />
+          <AccountPanel account={data.account} onNavigate={navigate} onSaveClientId={saveClientId} />
         </div>
       )}
     </div>

@@ -23,20 +23,20 @@ export function HeroArt() {
         </radialGradient>
       </defs>
       <rect width="640" height="360" fill="url(#sSky)" />
-      <circle cx="470" cy="110" r="120" fill="url(#sMoon)" />
+      <circle className="scene-glow" cx="470" cy="110" r="120" fill="url(#sMoon)" />
       <rect x="452" y="92" width="36" height="36" fill="#efe7ff" />
-      <g fill="#c4b5fd" opacity="0.5">
+      <g className="scene-stars" fill="#c4b5fd" opacity="0.5">
         <rect x="60" y="40" width="3" height="3" /><rect x="150" y="70" width="3" height="3" />
         <rect x="260" y="30" width="3" height="3" /><rect x="340" y="64" width="3" height="3" />
         <rect x="580" y="50" width="3" height="3" /><rect x="610" y="120" width="3" height="3" />
       </g>
-      <g fill="#2a1d5c" opacity="0.8" transform="translate(0 -26)">
+      <g className="scene-far" fill="#2a1d5c" opacity="0.8" transform="translate(0 -26)">
         {towers.map(([x, w, h]) => <rect key={`b${x}`} x={x + 20} y={360 - h} width={w} height={h} />)}
       </g>
-      <g fill="#150d2e">
+      <g className="scene-near" fill="#150d2e">
         {towers.map(([x, w, h]) => <rect key={x} x={x} y={360 - h + 40} width={w} height={h} />)}
       </g>
-      <g fill="#8b6cf0" opacity="0.35">
+      <g className="scene-beams" fill="#8b6cf0" opacity="0.35">
         <polygon points="30,150 330,150 322,162 18,162" />
         <polygon points="110,186 400,186 394,196 100,196" opacity="0.7" />
       </g>

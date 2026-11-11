@@ -361,3 +361,105 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
 .modal .row { margin-top: 4px; }
 
 @media (max-width: 640px) { .mod-card { flex-wrap: wrap; } }
+
+/* ---------- Motion and finish ---------- */
+:root { --ease: cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Living backdrop: slow drift, pulsing glow, twinkling stars */
+.scene { animation: scene-drift 48s ease-in-out infinite alternate; transform-origin: 60% 40%; }
+@keyframes scene-drift { from { transform: scale(1.04) translate3d(0, 0, 0); } to { transform: scale(1.12) translate3d(-1.6%, -1.2%, 0); } }
+.scene-glow { animation: glow 7s ease-in-out infinite alternate; transform-origin: 470px 110px; }
+@keyframes glow { from { opacity: 0.75; transform: scale(0.96); } to { opacity: 1; transform: scale(1.06); } }
+.scene-stars { animation: twinkle 4.5s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: 0.25; } to { opacity: 0.8; } }
+.scene-beams { animation: beams 9s ease-in-out infinite alternate; }
+@keyframes beams { from { transform: translateX(-10px); opacity: 0.2; } to { transform: translateX(14px); opacity: 0.45; } }
+.scene-far { animation: sway 24s ease-in-out infinite alternate; }
+@keyframes sway { from { transform: translate(0, -26px); } to { transform: translate(-8px, -26px); } }
+
+/* Page entrance: the page fades up, its blocks follow one after another */
+.page-enter { animation: page-in 0.42s var(--ease) both; }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.page-enter .page > *, .page-enter .home-top > *, .page-enter .news-grid > li { animation: rise 0.5s var(--ease) both; }
+.page-enter .page > *:nth-child(2), .page-enter .home-top > *:nth-child(2), .page-enter .news-grid > li:nth-child(2) { animation-delay: 0.06s; }
+.page-enter .page > *:nth-child(3), .page-enter .news-grid > li:nth-child(3) { animation-delay: 0.12s; }
+.page-enter .page > *:nth-child(4), .page-enter .news-grid > li:nth-child(4) { animation-delay: 0.18s; }
+.page-enter .page > *:nth-child(n+5) { animation-delay: 0.24s; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.99); } to { opacity: 1; transform: none; } }
+
+.popover { animation: pop 0.22s var(--ease) both; transform-origin: top right; }
+@keyframes pop { from { opacity: 0; transform: translateY(-6px) scale(0.96); } to { opacity: 1; transform: none; } }
+.modal-backdrop { animation: fade 0.25s ease both; }
+.modal { animation: pop-center 0.32s var(--ease) both; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-center { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+.banner { animation: rise 0.35s var(--ease) both; }
+
+/* Rail: tooltips and a springy active state */
+.nav-item, .rail-circle { position: relative; }
+.nav-item::after, .rail-circle::after { content: attr(aria-label); position: absolute; left: calc(100% + 12px); top: 50%; transform: translate(-6px, -50%); padding: 4px 10px; border-radius: 999px; background: rgba(24, 16, 48, 0.96); border: 1px solid var(--border); font-size: 0.72rem; font-weight: 600; white-space: nowrap; color: var(--text); opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s var(--ease); z-index: 30; }
+.nav-item:hover::after, .nav-item:focus-visible::after, .rail-circle:hover::after, .rail-circle:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
+.nav-item.active { animation: spring 0.35s var(--ease); }
+@keyframes spring { 0% { transform: scale(0.8); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.rail-circle:active:not(:disabled), .nav-item:active { transform: scale(0.92); }
+.rail-circle:disabled svg { animation: spin 0.9s linear infinite; }
+.brand-mark { transition: transform 0.4s var(--ease), filter 0.3s; }
+.brand-mark:hover { transform: rotate(-6deg) scale(1.08); filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.8)); }
+
+/* Buttons, focus and pressing */
+.btn:focus-visible, .pill-button:focus-visible, .seg button:focus-visible, .nav-item:focus-visible, .rail-circle:focus-visible, .profile:focus-visible { outline: none; box-shadow: var(--focus); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { filter: saturate(0.6); }
+.btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, #9d82fa 0%, #7c5cd6 55%, #d19bff 130%); }
+.seg button { transition: background 0.25s var(--ease), color 0.2s, box-shadow 0.25s; }
+
+/* Progress: moving stripes */
+progress::-webkit-progress-value { background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.18) 75%, transparent 75%), linear-gradient(90deg, #6d48c9, #c084fc); background-size: 22px 22px, 100% 100%; animation: stripes 0.9s linear infinite; }
+@keyframes stripes { to { background-position: 22px 0, 0 0; } }
+
+/* Setup steps on the launch card */
+.steps { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; width: 100%; position: relative; }
+.steps li { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 0.78rem; font-weight: 600; transition: color 0.3s; }
+.step-dot { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; background: rgba(11, 7, 20, 0.7); border: 1px solid var(--border); transition: background 0.3s, border-color 0.3s, transform 0.3s var(--ease); }
+.step-done { color: var(--text); }
+.step-done .step-dot { background: linear-gradient(135deg, #34d399, #10b981); border-color: transparent; color: #04140d; transform: scale(1.05); }
+.step-active { color: var(--text); }
+.step-active .step-dot { border-color: var(--accent-bright); box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.6); animation: ping 1.8s ease-out infinite; }
+@keyframes ping { to { box-shadow: 0 0 0 9px rgba(167, 139, 250, 0); } }
+.steps .steps-meter { flex-basis: 100%; height: 4px; border-radius: 999px; background: rgba(11, 7, 20, 0.7); overflow: hidden; }
+.steps-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #6d48c9, #c084fc); transition: width 0.6s var(--ease); }
+.steps-fill-1 { width: 34%; } .steps-fill-2 { width: 67%; } .steps-fill-3 { width: 100%; }
+
+/* Sign-in setup inside the account menu */
+.setup { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.setup-guide { font-size: 0.8rem; border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; background: rgba(11, 7, 20, 0.45); }
+.setup-guide summary { cursor: pointer; font-weight: 600; }
+.setup-guide ol { margin: 8px 0 2px; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.setup-guide code { display: block; margin: 4px 0; padding: 4px 8px; border-radius: 8px; background: rgba(11, 7, 20, 0.7); overflow-wrap: anywhere; font-size: 0.72rem; }
+.setup-field { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.setup input { border-radius: 12px; }
+.popover { width: min(380px, calc(100% - 28px)); }
+
+/* Settings: sticky section bar that follows you */
+.section-nav { position: sticky; top: -6px; z-index: 5; padding: 8px 0; margin-top: 10px; background: linear-gradient(180deg, rgba(11, 7, 20, 0.85), rgba(11, 7, 20, 0.55)); backdrop-filter: blur(10px); }
+.section-nav a { transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s; }
+.section-nav a.active { color: #fff; border-color: transparent; background: linear-gradient(135deg, #8b6cf0, #6d48c9); box-shadow: 0 2px 12px rgba(124, 92, 214, 0.5); }
+.section-nav a:hover { transform: translateY(-1px); }
+.page-head { display: flex; flex-direction: column; gap: 2px; }
+.page-head h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; background: linear-gradient(180deg, #fff 30%, #cdbcff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.card-head { margin-bottom: 10px; }
+.card-icon { transition: transform 0.3s var(--ease); }
+.card:hover .card-icon { transform: rotate(-8deg) scale(1.08); }
+.field input, .field select, .setup input, .search-row input, .name-field input { transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; }
+.field input:focus, .field select:focus, .setup input:focus, .search-row input:focus, .name-field input:focus, .pick select:focus { box-shadow: var(--focus); outline: none; }
+
+/* Hero title gently shimmers */
+.hero h1 { background-size: 100% 200%; animation: title 8s ease-in-out infinite alternate; }
+@keyframes title { from { background-position: 0 0; } to { background-position: 0 60%; } }
+
+/* Respect reduced motion everywhere in this block */
+@media (prefers-reduced-motion: reduce) {
+  .scene, .scene *, .page-enter, .page-enter *, .popover, .modal, .modal-backdrop, .banner, .hero h1, .step-active .step-dot, .nav-item.active, progress::-webkit-progress-value { animation: none !important; }
+}
+:root[data-reduce-motion="true"] .scene, :root[data-reduce-motion="true"] .scene *, :root[data-reduce-motion="true"] .page-enter, :root[data-reduce-motion="true"] .page-enter *, :root[data-reduce-motion="true"] .popover, :root[data-reduce-motion="true"] .modal, :root[data-reduce-motion="true"] .modal-backdrop, :root[data-reduce-motion="true"] .banner, :root[data-reduce-motion="true"] .hero h1, :root[data-reduce-motion="true"] .step-active .step-dot { animation: none !important; }
+.layout > .sidebar.sidebar { z-index: 3; }

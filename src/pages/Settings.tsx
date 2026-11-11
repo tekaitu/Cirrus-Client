@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, errorMessage } from "../api/client";
 import type { SettingsState } from "../api/types";
 import { FolderIcon, JavaIcon, MemoryIcon, PaletteIcon, UserIcon } from "../components/Icons";
@@ -67,6 +67,28 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
     setDraft(state.settings);
     setErrors({});
   }, [state.settings]);
+
+  // Highlight the section being read in the sticky section bar.
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || typeof IntersectionObserver === "undefined") return;
+    const links = Array.from(nav.querySelectorAll("a"));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          for (const link of links) link.classList.toggle("active", link.getAttribute("href") === `#${entry.target.id}`);
+        }
+      },
+      { rootMargin: "-15% 0px -70% 0px" },
+    );
+    for (const link of links) {
+      const target = document.getElementById((link.getAttribute("href") ?? "").slice(1));
+      if (target) observer.observe(target);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   const dirty = !settingsEqual(normalizeDraft(draft), saved);
   const detected =
@@ -142,8 +164,8 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
     >
       <header className="page-head">
         <h1>Settings</h1>
-        <p className="muted">Saved on this PC. Memory, Java and game folder are used once launching is implemented.</p>
-        <nav className="section-nav" aria-label="Settings sections">
+        <p className="muted">Saved on this PC and used the next time you start the game.</p>
+        <nav className="section-nav" aria-label="Settings sections" ref={navRef}>
           <a href="#sec-memory">Memory</a>
           <a href="#sec-java">Java</a>
           <a href="#sec-folder">Game folder</a>
