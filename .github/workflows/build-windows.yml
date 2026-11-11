@@ -43,10 +43,10 @@ jobs:
         timeout-minutes: 12
         shell: pwsh
         run: |
-          $names = @('settings cannot be loaded', 'reduce-motion setting to the whole', 'readable message instead', 'sets everything up', 'shows download progress', 'shows why a download failed', 'installs Java first', 'pick the Minecraft version', 'Minecraft account is not signed in', 'validates the offline', 'launches offline with', 'launches with the signed-in', 'reason when Minecraft cannot start', 'accepted before the launcher', 'quits when declined', 'read again from the footer', 'Vanilla cannot load mods', 'install the game with Fabric first', 'searches Modrinth', 'installs the FPS pack', 'why a mod could not', 'CurseForge needs a key')
+          $names = @('sets everything up')
           foreach ($n in $names) {
             $p = Start-Process -FilePath npx.cmd -ArgumentList @('vitest','run','tests/ui.app.test.tsx','-t',('"' + $n + '"')) -PassThru -NoNewWindow -RedirectStandardOutput out.txt -RedirectStandardError err.txt
-            if (-not $p.WaitForExit(40000)) { taskkill /T /F /PID $p.Id | Out-Null; Write-Host "HANG: $n" }
+            if (-not $p.WaitForExit(40000)) { taskkill /T /F /PID $p.Id | Out-Null; Write-Host "HANG: $n"; Get-Content err.txt -Tail 60; Get-Content out.txt -Tail 30 }
             else { Write-Host "exit $($p.ExitCode): $n" }
           }
 

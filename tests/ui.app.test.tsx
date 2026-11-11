@@ -733,6 +733,7 @@ describe("Play", () => {
   beforeEach(() => owned());
 
   it("sets everything up in one click: downloads the game, then starts it", async () => {
+    (globalThis as { __TRACE__?: boolean }).__TRACE__ = true;
     mocked.installGame.mockImplementation(async () => {
       mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
       return { status: "installed", message: null, loader: "0.17.0" };

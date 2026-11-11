@@ -156,6 +156,7 @@ pub fn safe_jar_name(name: &str) -> Option<String> {
     ok.then(|| name.to_string())
 }
 
+#[derive(Debug)]
 struct FileSpec {
     name: String,
     url: String,
