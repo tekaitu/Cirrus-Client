@@ -241,6 +241,7 @@ describe("Microsoft account", () => {
   it("lets the owner paste the app ID in the account menu and saves it", async () => {
     mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ msClientId: CLIENT_ID }) });
     render(<App />);
+    await screen.findByText("Java 21"); // settings have loaded by then
     openAccount();
     expect(await screen.findByText("How to get the app ID (one time, free)")).toBeTruthy();
     expect(screen.getByText("https://login.microsoftonline.com/consumers/oauth2/nativeclient")).toBeTruthy();
@@ -259,6 +260,7 @@ describe("Microsoft account", () => {
   it("shows the reason when the app ID cannot be saved", async () => {
     mocked.saveSettings.mockResolvedValue({ ok: false, errors: [{ field: "msClientId", message: "Rejected by the backend." }], state: null });
     render(<App />);
+    await screen.findByText("Java 21");
     openAccount();
     fireEvent.change(await screen.findByLabelText("Application (client) ID"), { target: { value: CLIENT_ID } });
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
