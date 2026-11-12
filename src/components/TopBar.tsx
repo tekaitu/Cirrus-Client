@@ -1,6 +1,15 @@
 import { progressView } from "../core/installer";
 import { REQUIRED_JAVA_MAJOR, TARGET_MINECRAFT_VERSION } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
+import type { PageId } from "./Sidebar";
+
+const PAGE_TITLES: Record<PageId, string> = {
+  home: "Home",
+  library: "Library",
+  mods: "Discover mods",
+  settings: "Settings",
+  diagnostics: "Diagnostics",
+};
 
 function javaPill(data: AppData): { text: string; busy: boolean; tone: "good" | "warn" | "idle" } {
   const inst = data.installer.state;
@@ -17,22 +26,30 @@ function javaPill(data: AppData): { text: string; busy: boolean; tone: "good" | 
 }
 
 /** Three pills across the top: game version, Java activity, and the account. */
-export function TopBar({ data, onAccount, accountOpen }: { data: AppData; onAccount: () => void; accountOpen: boolean }) {
+export function TopBar({ data, page, onAccount, accountOpen }: { data: AppData; page: PageId; onAccount: () => void; accountOpen: boolean }) {
   const java = javaPill(data);
   const acct = data.account.state;
   const name = acct.phase === "signedIn" ? acct.profile.name : "Sign in";
   const sub = acct.phase === "signedIn" ? "Minecraft Java" : "Microsoft account";
+  const title = PAGE_TITLES[page];
 
   return (
     <header className="topbar">
-      <div className="pill">
-        <span className="dot" aria-hidden="true" />
-        <span>Minecraft {TARGET_MINECRAFT_VERSION}</span>
-      </div>
+      <p className="crumbs" aria-label="You are here">
+        <span className="crumb-root">Unlimited</span>
+        <span className="crumb-sep" aria-hidden="true">/</span>
+        <strong>{title}</strong>
+      </p>
 
-      <div className={`pill pill-wide pill-${java.tone}`}>
-        {java.busy ? <span className="mini-spinner" aria-hidden="true" /> : <span className="dot" aria-hidden="true" />}
-        <span>{java.text}</span>
+      <div className="topbar-pills">
+        <div className="pill">
+          <span className="dot" aria-hidden="true" />
+          <span>Minecraft {TARGET_MINECRAFT_VERSION}</span>
+        </div>
+        <div className={`pill pill-${java.tone}`}>
+          {java.busy ? <span className="mini-spinner" aria-hidden="true" /> : <span className="dot" aria-hidden="true" />}
+          <span>{java.text}</span>
+        </div>
       </div>
 
       <button

@@ -155,7 +155,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
 
   return (
     <form
-      className="page"
+      className="page settings-page"
       onSubmit={(e) => {
         e.preventDefault();
         void save();
@@ -165,14 +165,14 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
       <header className="page-head">
         <h1>Settings</h1>
         <p className="muted">Saved on this PC and used the next time you start the game.</p>
-        <nav className="section-nav" aria-label="Settings sections" ref={navRef}>
-          <a href="#sec-memory">Memory</a>
-          <a href="#sec-java">Java</a>
-          <a href="#sec-folder">Game folder</a>
-          <a href="#sec-account">Sign-in</a>
-          <a href="#sec-interface">Interface</a>
-        </nav>
       </header>
+      <nav className="section-nav" aria-label="Settings sections" ref={navRef}>
+        <a href="#sec-memory">Memory</a>
+        <a href="#sec-java">Java</a>
+        <a href="#sec-folder">Game folder</a>
+        <a href="#sec-account">Sign-in</a>
+        <a href="#sec-interface">Interface</a>
+      </nav>
 
       {state.status === "recoveredFromCorruption" && state.message && (
         <Banner tone="warn" title="Settings were restored to defaults">

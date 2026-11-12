@@ -707,6 +707,12 @@ fn game_status(
 }
 
 #[tauri::command]
+fn list_instances(app: AppHandle) -> Result<Vec<game::InstanceSummary>, String> {
+    let (root, _) = game_root(&app)?;
+    Ok(game::list_instances(&root))
+}
+
+#[tauri::command]
 async fn install_game(
     app: AppHandle,
     state: State<'_, GameState>,
@@ -769,9 +775,8 @@ fn cancel_game_install(state: State<'_, GameState>) -> bool {
 }
 
 /// Start Minecraft. `mode` is "offline" (needs `username`) or "microsoft"
-/// (uses the account that is signed in right now). Either way the launcher
-/// requires a Microsoft account that owns Minecraft: it must be signed in now
-/// or have signed in on this PC before.
+/// (uses the account that is signed in right now). Offline play needs no
+/// sign-in; it relies on the player owning the game (see the license).
 #[tauri::command]
 async fn launch_game(
     app: AppHandle,
@@ -790,10 +795,6 @@ async fn launch_game(
         return refuse("Minecraft is already running.");
     }
     let session = auth.session.lock().ok().and_then(|s| s.clone());
-    let owns_minecraft = session.is_some() || matches!(auth::KeyringStore.load(), Ok(Some(_)));
-    if !owns_minecraft {
-        return refuse("Unlimited needs a Microsoft account that owns Minecraft: Java Edition. Sign in first.");
-    }
     let player = match mode.as_str() {
         "offline" => match game::Player::offline(username.as_deref().unwrap_or("").trim()) {
             Ok(p) => p,
@@ -984,6 +985,7 @@ pub fn run() {
             save_settings,
             reset_settings,
             game_status,
+            list_instances,
             install_game,
             cancel_game_install,
             launch_game,

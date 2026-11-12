@@ -48,7 +48,7 @@ The workflow also uploads a `generated-lockfiles` artifact. No lockfiles are com
 
 ## Playing, versions and mods
 
-- **Account requirement:** Unlimited is for people who own Minecraft: Java Edition. Play (online or offline name) needs a Microsoft account that owns the game to be signed in, or to have signed in on this PC before. The Rust side checks this too, not only the UI. See `LICENSE`.
+- **Online and offline:** Playing online uses your Microsoft account (sign in once, it is remembered). Playing offline with a player name needs no sign-in and works for singleplayer and offline-mode servers. Unlimited is for people who own Minecraft: Java Edition; offline mode relies on that honesty, and signing in is what proves it. See `LICENSE`.
 - **Versions:** Minecraft 1.20.5 and newer (all Java 21), with Fabric or plain Vanilla. Each version/loader pair has its own folder under `instances/` for worlds, options and mods. Older versions need Java 8/17 installs, which are not built yet.
 - **Set up & play:** one click installs Java 21 (checksum verified), then Minecraft and Fabric, then starts the game.
 - **Mods:** the Mods tab searches Modrinth (no key needed) and CurseForge (needs `LIMITEDFPS_CF_API_KEY` as a GitHub secret at build time). Downloads come only from the providers' hosts and are checked against published hashes. Required dependencies are installed too.

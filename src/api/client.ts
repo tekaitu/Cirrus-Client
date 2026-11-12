@@ -7,7 +7,7 @@ import type {
   GameExit,
   GameInstallResult,
   GameProgress,
-  GameStatus,
+  GameStatus, InstanceSummary,
   InstallProgress,
   InstallResult,
   InstalledMod,
@@ -75,6 +75,7 @@ export const api = {
     if (!insideTauri()) return () => {};
     return listen<DeviceCodeInfo>(AUTH_CODE_EVENT, (event) => handler(event.payload));
   },
+  listInstances: () => call<InstanceSummary[]>("list_instances"),
   gameStatus: (version: string, loader: string) => call<GameStatus>("game_status", { version, loader }),
   listGameVersions: () => call<string[]>("list_game_versions"),
   installGame: (version: string, loader: string) => call<GameInstallResult>("install_game", { version, loader }),

@@ -130,6 +130,12 @@ export interface GameStatus {
   running: boolean;
 }
 
+export interface InstanceSummary {
+  minecraft: string;
+  loader: string | null;
+  modCount: number;
+}
+
 export interface GameProgress {
   stage: "metadata" | "downloading" | "finishing";
   done: number;

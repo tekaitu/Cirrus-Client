@@ -793,6 +793,52 @@ pub fn installed(root: &Path, mc: &str, fabric: bool) -> Option<InstallInfo> {
     ok.then_some(info)
 }
 
+/// One installed game setup, as shown in the Library.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct InstanceSummary {
+    pub minecraft: String,
+    pub loader: Option<String>,
+    pub mod_count: usize,
+}
+
+fn count_mods(root: &Path, profile_id: &str) -> usize {
+    let dir = instance_dir(root, profile_id).join("mods");
+    fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .filter(|e| e.path().extension().and_then(|x| x.to_str()).is_some_and(|x| x.eq_ignore_ascii_case("jar")))
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+/// Every game setup that is fully installed, newest Minecraft version first.
+pub fn list_instances(root: &Path) -> Vec<InstanceSummary> {
+    let prefix = format!("{MARKER_FILE}-");
+    let mut out = Vec::new();
+    let Ok(entries) = fs::read_dir(root) else { return out };
+    for entry in entries.filter_map(Result::ok) {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let Some(rest) = name.strip_prefix(&prefix).and_then(|r| r.strip_suffix(".json")) else { continue };
+        let (mc, fabric) = if let Some(mc) = rest.strip_suffix("-fabric") {
+            (mc, true)
+        } else if let Some(mc) = rest.strip_suffix("-vanilla") {
+            (mc, false)
+        } else {
+            continue;
+        };
+        if let Some(info) = installed(root, mc, fabric) {
+            let mod_count = if fabric { count_mods(root, &info.profile_id) } else { 0 };
+            out.push(InstanceSummary { minecraft: info.minecraft, loader: info.loader, mod_count });
+        }
+    }
+    let key = |v: &str| v.split('.').map(|p| p.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>();
+    out.sort_by(|a, b| key(&b.minecraft).cmp(&key(&a.minecraft)).then(b.loader.is_some().cmp(&a.loader.is_some())));
+    out
+}
+
 // -------------------------------------------------------------- launching
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1042,6 +1088,44 @@ mod tests {
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].url, "https://resources.download.minecraft.net/ab/abcdef0123456789abcdef0123456789abcdef01");
         assert!(list[0].path.ends_with("abcdef0123456789abcdef0123456789abcdef01"));
+    }
+
+
+    #[test]
+    fn library_lists_only_complete_installs_newest_first() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let marker = |mc: &str, fabric: bool, profile: &str| {
+            let loader = if fabric { json!("0.17.0") } else { Value::Null };
+            write_atomic(
+                &marker_path(root, mc, fabric),
+                &json!({"minecraft": mc, "loader": loader, "profileId": profile}).to_string(),
+            )
+            .unwrap();
+        };
+        let files = |mc: &str, profile: Option<&str>| {
+            write_atomic(&vanilla_json_path(root, mc), "{}").unwrap();
+            write_atomic(&client_jar_path(root, mc), "x").unwrap();
+            if let Some(p) = profile {
+                write_atomic(&fabric_json_path(root, p), "{}").unwrap();
+            }
+        };
+        marker("1.20.6", false, "1.20.6");
+        files("1.20.6", None);
+        marker("1.21.11", true, "fabric-loader-0.17.0-1.21.11");
+        files("1.21.11", Some("fabric-loader-0.17.0-1.21.11"));
+        write_atomic(&instance_dir(root, "fabric-loader-0.17.0-1.21.11").join("mods").join("sodium.jar"), "x").unwrap();
+        write_atomic(&instance_dir(root, "fabric-loader-0.17.0-1.21.11").join("mods").join("notes.txt"), "x").unwrap();
+        // A marker without the game files is not listed.
+        marker("1.21.1", false, "1.21.1");
+
+        let list = list_instances(root);
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].minecraft, "1.21.11");
+        assert_eq!(list[0].loader.as_deref(), Some("0.17.0"));
+        assert_eq!(list[0].mod_count, 1);
+        assert_eq!(list[1].minecraft, "1.20.6");
+        assert!(list[1].loader.is_none());
     }
 
     #[test]

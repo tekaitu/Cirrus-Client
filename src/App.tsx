@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { AccountPanel } from "./components/AccountPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
-import { HeroArt } from "./components/Art";
 import { FooterBar } from "./components/FooterBar";
 import { CloseIcon } from "./components/Icons";
 import { Sidebar, type PageId } from "./components/Sidebar";
@@ -11,6 +10,7 @@ import { api, errorMessage } from "./api/client";
 import { useAppData } from "./hooks/useAppData";
 import { DiagnosticsPage } from "./pages/Diagnostics";
 import { HomePage } from "./pages/Home";
+import { LibraryPage } from "./pages/Library";
 import { ModsPage } from "./pages/Mods";
 import { SettingsPage } from "./pages/Settings";
 
@@ -71,14 +71,13 @@ export default function App() {
 
   return (
     <div className="layout">
-      <HeroArt />
-      <div className="scene-shade" />
       <Sidebar page={page} onNavigate={navigate} onAccount={toggleAccount} onRescan={data.reloadJava} scanning={scanning} />
       <div className="workspace">
-        <TopBar data={data} onAccount={toggleAccount} accountOpen={accountOpen} />
+        <TopBar data={data} page={page} onAccount={toggleAccount} accountOpen={accountOpen} />
         <main className="content">
           <div key={page} className="page-enter">
           {page === "home" && <HomePage data={data} onNavigate={navigate} onOpenAccount={() => setAccountOpen(true)} />}
+          {page === "library" && <LibraryPage data={data} onNavigate={navigate} />}
           {page === "mods" && <ModsPage data={data} />}
           {page === "settings" && <SettingsPage data={data} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}

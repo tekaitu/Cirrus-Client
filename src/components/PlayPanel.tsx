@@ -43,11 +43,9 @@ export function PlayPanel({
 
   const acct = data.account.state;
   const signedIn = acct.phase === "signedIn";
-  const savedLogin = acct.phase === "signedOut" && acct.savedLogin === true;
   const checkingAccount = acct.phase === "checking";
-  // The launcher is for people who own Minecraft: Java Edition. A Microsoft account that
-  // does is signed in right now, or signed in on this PC before.
-  const owned = signedIn || savedLogin;
+  // Online play needs the Microsoft account. Offline play needs no sign-in at all.
+  const accountReady = mode === "offline" || signedIn;
 
   const javaState = data.java;
   const java = javaState.status === "ready" ? javaState.data.selected : null;
@@ -103,16 +101,14 @@ export function PlayPanel({
     action = { label: "Stop Minecraft", onClick: game.stop, danger: true };
   } else if (game.run.phase === "starting") {
     action = { label: "Starting…", disabled: true };
-  } else if (checkingAccount) {
+  } else if (mode === "microsoft" && checkingAccount) {
     action = { label: "Checking account…", disabled: true };
-  } else if (!owned) {
+  } else if (mode === "microsoft" && !signedIn) {
     action = {
       label: "Sign in to play",
       onClick: onOpenAccount,
-      hint: "Unlimited is for people who own Minecraft: Java Edition. Sign in with the Microsoft account that owns it.",
+      hint: "Sign in to play online with your own account, or switch to “Offline name” to play without signing in.",
     };
-  } else if (mode === "microsoft" && !signedIn) {
-    action = { label: "Sign in to play", onClick: onOpenAccount };
   } else if (mode === "offline" && nameProblem) {
     action = { label: "Play", disabled: true, hint: "Choose a valid player name first." };
   } else if (javaLoading || (!game.status && javaState.status !== "error")) {
@@ -143,9 +139,9 @@ export function PlayPanel({
   };
 
   const steps: Array<{ label: string; done: boolean; active: boolean }> = [
-    { label: "Account", done: owned, active: !owned },
-    { label: "Java", done: java !== null, active: owned && java === null },
-    { label: "Game files", done: game.status?.installed === true, active: owned && java !== null && game.status?.installed !== true },
+    { label: mode === "offline" ? "Player" : "Account", done: accountReady, active: !accountReady },
+    { label: "Java", done: java !== null, active: accountReady && java === null },
+    { label: "Game files", done: game.status?.installed === true, active: accountReady && java !== null && game.status?.installed !== true },
   ];
   const doneCount = steps.filter((x) => x.done).length;
 
@@ -250,7 +246,7 @@ export function PlayPanel({
               Playing as <strong>{acct.profile.name}</strong>
             </>
           ) : (
-            "Sign in with Microsoft to play with your own account and skin."
+            "Sign in with Microsoft to play online with your own account and skin, or choose Offline name to play without signing in."
           )}
         </p>
       )}

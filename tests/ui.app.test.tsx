@@ -11,6 +11,7 @@ vi.mock("../src/api/client", () => ({
   api: {
     getAppInfo: vi.fn(),
     gameStatus: vi.fn(),
+    listInstances: vi.fn(),
     listGameVersions: vi.fn(),
     quitApp: vi.fn(),
     curseforgeAvailable: vi.fn(),
@@ -47,7 +48,7 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
-function goTo(name: "Home" | "Mods" | "Settings" | "Diagnostics") {
+function goTo(name: "Home" | "Library" | "Mods" | "Settings" | "Diagnostics") {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
@@ -83,10 +84,11 @@ let progressHandler: ((p: InstallProgress) => void) | null = null;
 
 beforeEach(() => {
   window.localStorage.clear();
-  window.localStorage.setItem("unlimited.license", "1");
+  window.localStorage.setItem("unlimited.license", "2");
   mocked.listGameVersions.mockResolvedValue(["1.21.11", "1.21.1", "1.20.6"]);
   mocked.curseforgeAvailable.mockResolvedValue(false);
   mocked.listMods.mockResolvedValue([]);
+  mocked.listInstances.mockResolvedValue([]);
   mocked.searchMods.mockResolvedValue({ hits: [], total: 0 });
   gameProgressHandler = null;
   gameExitHandler = null;
@@ -135,13 +137,19 @@ describe("Home", () => {
     expect((await screen.findAllByText("Not installed")).length).toBeGreaterThanOrEqual(2); // game files and Fabric
   });
 
-  it("has an icon-only nav pill with Home, Settings and Diagnostics", async () => {
+  it("has an icon-only rail with pages on top and tools at the bottom", async () => {
     render(<App />);
-    const nav = screen.getByRole("navigation", { name: "Main" });
-    for (const name of ["Home", "Settings", "Diagnostics"]) {
-      const button = screen.getByRole("button", { name });
-      expect(nav.contains(button)).toBe(true);
-      expect(button.textContent).toBe(""); // icon only
+    const main = screen.getByRole("navigation", { name: "Main" });
+    const tools = screen.getByRole("navigation", { name: "Tools" });
+    for (const [nav, names] of [
+      [main, ["Home", "Mods", "Library"]],
+      [tools, ["Settings", "Diagnostics"]],
+    ] as const) {
+      for (const name of names) {
+        const button = screen.getByRole("button", { name });
+        expect(nav.contains(button)).toBe(true);
+        expect(button.textContent).toBe(""); // icon only
+      }
     }
     expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
     await screen.findByText("Java 21");
@@ -174,12 +182,12 @@ describe("Home", () => {
     expect(screen.getByRole("status", { name: "Detecting Java" })).toBeTruthy();
   });
 
-  it("asks people to sign in with the Minecraft account that owns the game before Play", async () => {
+  it("offers Microsoft sign-in for online play, and says it is optional", async () => {
     render(<App />);
     expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
-    expect(screen.getByText(/for people who own Minecraft: Java Edition/)).toBeTruthy();
-    expect(screen.getByText("Microsoft account sign-in")).toBeTruthy();
-    expect(screen.getByText("Sign-in needed")).toBeTruthy();
+    expect(screen.getByText(/switch to “Offline name” to play without signing in/)).toBeTruthy();
+    expect(screen.getByText("Microsoft sign-in (online play)")).toBeTruthy();
+    expect(screen.getByText("Optional")).toBeTruthy();
   });
 
   it("explains when only an old Java is installed", async () => {
@@ -850,6 +858,21 @@ describe("Play", () => {
     expect(await screen.findByRole("dialog", { name: "Account" })).toBeTruthy();
   });
 
+  it("plays offline without any Microsoft sign-in", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus());
+    ready();
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    render(<App />);
+    await screen.findByText("Java 21");
+    await screen.findAllByText("Installed");
+    chooseOffline();
+    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Alex" } });
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() =>
+      expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "offline", "Alex", "1.21.11", "fabric"),
+    );
+  });
+
   it("validates the offline player name before Play is allowed", async () => {
     ready();
     render(<App />);
@@ -919,7 +942,7 @@ describe("License", () => {
     fireEvent.click(within(dialog).getByRole("checkbox"));
     fireEvent.click(accept);
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull());
-    expect(window.localStorage.getItem("unlimited.license")).toBe("1");
+    expect(window.localStorage.getItem("unlimited.license")).toBe("2");
   });
 
   it("quits when declined", async () => {
@@ -937,6 +960,29 @@ describe("License", () => {
     const dialog = await screen.findByRole("dialog", { name: "Unlimited license" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull();
+  });
+});
+
+describe("Library", () => {
+  it("says when nothing is installed yet", async () => {
+    render(<App />);
+    goTo("Library");
+    expect(await screen.findByText("Nothing installed yet")).toBeTruthy();
+  });
+
+  it("lists installed setups and picks one for playing", async () => {
+    mocked.listInstances.mockResolvedValue([
+      { minecraft: "1.21.11", loader: "0.17.0", modCount: 3 },
+      { minecraft: "1.20.6", loader: null, modCount: 0 },
+    ]);
+    render(<App />);
+    goTo("Library");
+    expect(await screen.findByText("Fabric 0.17.0 · 3 mods")).toBeTruthy();
+    expect(screen.getByText("Vanilla")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Play Minecraft 1.20.6 vanilla" }));
+    expect(await screen.findByLabelText("Minecraft version")).toBeTruthy();
+    expect((screen.getByLabelText("Minecraft version") as HTMLSelectElement).value).toBe("1.20.6");
+    expect(window.localStorage.getItem("unlimited.loader")).toBe("vanilla");
   });
 });
 

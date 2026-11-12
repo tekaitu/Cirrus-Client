@@ -1,5 +1,5 @@
 // The license shown on first start and from the footer. Keep LICENSE (repo root) in sync.
-export const LICENSE_VERSION = "1";
+export const LICENSE_VERSION = "2";
 
 export const LICENSE_TITLE = "Unlimited license";
 
@@ -10,7 +10,7 @@ export const LICENSE_SECTIONS: Array<{ title: string; body: string }> = [
   },
   {
     title: "You need Minecraft",
-    body: "To use Unlimited you must own Minecraft: Java Edition on a Microsoft account, and you must sign in with that account. Unlimited checks this through Microsoft's own sign-in. It does not provide, copy or unlock the game, and it does not work around buying it.",
+    body: "Unlimited does not provide, copy or unlock the game, and it does not work around buying it. You may only use it if you own Minecraft: Java Edition. Signing in with the Microsoft account that owns it proves this and is needed to play online. Playing with an offline name needs no sign-in, but it still relies on you owning the game.",
   },
   {
     title: "Permission to use",

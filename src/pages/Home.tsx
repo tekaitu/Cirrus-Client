@@ -76,14 +76,14 @@ function JavaCard({ data }: { data: AppData }) {
   );
 }
 
-type CheckState = "ok" | "missing" | "checking" | "notInstalled" | "needed";
+type CheckState = "ok" | "missing" | "checking" | "notInstalled" | "optional";
 
 const CHECK_LABEL: Record<CheckState, { tone: Tone; text: string }> = {
   ok: { tone: "good", text: "Ready" },
   missing: { tone: "warn", text: "Missing" },
   checking: { tone: "neutral", text: "Checking…" },
   notInstalled: { tone: "neutral", text: "Not installed" },
-  needed: { tone: "warn", text: "Sign-in needed" },
+  optional: { tone: "neutral", text: "Optional" },
 };
 
 function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: (page: PageId) => void; onOpenAccount: () => void }) {
@@ -95,7 +95,7 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
   const gameState: CheckState = data.game.status?.installed ? "ok" : "notInstalled";
   const checks: Array<{ label: string; state: CheckState }> = [
     { label: `Java ${REQUIRED_JAVA_MAJOR} or newer`, state: javaCheck },
-    { label: "Microsoft account sign-in", state: signedIn ? "ok" : "needed" },
+    { label: "Microsoft sign-in (online play)", state: signedIn ? "ok" : "optional" },
     { label: "Minecraft game files", state: gameState },
     { label: "Fabric loader", state: gameState },
   ];
