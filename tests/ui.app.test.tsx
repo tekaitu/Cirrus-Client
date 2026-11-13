@@ -1054,7 +1054,7 @@ describe("Library", () => {
     render(<App />);
     goTo("Library");
     expect(await screen.findByText("Fabric 0.17.0 · 3 mods")).toBeTruthy();
-    expect(screen.getByText("Vanilla")).toBeTruthy();
+    expect(screen.getByText("Vanilla", { selector: "p" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Play Minecraft 1.20.6 vanilla" }));
     expect(await screen.findByLabelText("Minecraft version")).toBeTruthy();
     expect((screen.getByLabelText("Minecraft version") as HTMLSelectElement).value).toBe("1.20.6");
