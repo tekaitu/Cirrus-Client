@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { exitText, gameProgressView, usernameError, type LoaderId, type PlayMode } from "../core/game";
 import { REQUIRED_JAVA_MAJOR } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
+import { PackageIcon, PlayArrowIcon, SettingsIcon, ShieldIcon, StopIcon } from "./Icons";
 import { Banner } from "./ui";
 import type { PageId } from "./Sidebar";
 
@@ -158,6 +159,17 @@ export function PlayPanel({
           <span className={`steps-fill steps-fill-${doneCount}`} />
         </li>
       </ol>
+      {selection.profile && (
+        <div className="profile-chip">
+          <PackageIcon />
+          <span>
+            Profile: <strong>{selection.profile.name}</strong>
+          </span>
+          <button type="button" className="btn btn-quiet btn-small" onClick={() => selection.selectProfile(null)}>
+            Use default
+          </button>
+        </div>
+      )}
       <div className="pick-row">
         <label className="pick">
           <span>Minecraft version</span>
@@ -273,9 +285,11 @@ export function PlayPanel({
             disabled={action.disabled}
             onClick={action.onClick}
           >
+            {action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <ShieldIcon /> : !action.disabled && <PlayArrowIcon />}
             {action.label}
           </button>
           <button type="button" className="btn btn-pill" onClick={() => onNavigate("settings")}>
+            <SettingsIcon />
             Configure
           </button>
         </div>

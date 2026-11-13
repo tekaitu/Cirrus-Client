@@ -12,7 +12,7 @@ Outputs (all committed, so the build never needs Python):
   branding/logo-icon.svg, logo-icon-small.svg, wordmark.svg
   src/branding/logo.generated.ts   (shapes used by the React Logo component)
 
-Usage:  python branding/generate_assets.py [--preview DIR]
+Usage:  python branding/generate_assets.py   (wordmark only; the app icon is branding/make_icon.py)
 Needs:  Pillow and numpy.
 """
 from __future__ import annotations
@@ -31,8 +31,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Brand colours
 NAVY_TOP = "#2A1D55"  # tile top (deep violet)
 NAVY_BOTTOM = "#0C0816"  # tile bottom (near black)
-BLUE = "#7C5CD6"  # accent purple
-BLUE_BRIGHT = "#A78BFA"  # bright accent
+BLUE = "#22D3EE"  # wordmark gradient start (cyan)
+BLUE_BRIGHT = "#C084FC"  # wordmark gradient end
 WHITE = "#FFFFFF"
 
 SKEW = 0.18  # forward lean, shared by the icon and the wordmark
@@ -239,33 +239,13 @@ def write(path: pathlib.Path, data: bytes | str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--preview", help="also write preview PNGs of every size into this folder")
-    args = ap.parse_args()
+    ap.parse_args()
 
-    icons = ROOT / "src-tauri" / "icons"
-    for fname, size in (("32x32.png", 32), ("128x128.png", 128), ("128x128@2x.png", 256), ("icon.png", 512)):
-        write(icons / fname, png_bytes(render(variant_for(size), size)))
-    write(icons / "icon.ico", build_ico([16, 24, 32, 48, 64, 128, 256]))
-
-    write(ROOT / "branding" / "logo-icon.svg", icon_svg(VARIANTS["full"]))
-    write(ROOT / "branding" / "logo-icon-small.svg", icon_svg(VARIANTS["small"]))
     word = build_wordmark()
     write(ROOT / "branding" / "wordmark.svg", wordmark_svg(word))
-    write(ROOT / "public" / "favicon.svg", icon_svg(VARIANTS["small"]))
 
     ts = {
         "colors": {"tileTop": NAVY_TOP, "tileBottom": NAVY_BOTTOM, "accent": BLUE, "accentBright": BLUE_BRIGHT, "white": WHITE},
-        "variants": {
-            n: {
-                "radius": v["radius"],
-                "l": fmt_pts(v["l"]),
-                "streaks": [
-                    {"points": fmt_pts(s["points"]), "x1": round(s["x1"], 2), "x2": round(s["x2"], 2), "alphaStart": s["alpha_start"]}
-                    for s in v["streaks"]
-                ],
-            }
-            for n, v in VARIANTS.items()
-        },
         "wordmark": {"viewBox": word["viewBox"], "accent": word["accent"], "plain": word["plain"]},
     }
     write(
@@ -274,12 +254,6 @@ def main() -> None:
         f"export const LOGO = {json.dumps(ts, indent=2)} as const;\n",
     )
 
-    if args.preview:
-        out = pathlib.Path(args.preview)
-        out.mkdir(parents=True, exist_ok=True)
-        for s in (16, 24, 32, 48, 64, 128, 256, 512):
-            render(variant_for(s), s).save(out / f"icon-{s}.png")
-        print("previews in", out)
 
 
 if __name__ == "__main__":

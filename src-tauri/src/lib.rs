@@ -535,16 +535,15 @@ fn auth_sign_out(app: AppHandle, state: State<'_, AuthState>) -> AuthStatus {
 
 /// Open the Microsoft sign-in page in the default browser. Only Microsoft
 /// pages are accepted, and no shell is involved.
-#[tauri::command]
-fn open_microsoft_link(url: String) -> Result<(), String> {
-    if !auth::is_allowed_link(&url) {
-        return Err("Only Microsoft sign-in pages can be opened from here.".to_string());
-    }
+/// The one non-Microsoft page the app can open: the Unlimited community server.
+const COMMUNITY_URL: &str = "https://discord.gg/tWmvXNP7Af";
+
+fn open_in_browser(url: &str) -> Result<(), String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         std::process::Command::new("rundll32")
-            .args(["url.dll,FileProtocolHandler", &url])
+            .args(["url.dll,FileProtocolHandler", url])
             .creation_flags(0x0800_0000)
             .spawn()
             .map(|_| ())
@@ -552,8 +551,22 @@ fn open_microsoft_link(url: String) -> Result<(), String> {
     }
     #[cfg(not(windows))]
     {
+        let _ = url;
         Err("Opening the browser is only supported on Windows.".to_string())
     }
+}
+
+#[tauri::command]
+fn open_microsoft_link(url: String) -> Result<(), String> {
+    if !auth::is_allowed_link(&url) {
+        return Err("Only Microsoft sign-in pages can be opened from here.".to_string());
+    }
+    open_in_browser(&url)
+}
+
+#[tauri::command]
+fn open_community() -> Result<(), String> {
+    open_in_browser(COMMUNITY_URL)
 }
 
 #[tauri::command]
@@ -713,6 +726,26 @@ fn list_instances(app: AppHandle) -> Result<Vec<game::InstanceSummary>, String> 
 }
 
 #[tauri::command]
+fn list_profiles(app: AppHandle) -> Result<Vec<game::Profile>, String> {
+    let (root, _) = game_root(&app)?;
+    Ok(game::list_profiles(&root))
+}
+
+#[tauri::command]
+fn create_profile(app: AppHandle, name: String, version: String, loader: String) -> Result<game::Profile, String> {
+    check_version(&version)?;
+    let fabric = parse_loader(&loader)?;
+    let (root, _) = game_root(&app)?;
+    game::create_profile(&root, &name, &version, fabric)
+}
+
+#[tauri::command]
+fn delete_profile(app: AppHandle, id: String) -> Result<(), String> {
+    let (root, _) = game_root(&app)?;
+    game::delete_profile(&root, &id)
+}
+
+#[tauri::command]
 async fn install_game(
     app: AppHandle,
     state: State<'_, GameState>,
@@ -787,6 +820,7 @@ async fn launch_game(
     username: Option<String>,
     version: String,
     loader: String,
+    profile: Option<String>,
 ) -> Result<LaunchResult, String> {
     let refuse = |m: &str| Ok(LaunchResult { started: false, message: Some(m.to_string()), log_path: None });
     check_version(&version)?;
@@ -821,7 +855,22 @@ async fn launch_game(
         return refuse("The game files are not installed yet.");
     };
 
-    let spec = match game::build_launch(&root, &info, &java, memory, &player, env!("CARGO_PKG_VERSION")) {
+    let instance_id = match profile.as_deref() {
+        Some(id) => match game::list_profiles(&root).into_iter().find(|p| p.id == id) {
+            Some(p) if p.minecraft == version && p.fabric == fabric => Some(p.id),
+            _ => return refuse("That profile no longer matches the selected game. Pick it again in the Library."),
+        },
+        None => None,
+    };
+    let spec = match game::build_launch(
+        &root,
+        &info,
+        &java,
+        memory,
+        &player,
+        env!("CARGO_PKG_VERSION"),
+        instance_id.as_deref(),
+    ) {
         Ok(s) => s,
         Err(m) => return refuse(&m),
     };
@@ -913,12 +962,22 @@ fn curseforge_available() -> bool {
 
 /// The mods folder of the Fabric profile for `version`. Mods only apply to
 /// Fabric, so the game has to be installed with Fabric first.
-fn mods_folder(app: &AppHandle, version: &str) -> Result<PathBuf, String> {
+fn mods_folder(app: &AppHandle, version: &str, profile: Option<&str>) -> Result<PathBuf, String> {
     check_version(version)?;
     let (root, _) = game_root(app)?;
     let info = game::installed(&root, version, true)
         .ok_or_else(|| format!("Install Minecraft {version} with Fabric first (use Play on the Home page)."))?;
-    Ok(game::instance_dir(&root, &info.profile_id).join("mods"))
+    let instance = match profile {
+        Some(id) => game::list_profiles(&root)
+            .into_iter()
+            .find(|p| p.id == id && p.minecraft == version && p.fabric)
+            .map(|p| p.id)
+            .ok_or("That profile does not use Fabric for this version.")?,
+        None => info.profile_id,
+    };
+    let dir = game::instance_dir(&root, &instance).join("mods");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Could not create the mods folder: {e}"))?;
+    Ok(dir)
 }
 
 #[tauri::command]
@@ -941,23 +1000,24 @@ async fn install_mod(
     provider: String,
     id: String,
     version: String,
+    profile: Option<String>,
 ) -> Result<mods::InstallReport, String> {
     let provider = mods::Provider::parse(&provider).ok_or("Unknown mod site.")?;
-    let dir = mods_folder(&app, &version)?;
+    let dir = mods_folder(&app, &version, profile.as_deref())?;
     tauri::async_runtime::spawn_blocking(move || mods::install(provider, &id, &version, &dir, curseforge_key()))
         .await
         .map_err(|e| format!("The install stopped unexpectedly: {e}"))?
 }
 
 #[tauri::command]
-fn list_mods(app: AppHandle, version: String) -> Result<Vec<mods::InstalledMod>, String> {
-    let dir = mods_folder(&app, &version)?;
+fn list_mods(app: AppHandle, version: String, profile: Option<String>) -> Result<Vec<mods::InstalledMod>, String> {
+    let dir = mods_folder(&app, &version, profile.as_deref())?;
     Ok(mods::list_installed(&dir))
 }
 
 #[tauri::command]
-fn remove_mod(app: AppHandle, version: String, file_name: String) -> Result<(), String> {
-    let dir = mods_folder(&app, &version)?;
+fn remove_mod(app: AppHandle, version: String, file_name: String, profile: Option<String>) -> Result<(), String> {
+    let dir = mods_folder(&app, &version, profile.as_deref())?;
     mods::remove(&dir, &file_name)
 }
 
@@ -986,6 +1046,10 @@ pub fn run() {
             reset_settings,
             game_status,
             list_instances,
+            list_profiles,
+            create_profile,
+            delete_profile,
+            open_community,
             install_game,
             cancel_game_install,
             launch_game,

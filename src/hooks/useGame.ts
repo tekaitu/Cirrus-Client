@@ -15,7 +15,7 @@ export interface Game {
   refresh: () => void;
 }
 
-export function useGame(version: string, loader: LoaderId): Game {
+export function useGame(version: string, loader: LoaderId, profileId: string | null = null): Game {
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [installer, setInstaller] = useState<GameInstallerState>({ phase: "idle" });
   const [run, setRun] = useState<RunState>({ phase: "idle" });
@@ -103,8 +103,11 @@ export function useGame(version: string, loader: LoaderId): Game {
 
   const play = useCallback((javaPath: string, mode: PlayMode, username: string) => {
     setRun({ phase: "starting" });
-    api
-      .launchGame(javaPath, mode, mode === "offline" ? username.trim() : null, version, loader)
+    const who = mode === "offline" ? username.trim() : null;
+    (profileId
+      ? api.launchGame(javaPath, mode, who, version, loader, profileId)
+      : api.launchGame(javaPath, mode, who, version, loader)
+    )
       .then((r) => {
         if (!mounted.current) return;
         setRun(r.started ? { phase: "running" } : { phase: "error", message: r.message ?? "Minecraft could not be started." });
@@ -112,7 +115,7 @@ export function useGame(version: string, loader: LoaderId): Game {
       .catch((e) => {
         if (mounted.current) setRun({ phase: "error", message: errorMessage(e) });
       });
-  }, [version, loader]);
+  }, [version, loader, profileId]);
 
   const stop = useCallback(() => {
     api.stopGame().catch(() => {});

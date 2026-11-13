@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
+import { DownloadIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
 import { Banner, Card, Spinner } from "../components/ui";
 import { FPS_PACK, formatDownloads, formatFileSize } from "../core/mods";
 import type { AppData } from "../hooks/useAppData";
@@ -13,6 +14,7 @@ const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
 export function ModsPage({ data }: { data: AppData }) {
   const { selection, game } = data;
   const version = selection.version;
+  const profileId = selection.profile?.id;
   const [provider, setProvider] = useState<ModProvider>("modrinth");
   const [curseforge, setCurseforge] = useState(false);
   const [query, setQuery] = useState("");
@@ -44,12 +46,12 @@ export function ModsPage({ data }: { data: AppData }) {
 
   const refreshInstalled = useCallback(async () => {
     try {
-      const list = await api.listMods(version);
+      const list = await (profileId ? api.listMods(version, profileId) : api.listMods(version));
       if (mounted.current) setInstalled(list);
     } catch {
       if (mounted.current) setInstalled([]);
     }
-  }, [version]);
+  }, [version, profileId]);
 
   const search = useCallback(
     async (text: string, offset: number) => {
@@ -81,6 +83,10 @@ export function ModsPage({ data }: { data: AppData }) {
   }, [provider, version]);
 
   useEffect(() => {
+    setDone([]);
+  }, [profileId]);
+
+  useEffect(() => {
     if (fabricReady) void refreshInstalled();
     else setInstalled([]);
   }, [fabricReady, refreshInstalled]);
@@ -89,7 +95,7 @@ export function ModsPage({ data }: { data: AppData }) {
     setBusy(id);
     setNotice(null);
     try {
-      const report = await api.installMod(p, id, version);
+      const report = await (profileId ? api.installMod(p, id, version, profileId) : api.installMod(p, id, version));
       const added = report.installed.length;
       setNotice({
         tone: "good",
@@ -113,7 +119,7 @@ export function ModsPage({ data }: { data: AppData }) {
     const failed: string[] = [];
     for (const mod of FPS_PACK) {
       try {
-        await api.installMod("modrinth", mod.slug, version);
+        await (profileId ? api.installMod("modrinth", mod.slug, version, profileId) : api.installMod("modrinth", mod.slug, version));
       } catch (e) {
         failed.push(`${mod.name} (${errorMessage(e)})`);
       }
@@ -131,7 +137,7 @@ export function ModsPage({ data }: { data: AppData }) {
   const remove = async (fileName: string) => {
     setBusy(fileName);
     try {
-      await api.removeMod(version, fileName);
+      await (profileId ? api.removeMod(version, fileName, profileId) : api.removeMod(version, fileName));
       await refreshInstalled();
     } catch (e) {
       setNotice({ tone: "bad", text: errorMessage(e) });
@@ -150,7 +156,10 @@ export function ModsPage({ data }: { data: AppData }) {
       <header className="page-head">
         <h1>Mods</h1>
         <p className="muted">
-          Fabric mods for Minecraft {version}, from Modrinth and CurseForge. Each Minecraft version keeps its own mods.
+          Fabric mods for Minecraft {version}, from Modrinth and CurseForge.{" "}
+          {selection.profile
+            ? `They go into your “${selection.profile.name}” profile.`
+            : "Each Minecraft version keeps its own mods."}
         </p>
       </header>
 
@@ -211,6 +220,7 @@ export function ModsPage({ data }: { data: AppData }) {
               onChange={(e) => setQuery(e.target.value)}
             />
             <button type="submit" className="btn btn-primary btn-pill" disabled={searching}>
+              <SearchIcon />
               Search
             </button>
           </form>
@@ -228,7 +238,7 @@ export function ModsPage({ data }: { data: AppData }) {
                 return (
                   <li key={key} className="mod-card">
                     {h.iconUrl ? (
-                      <img className="mod-icon" src={h.iconUrl} alt="" loading="lazy" width={48} height={48} />
+                      <img className="mod-icon" src={h.iconUrl} alt="" loading="lazy" width={56} height={56} referrerPolicy="no-referrer" />
                     ) : (
                       <span className="mod-icon mod-icon-empty" aria-hidden="true">
                         {h.title.slice(0, 1).toUpperCase()}
@@ -249,6 +259,7 @@ export function ModsPage({ data }: { data: AppData }) {
                       aria-label={`Install ${h.title}`}
                       onClick={() => install(h.provider, h.id, h.title)}
                     >
+                      {!isDone && busy !== h.id && <DownloadIcon />}
                       {isDone ? "Installed" : busy === h.id ? "Installing…" : "Install"}
                     </button>
                   </li>
@@ -274,6 +285,7 @@ export function ModsPage({ data }: { data: AppData }) {
               disabled={!fabricReady || busy !== null}
               onClick={installPack}
             >
+              <SparkIcon />
               {busy === "pack" ? "Installing…" : "Install FPS pack"}
             </button>
           }
@@ -287,7 +299,7 @@ export function ModsPage({ data }: { data: AppData }) {
           </ul>
         </Card>
 
-        <Card title="Installed mods" description={`In the Minecraft ${version} Fabric profile`}>
+        <Card title="Installed mods" description={selection.profile ? `In your “${selection.profile.name}” profile` : `In the Minecraft ${version} Fabric profile`}>
           {installed.length === 0 ? (
             <p className="muted">{fabricReady ? "No mods installed yet." : "Nothing to show until Fabric is installed."}</p>
           ) : (
@@ -303,6 +315,7 @@ export function ModsPage({ data }: { data: AppData }) {
                     aria-label={`Remove ${m.fileName}`}
                     onClick={() => remove(m.fileName)}
                   >
+                    <TrashIcon />
                     Remove
                   </button>
                 </li>

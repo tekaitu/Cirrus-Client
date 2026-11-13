@@ -1,5 +1,5 @@
 import { api } from "../api/client";
-import type { AppInfo, SettingsState, SystemInfo } from "../api/types";
+import type { AppInfo, Profile, SettingsState, SystemInfo } from "../api/types";
 import { analyzeJava, toJavaView, type JavaView } from "../core/java";
 import { useAuth, type Account } from "./useAuth";
 import { useGame, type Game } from "./useGame";
@@ -16,6 +16,8 @@ export interface AppData {
   account: Account;
   game: Game;
   selection: Selection;
+  profiles: ResourceState<Profile[]>;
+  reloadProfiles: () => void;
   reloadAll: () => void;
   reloadSettings: () => void;
   reloadJava: () => void;
@@ -47,14 +49,17 @@ export function useAppData(): AppData {
     s.status !== "loading",
   );
 
-  const selection = useSelection();
-  const game = useGame(selection.version, selection.loader);
+  const profiles = useResource<Profile[]>(() => api.listProfiles());
+  const selection = useSelection(profiles.state.status === "ready" ? profiles.state.data : null);
+  const game = useGame(selection.version, selection.loader, selection.profile?.id ?? null);
 
   return {
     installer,
     account,
     game,
     selection,
+    profiles: profiles.state,
+    reloadProfiles: profiles.reload,
     app: app.state,
     system: system.state,
     settings: settings.state,

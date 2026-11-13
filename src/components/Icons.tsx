@@ -22,7 +22,7 @@ export function HomeIcon() {
 
 export function SettingsIcon() {
   return (
-    <svg {...common}>
+    <svg {...common} className="ico ico-settings">
       <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
       <circle cx="16" cy="7" r="2" />
       <circle cx="8" cy="17" r="2" />
@@ -151,6 +151,116 @@ export function CompassIcon() {
     <svg {...common}>
       <circle cx="12" cy="12" r="8.5" />
       <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
+    </svg>
+  );
+}
+
+/* Icons used inside buttons. Each has its own class so the stylesheet can give it a hover motion. */
+export function StopIcon() {
+  return (
+    <svg {...common} className="ico ico-stop">
+      <rect x="6" y="6" width="12" height="12" rx="2.5" />
+    </svg>
+  );
+}
+
+export function ShieldIcon() {
+  return (
+    <svg {...common} className="ico ico-shield">
+      <path d="M12 3.5 5 6.2v5.4c0 4.1 2.8 7.2 7 8.9 4.2-1.7 7-4.8 7-8.9V6.2L12 3.5Z" />
+      <path d="m9.2 12.1 2.1 2.1 3.6-3.9" />
+    </svg>
+  );
+}
+
+export function KeyIcon() {
+  return (
+    <svg {...common} className="ico ico-key">
+      <circle cx="8" cy="12" r="3.5" />
+      <path d="M11.5 12H20M17 12v3M14.5 12v2" />
+    </svg>
+  );
+}
+
+export function PlusIcon() {
+  return (
+    <svg {...common} className="ico ico-plus">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+export function TrashIcon() {
+  return (
+    <svg {...common} className="ico ico-trash">
+      <path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12.5h9.4L17.5 7M10 11v5M14 11v5" />
+    </svg>
+  );
+}
+
+export function SearchIcon() {
+  return (
+    <svg {...common} className="ico ico-search">
+      <circle cx="10.5" cy="10.5" r="5.5" />
+      <path d="m15 15 4.5 4.5" />
+    </svg>
+  );
+}
+
+export function DownloadIcon() {
+  return (
+    <svg {...common} className="ico ico-download">
+      <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />
+    </svg>
+  );
+}
+
+export function ChatIcon() {
+  return (
+    <svg {...common} className="ico ico-chat">
+      <path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3v-3H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z" />
+      <path d="M8 10h8M8 13h5" />
+    </svg>
+  );
+}
+
+export function PackageIcon() {
+  return (
+    <svg {...common} className="ico ico-package">
+      <path d="m12 3.5 8 4.2v8.6l-8 4.2-8-4.2V7.7l8-4.2Z" />
+      <path d="m4.5 8 7.5 4 7.5-4M12 12v8" />
+    </svg>
+  );
+}
+
+export function SparkIcon() {
+  return (
+    <svg {...common} className="ico ico-spark">
+      <path d="M12 3.5 13.9 10 20.5 12 13.9 14 12 20.5 10.1 14 3.5 12 10.1 10 12 3.5Z" />
+    </svg>
+  );
+}
+
+export function PlayArrowIcon() {
+  return (
+    <svg {...common} fill="currentColor" className="ico ico-play">
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" />
+    </svg>
+  );
+}
+
+export function RefreshArrowIcon() {
+  return (
+    <svg {...common} className="ico ico-refresh">
+      <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.2h-4.2" />
+    </svg>
+  );
+}
+
+export function CheckIcon() {
+  return (
+    <svg {...common} className="ico ico-check">
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
     </svg>
   );
 }

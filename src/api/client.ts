@@ -7,7 +7,7 @@ import type {
   GameExit,
   GameInstallResult,
   GameProgress,
-  GameStatus, InstanceSummary,
+  GameStatus, InstanceSummary, Profile,
   InstallProgress,
   InstallResult,
   InstalledMod,
@@ -86,15 +86,22 @@ export const api = {
     username: string | null,
     version: string,
     loader: string,
-  ) => call<LaunchResult>("launch_game", { javaPath, mode, username, version, loader }),
+    profile?: string,
+  ) => call<LaunchResult>("launch_game", { javaPath, mode, username, version, loader, profile: profile ?? null }),
+  listProfiles: () => call<Profile[]>("list_profiles"),
+  createProfile: (name: string, version: string, loader: string) =>
+    call<Profile>("create_profile", { name, version, loader }),
+  deleteProfile: (id: string) => call<void>("delete_profile", { id }),
+  openCommunity: () => call<void>("open_community"),
   quitApp: () => call<void>("quit_app"),
   curseforgeAvailable: () => call<boolean>("curseforge_available"),
   searchMods: (provider: ModProvider, query: string, version: string, offset: number) =>
     call<ModSearchResult>("search_mods", { provider, query, version, offset }),
-  installMod: (provider: ModProvider, id: string, version: string) =>
-    call<ModInstallReport>("install_mod", { provider, id, version }),
-  listMods: (version: string) => call<InstalledMod[]>("list_mods", { version }),
-  removeMod: (version: string, fileName: string) => call<void>("remove_mod", { version, fileName }),
+  installMod: (provider: ModProvider, id: string, version: string, profile?: string) =>
+    call<ModInstallReport>("install_mod", { provider, id, version, profile: profile ?? null }),
+  listMods: (version: string, profile?: string) => call<InstalledMod[]>("list_mods", { version, profile: profile ?? null }),
+  removeMod: (version: string, fileName: string, profile?: string) =>
+    call<void>("remove_mod", { version, fileName, profile: profile ?? null }),
   stopGame: () => call<boolean>("stop_game"),
   onGameProgress: async (handler: (p: GameProgress) => void): Promise<() => void> => {
     if (!insideTauri()) return () => {};

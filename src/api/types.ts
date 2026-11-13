@@ -136,6 +136,15 @@ export interface InstanceSummary {
   modCount: number;
 }
 
+export interface Profile {
+  id: string;
+  name: string;
+  minecraft: string;
+  fabric: boolean;
+  /** 0..5, picks the icon colour. */
+  color: number;
+}
+
 export interface GameProgress {
   stage: "metadata" | "downloading" | "finishing";
   done: number;

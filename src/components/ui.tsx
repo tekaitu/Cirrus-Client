@@ -14,6 +14,7 @@ export function Card({
   id,
   icon,
   description,
+  tone,
 }: {
   title?: string;
   action?: ReactNode;
@@ -24,9 +25,11 @@ export function Card({
   icon?: ReactNode;
   /** One short line under the title. */
   description?: string;
+  /** Colour of the title icon (the accent colour when left out). */
+  tone?: "blue" | "cyan" | "green" | "amber" | "pink";
 }) {
   return (
-    <section id={id} className={`card ${className}`.trim()}>
+    <section id={id} className={`card ${tone ? `tone-${tone}` : ""} ${className}`.trim()}>
       {(title || action) && (
         <header className="card-head">
           <div className="card-title">

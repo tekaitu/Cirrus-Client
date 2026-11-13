@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, errorMessage } from "../api/client";
 import type { SettingsState } from "../api/types";
-import { FolderIcon, JavaIcon, MemoryIcon, PaletteIcon, UserIcon } from "../components/Icons";
+import {
+  ChatIcon,
+  CheckIcon,
+  FolderIcon,
+  JavaIcon,
+  MemoryIcon,
+  PaletteIcon,
+  RefreshArrowIcon,
+  SparkIcon,
+  UserIcon,
+} from "../components/Icons";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import { Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { formatMemory } from "../core/format";
@@ -16,6 +26,7 @@ import {
   type Settings,
   type SettingsErrors,
 } from "../core/settings";
+import { ACCENTS, THEMES, getAccent, getTheme, setAccent, setTheme } from "../core/theme";
 import type { AppData } from "../hooks/useAppData";
 
 type JavaTest = { status: "idle" } | { status: "running" } | { status: "done"; result: JavaAnalysis } | { status: "error"; message: string };
@@ -61,6 +72,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
   const [notice, setNotice] = useState<{ tone: Tone; text: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [javaTest, setJavaTest] = useState<JavaTest>({ status: "idle" });
+  const [look, setLook] = useState(() => ({ theme: getTheme(), accent: getAccent() }));
 
   // After a successful save or reset the backend hands back a new settings object.
   useEffect(() => {
@@ -172,6 +184,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         <a href="#sec-folder">Game folder</a>
         <a href="#sec-account">Sign-in</a>
         <a href="#sec-interface">Interface</a>
+        <a href="#sec-about">Community</a>
       </nav>
 
       {state.status === "recoveredFromCorruption" && state.message && (
@@ -180,7 +193,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Banner>
       )}
 
-      <Card id="sec-memory" title="Memory" icon={<MemoryIcon />} description="How much RAM Minecraft may use.">
+      <Card id="sec-memory" title="Memory" tone="cyan" icon={<MemoryIcon />} description="How much RAM Minecraft may use.">
         <Field
           id="memory"
           label="Memory for Minecraft"
@@ -229,7 +242,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Field>
       </Card>
 
-      <Card id="sec-java" title="Java" icon={<JavaIcon />} description="Which Java runs the game (21 or newer).">
+      <Card id="sec-java" title="Java" tone="amber" icon={<JavaIcon />} description="Which Java runs the game (21 or newer).">
         <Field
           id="java-path"
           label="Java executable"
@@ -267,6 +280,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
             onClick={() => void testJava()}
             disabled={!draft.javaPath?.trim() || javaTest.status === "running"}
           >
+            <RefreshArrowIcon />
             {javaTest.status === "running" ? "Testing…" : "Test this Java"}
           </button>
         </div>
@@ -283,7 +297,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         )}
       </Card>
 
-      <Card id="sec-folder" title="Game folder" icon={<FolderIcon />} description="Where game data will be stored.">
+      <Card id="sec-folder" title="Game folder" tone="green" icon={<FolderIcon />} description="Where game data will be stored.">
         <Field
           id="game-dir"
           label="Game directory"
@@ -300,7 +314,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Field>
       </Card>
 
-      <Card id="sec-account" title="Microsoft sign-in" icon={<UserIcon />} description="Advanced: normally nothing to change here.">
+      <Card id="sec-account" title="Microsoft sign-in" tone="pink" icon={<UserIcon />} description="Advanced: normally nothing to change here.">
         <Field
           id="ms-client-id"
           label="Azure application (client) ID"
@@ -320,7 +334,61 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         </Field>
       </Card>
 
-      <Card id="sec-interface" title="Interface" icon={<PaletteIcon />} description="How the launcher behaves.">
+      <Card id="sec-interface" title="Interface" icon={<PaletteIcon />} description="Colours and motion. Applied at once.">
+        <div className="field">
+          <span id="theme-label" className="field-label">
+            Theme
+          </span>
+          <div className="theme-grid" role="radiogroup" aria-labelledby="theme-label">
+            {THEMES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={look.theme === t.id}
+                aria-label={`${t.label} theme`}
+                className={`theme-card ${look.theme === t.id ? "theme-on" : ""}`}
+                onClick={() => {
+                  setTheme(t.id);
+                  setLook((l) => ({ ...l, theme: t.id }));
+                }}
+              >
+                <span className="theme-preview" style={{ background: t.swatch[0] }} aria-hidden="true">
+                  <i style={{ background: t.swatch[1] }} />
+                  <i style={{ background: t.swatch[2] }} />
+                  <b />
+                </span>
+                <span className="theme-name">{t.label}</span>
+                <span className="muted small">{t.blurb}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <span id="accent-label" className="field-label">
+            Accent colour
+          </span>
+          <div className="accent-row" role="radiogroup" aria-labelledby="accent-label">
+            {ACCENTS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                role="radio"
+                aria-checked={look.accent === a.id}
+                aria-label={`${a.label} accent`}
+                title={a.label}
+                className={`accent-dot ${look.accent === a.id ? "accent-on" : ""}`}
+                style={{ background: a.color }}
+                onClick={() => {
+                  setAccent(a.id);
+                  setLook((l) => ({ ...l, accent: a.id }));
+                }}
+              >
+                {look.accent === a.id && <CheckIcon />}
+              </button>
+            ))}
+          </div>
+        </div>
         <label className="check switch">
           <input
             type="checkbox"
@@ -329,6 +397,28 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
           />
           <span>Reduce motion (turns off animations and transitions)</span>
         </label>
+      </Card>
+
+      <Card
+        id="sec-about"
+        title="Community"
+        tone="blue"
+        icon={<ChatIcon />}
+        description="Questions, bug reports and ideas are welcome."
+      >
+        <div className="row">
+          <button
+            type="button"
+            className="btn btn-discord"
+            onClick={() => void api.openCommunity().catch((e: unknown) => setNotice({ tone: "bad", text: errorMessage(e) }))}
+          >
+            <ChatIcon />
+            Join the Discord community
+          </button>
+          <span className="muted small">
+            <SparkIcon /> Unlimited {data.app.status === "ready" ? `v${data.app.data.version}` : ""} · early build
+          </span>
+        </div>
       </Card>
 
       {notice && (
@@ -354,6 +444,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
 
       <div className="actions action-bar">
         <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
+          <CheckIcon />
           {saving ? "Saving…" : "Save settings"}
         </button>
         <button
@@ -366,6 +457,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
             setNotice(null);
           }}
         >
+          <RefreshArrowIcon />
           Discard changes
         </button>
         <button type="button" className="btn btn-quiet" disabled={saving} onClick={() => setConfirmReset(true)}>

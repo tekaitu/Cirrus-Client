@@ -3,6 +3,8 @@ import { CLIENT_ID_PATTERN } from "../core/settings";
 import { formatUuid, isMicrosoftLink, minutesLeft } from "../core/auth";
 import type { Account } from "../hooks/useAuth";
 import type { PageId } from "./Sidebar";
+import { KeyIcon, ShieldIcon } from "./Icons";
+import { LogoMark } from "./Logo";
 import { Banner, Card, Skeleton } from "./ui";
 
 /**
@@ -103,8 +105,8 @@ export function AccountPanel({
 
       {state.phase === "notConfigured" && (
         <>
-          <div className="account-row">
-            <span className="avatar" aria-hidden="true">?</span>
+          <div className="account-row account-hero">
+            <LogoMark size={44} />
             <div>
               <p className="account-name">Not signed in</p>
               <p className="muted small">
@@ -122,18 +124,30 @@ export function AccountPanel({
 
       {state.phase === "signedOut" && (
         <>
-          <div className="account-row">
-            <span className="avatar" aria-hidden="true">?</span>
+          <div className="account-row account-hero">
+            <LogoMark size={44} />
             <div>
               <p className="account-name">Not signed in</p>
               <p className="muted small">Sign in with your Microsoft account that owns Minecraft: Java Edition.</p>
             </div>
           </div>
           {state.message && <p className="error-text" role="alert">{state.message}</p>}
-          <button type="button" className="btn btn-primary btn-block" onClick={() => account.signIn("window")}>
-            Sign in with Microsoft
+          <button
+            type="button"
+            className="btn btn-signin btn-block"
+            aria-label="Sign in with Microsoft"
+            onClick={() => account.signIn("window")}
+          >
+            <span className="signin-badge" aria-hidden="true">
+              <ShieldIcon />
+            </span>
+            <span className="signin-text">
+              <strong>Sign in with Microsoft</strong>
+              <small>For Minecraft: Java Edition</small>
+            </span>
           </button>
-          <button type="button" className="link-button" onClick={() => account.signIn("code")}>
+          <button type="button" className="btn btn-quiet btn-block" onClick={() => account.signIn("code")}>
+            <KeyIcon />
             Use a code instead
           </button>
           <p className="muted small">

@@ -7,7 +7,7 @@
 //! the caller shows progress and can cancel.
 
 use reqwest::Url;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
@@ -839,6 +839,104 @@ pub fn list_instances(root: &Path) -> Vec<InstanceSummary> {
     out
 }
 
+// ------------------------------------------------------------- profiles
+
+/// A named setup: its own Minecraft version, loader and folder for worlds, options and mods.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Profile {
+    pub id: String,
+    pub name: String,
+    pub minecraft: String,
+    pub fabric: bool,
+    /// 0..=5, picks the colour of the profile's icon.
+    pub color: u8,
+}
+
+const PROFILES_FILE: &str = "unlimited-profiles.json";
+const MAX_PROFILES: usize = 40;
+
+fn profiles_path(root: &Path) -> PathBuf {
+    root.join(PROFILES_FILE)
+}
+
+/// Profile ids are `p-` plus lowercase letters, digits and dashes, so they are always a safe folder name.
+pub fn valid_profile_id(id: &str) -> bool {
+    id.len() <= 64
+        && id.strip_prefix("p-").is_some_and(|rest| {
+            !rest.is_empty() && rest.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+        })
+}
+
+pub fn list_profiles(root: &Path) -> Vec<Profile> {
+    let Ok(text) = fs::read_to_string(profiles_path(root)) else { return Vec::new() };
+    let list: Vec<Profile> = serde_json::from_str(&text).unwrap_or_default();
+    list.into_iter().filter(|p| valid_profile_id(&p.id)).collect()
+}
+
+fn save_profiles(root: &Path, list: &[Profile]) -> Result<(), String> {
+    let text = serde_json::to_string_pretty(list).map_err(|e| e.to_string())?;
+    write_atomic(&profiles_path(root), &text).map_err(|e| match e {
+        GameError::Failed(m) => m,
+        GameError::Cancelled => "Saving was cancelled.".to_string(),
+    })
+}
+
+fn profile_slug(name: &str) -> String {
+    let mut slug = String::new();
+    for c in name.chars() {
+        if c.is_ascii_alphanumeric() {
+            slug.push(c.to_ascii_lowercase());
+        } else if !slug.ends_with('-') && !slug.is_empty() {
+            slug.push('-');
+        }
+    }
+    let slug = slug.trim_matches('-').chars().take(24).collect::<String>();
+    if slug.is_empty() { "profile".to_string() } else { slug }
+}
+
+/// Add a profile. The caller has already checked that `minecraft` is a supported release.
+pub fn create_profile(root: &Path, name: &str, minecraft: &str, fabric: bool) -> Result<Profile, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("Give the profile a name.".to_string());
+    }
+    if name.chars().count() > 32 || name.chars().any(char::is_control) {
+        return Err("Profile names can be up to 32 characters, without special control characters.".to_string());
+    }
+    let mut list = list_profiles(root);
+    if list.len() >= MAX_PROFILES {
+        return Err("That is the most profiles Unlimited keeps. Delete one first.".to_string());
+    }
+    if list.iter().any(|p| p.name.eq_ignore_ascii_case(name)) {
+        return Err("You already have a profile with that name.".to_string());
+    }
+    let base = format!("p-{}", profile_slug(name));
+    let mut id = base.clone();
+    let mut n = 2;
+    while list.iter().any(|p| p.id == id) {
+        id = format!("{base}-{n}");
+        n += 1;
+    }
+    let profile = Profile { id, name: name.to_string(), minecraft: minecraft.to_string(), fabric, color: (list.len() % 6) as u8 };
+    fs::create_dir_all(instance_dir(root, &profile.id).join("mods"))
+        .map_err(|e| format!("Could not create the profile folder: {e}"))?;
+    list.push(profile.clone());
+    save_profiles(root, &list)?;
+    Ok(profile)
+}
+
+/// Forget a profile. Its folder (worlds, mods) stays on disk so nothing is lost by accident.
+pub fn delete_profile(root: &Path, id: &str) -> Result<(), String> {
+    let mut list = list_profiles(root);
+    let before = list.len();
+    list.retain(|p| p.id != id);
+    if list.len() == before {
+        return Err("That profile no longer exists.".to_string());
+    }
+    save_profiles(root, &list)
+}
+
 // -------------------------------------------------------------- launching
 
 #[derive(Debug, Clone, PartialEq)]
@@ -861,6 +959,7 @@ pub fn build_launch(
     memory_mb: u32,
     player: &Player,
     launcher_version: &str,
+    instance_id: Option<&str>,
 ) -> Result<LaunchSpec, String> {
     let vanilla = read_json(&vanilla_json_path(root, &info.minecraft), "Minecraft version file")?;
     let fabric = if info.loader.is_some() {
@@ -868,7 +967,7 @@ pub fn build_launch(
     } else {
         serde_json::json!({})
     };
-    let instance = instance_dir(root, &info.profile_id);
+    let instance = instance_dir(root, instance_id.unwrap_or(&info.profile_id));
 
     let libs = merge_libraries(&vanilla, &fabric);
     let mut classpath: Vec<String> = Vec::new();
@@ -1128,6 +1227,38 @@ mod tests {
         assert!(list[1].loader.is_none());
     }
 
+
+    #[test]
+    fn profiles_are_created_listed_and_deleted_safely() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        assert!(list_profiles(root).is_empty());
+        let a = create_profile(root, "  My PvP!  ", "1.21.11", true).unwrap();
+        assert_eq!(a.id, "p-my-pvp");
+        assert_eq!(a.name, "My PvP!");
+        assert!(instance_dir(root, &a.id).join("mods").is_dir());
+        let b = create_profile(root, "My PvP?", "1.20.6", false).unwrap();
+        assert_eq!(b.id, "p-my-pvp-2");
+        assert_ne!(a.color, b.color);
+        assert!(create_profile(root, "my pvp!", "1.21.11", true).is_err());
+        assert!(create_profile(root, "   ", "1.21.11", true).is_err());
+        assert!(create_profile(root, &"x".repeat(33), "1.21.11", true).is_err());
+        assert_eq!(list_profiles(root).len(), 2);
+        delete_profile(root, &a.id).unwrap();
+        assert!(delete_profile(root, &a.id).is_err());
+        assert_eq!(list_profiles(root).len(), 1);
+        // Files are kept when a profile is forgotten.
+        assert!(instance_dir(root, &a.id).is_dir());
+    }
+
+    #[test]
+    fn profile_ids_cannot_escape_the_instances_folder() {
+        for bad in ["", "p-", "../x", "p-../x", "p-A", "p-a/b", "p-a\\b", "fabric-loader", "p-é"] {
+            assert!(!valid_profile_id(bad), "{bad:?}");
+        }
+        assert!(valid_profile_id("p-my-pvp-2"));
+    }
+
     #[test]
     fn launch_command_is_built_from_the_installed_files() {
         let dir = tempfile::tempdir().unwrap();
@@ -1154,7 +1285,7 @@ mod tests {
         }
 
         let player = Player::offline("Steve").unwrap();
-        let spec = build_launch(root, &info, Path::new("java.exe"), 3072, &player, "0.1.0").unwrap();
+        let spec = build_launch(root, &info, Path::new("java.exe"), 3072, &player, "0.1.0", None).unwrap();
         assert_eq!(spec.args[0], "-Xmx3072M");
         let main_at = spec.args.iter().position(|a| a == "net.fabricmc.loader.impl.launch.knot.KnotClient").unwrap();
         let cp_at = spec.args.iter().position(|a| a == "-cp").unwrap();
@@ -1190,7 +1321,7 @@ mod tests {
             write_atomic(&root.join("libraries").join(&lib.rel_path), "x").unwrap();
         }
         let player = Player::offline("Alex").unwrap();
-        let spec = build_launch(root, &info, Path::new("java.exe"), 2048, &player, "0.1.0").unwrap();
+        let spec = build_launch(root, &info, Path::new("java.exe"), 2048, &player, "0.1.0", None).unwrap();
         assert!(spec.args.contains(&"net.minecraft.client.main.Main".to_string()));
         assert!(!spec.args.iter().any(|a| a.contains("fabric")));
     }
@@ -1218,7 +1349,7 @@ mod tests {
         write_atomic(&vanilla_json_path(root, mc), &vanilla().to_string()).unwrap();
         write_atomic(&fabric_json_path(root, &info.profile_id), &fabric().to_string()).unwrap();
         let player = Player::offline("Steve").unwrap();
-        let err = build_launch(root, &info, Path::new("java.exe"), 2048, &player, "0.1.0").unwrap_err();
+        let err = build_launch(root, &info, Path::new("java.exe"), 2048, &player, "0.1.0", None).unwrap_err();
         assert!(err.contains("missing"));
     }
 

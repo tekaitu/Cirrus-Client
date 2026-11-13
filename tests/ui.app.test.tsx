@@ -12,6 +12,10 @@ vi.mock("../src/api/client", () => ({
     getAppInfo: vi.fn(),
     gameStatus: vi.fn(),
     listInstances: vi.fn(),
+    listProfiles: vi.fn(),
+    createProfile: vi.fn(),
+    deleteProfile: vi.fn(),
+    openCommunity: vi.fn(),
     listGameVersions: vi.fn(),
     quitApp: vi.fn(),
     curseforgeAvailable: vi.fn(),
@@ -89,6 +93,8 @@ beforeEach(() => {
   mocked.curseforgeAvailable.mockResolvedValue(false);
   mocked.listMods.mockResolvedValue([]);
   mocked.listInstances.mockResolvedValue([]);
+  mocked.listProfiles.mockResolvedValue([]);
+  mocked.openCommunity.mockResolvedValue(undefined);
   mocked.searchMods.mockResolvedValue({ hits: [], total: 0 });
   gameProgressHandler = null;
   gameExitHandler = null;
@@ -171,7 +177,8 @@ describe("Home", () => {
     await screen.findByText("Java 21");
     fireEvent.click(screen.getByRole("button", { name: "Re-scan Java" }));
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalledTimes(2));
-    expect((screen.getByRole("button", { name: /Community/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /Discord community/ }));
+    expect(mocked.openCommunity).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Get help" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Diagnostics" })).toBeTruthy();
   });
@@ -960,6 +967,75 @@ describe("License", () => {
     const dialog = await screen.findByRole("dialog", { name: "Unlimited license" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull();
+  });
+});
+
+describe("Profiles", () => {
+  const pvp = { id: "p-pvp", name: "PvP", minecraft: "1.21.11", fabric: true, color: 0 };
+  const ready = () => mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+  const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
+
+  it("creates a profile from a name, version and loader", async () => {
+    mocked.createProfile.mockResolvedValue(pvp);
+    render(<App />);
+    goTo("Library");
+    fireEvent.click(await screen.findByRole("button", { name: "Create profile" }));
+    expect(await screen.findByText("Give the profile a name.")).toBeTruthy();
+    expect(mocked.createProfile).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Profile name"), { target: { value: "PvP" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create profile" }));
+    await waitFor(() => expect(mocked.createProfile).toHaveBeenCalledWith("PvP", "1.21.11", "fabric"));
+  });
+
+  it("lists profiles, plays one and passes it to the launcher", async () => {
+    mocked.listProfiles.mockResolvedValue([pvp]);
+    mocked.authStatus.mockResolvedValue(authStatus());
+    ready();
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    render(<App />);
+    await screen.findByText("Java 21");
+    goTo("Library");
+    expect(await screen.findByText("Minecraft 1.21.11 · Fabric")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Play profile PvP" }));
+    expect(await screen.findByText("Profile:")).toBeTruthy();
+    await screen.findAllByText("Installed");
+    chooseOffline();
+    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Alex" } });
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() =>
+      expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "offline", "Alex", "1.21.11", "fabric", "p-pvp"),
+    );
+  });
+
+  it("deletes a profile only after a second click", async () => {
+    mocked.listProfiles.mockResolvedValue([pvp]);
+    mocked.deleteProfile.mockResolvedValue(undefined);
+    render(<App />);
+    goTo("Library");
+    fireEvent.click(await screen.findByRole("button", { name: "Delete profile PvP" }));
+    expect(mocked.deleteProfile).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete PvP" }));
+    await waitFor(() => expect(mocked.deleteProfile).toHaveBeenCalledWith("p-pvp"));
+  });
+});
+
+describe("Themes", () => {
+  it("switches theme and accent at once and remembers them", async () => {
+    render(<App />);
+    goTo("Settings");
+    fireEvent.click(await screen.findByRole("radio", { name: "Ocean theme" }));
+    expect(document.documentElement.dataset.theme).toBe("ocean");
+    expect(window.localStorage.getItem("unlimited.theme")).toBe("ocean");
+    fireEvent.click(screen.getByRole("radio", { name: "Pink accent" }));
+    expect(document.documentElement.dataset.accent).toBe("pink");
+    expect(screen.getByRole("radio", { name: "Ocean theme" }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("offers the Discord community from Settings", async () => {
+    render(<App />);
+    goTo("Settings");
+    fireEvent.click(await screen.findByRole("button", { name: "Join the Discord community" }));
+    expect(mocked.openCommunity).toHaveBeenCalledTimes(1);
   });
 });
 

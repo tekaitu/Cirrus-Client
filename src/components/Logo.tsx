@@ -1,18 +1,13 @@
 import { useId } from "react";
 import { LOGO } from "../branding/logo.generated";
 
-/** Icons this small use the simpler two-streak variant so they stay readable. */
-const SMALL_MAX_PX = 48;
-
 /**
- * The Unlimited app icon: a bold forward-leaning U with blue speed streaks on
- * a navy tile. Shapes come from branding/generate_assets.py so the in-app logo,
- * the window icon and the EXE icon are the same drawing.
+ * The Unlimited app icon: a bold white U with a spark on a cyan-violet-pink tile.
+ * Same drawing as branding/make_icon.py, so the in-app logo, the window icon and
+ * the EXE icon match.
  */
 export function LogoMark({ size = 40 }: { size?: number }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const variant = size <= SMALL_MAX_PX ? LOGO.variants.small : LOGO.variants.full;
-  const c = LOGO.colors;
   const tile = `tile${uid}`;
   return (
     <svg
@@ -25,30 +20,22 @@ export function LogoMark({ size = 40 }: { size?: number }) {
       focusable="false"
     >
       <defs>
-        <linearGradient id={tile} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={c.tileTop} />
-          <stop offset="1" stopColor={c.tileBottom} />
+        <linearGradient id={tile} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#22D3EE" />
+          <stop offset="0.55" stopColor="#8B5CF6" />
+          <stop offset="1" stopColor="#F472B6" />
         </linearGradient>
-        {variant.streaks.map((s, i) => (
-          <linearGradient
-            key={i}
-            id={`s${i}${uid}`}
-            gradientUnits="userSpaceOnUse"
-            x1={s.x1}
-            y1="0"
-            x2={s.x2}
-            y2="0"
-          >
-            <stop offset="0" stopColor={c.accent} stopOpacity={s.alphaStart} />
-            <stop offset="1" stopColor={c.accentBright} />
-          </linearGradient>
-        ))}
       </defs>
-      <rect width="256" height="256" rx={variant.radius} fill={`url(#${tile})`} />
-      {variant.streaks.map((s, i) => (
-        <polygon key={i} points={s.points} fill={`url(#s${i}${uid})`} />
-      ))}
-      <polygon points={variant.l} fill={c.white} />
+      <rect width="256" height="256" rx="58" fill={`url(#${tile})`} />
+      <path
+        d="M80 64V136A48 48 0 0 0 176 136V64"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="30"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <polygon className="logo-spark" points="128,73 132.6,87.4 147,92 132.6,96.6 128,111 123.4,96.6 109,92 123.4,87.4" fill="#fff" />
     </svg>
   );
 }
