@@ -85,7 +85,7 @@ function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: Page
           />
         </div>
         <label className="pick">
-          <span>Minecraft version</span>
+          <span>Version</span>
           <select aria-label="Profile version" value={version} onChange={(e) => setVersion(e.target.value)}>
             {selection.versions.map((v) => (
               <option key={v} value={v}>

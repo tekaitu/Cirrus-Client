@@ -178,7 +178,7 @@ describe("Home", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "3", altKey: true, ctrlKey: true }); // not ours
     expect(screen.getByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
-    await screen.findByText("Java 21");
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
   it("shows when the game was last played, once it has been started", async () => {
@@ -600,7 +600,7 @@ describe("Settings layout", () => {
     await goToSettings("Memory and RAM");
     fireEvent.click(await screen.findByRole("button", { name: "Use 2 GB" }));
     fireEvent.click(screen.getByRole("tab", { name: "Game directory" }));
-    expect(await screen.findByLabelText("Game directory")).toBeTruthy();
+    expect(await screen.findByRole("textbox", { name: "Game directory" })).toBeTruthy();
     expect(screen.getByText("Unsaved changes")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Memory and RAM" }));
     expect((screen.getByLabelText("Memory in MB") as HTMLInputElement).value).toBe("2048");
@@ -1094,9 +1094,9 @@ describe("Profiles", () => {
     expect(await screen.findByText("Minecraft 1.21.11 · Fabric")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Play profile PvP" }));
     expect(await screen.findByText("Profile:")).toBeTruthy();
-    await screen.findAllByText("Installed");
     chooseOffline();
     fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Alex" } });
+    await waitFor(() => expect((screen.getByRole("button", { name: "Play" }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
     await waitFor(() =>
       expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "offline", "Alex", "1.21.11", "fabric", "p-pvp"),
@@ -1308,7 +1308,7 @@ describe("Accounts page", () => {
     expect(screen.getByText("Offline play")).toBeTruthy();
     expect(screen.getByText("Switching accounts")).toBeTruthy();
     expect(screen.getByText(/Windows Credential Manager/)).toBeTruthy();
-    await screen.findByText("Java 21");
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
   it("shows the signed-in profile and can sign out", async () => {
@@ -1328,7 +1328,7 @@ describe("Accounts page", () => {
     goTo("Accounts");
     openAccount();
     expect(screen.queryByRole("dialog", { name: "Account" })).toBeNull();
-    await screen.findByText("Java 21");
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 });
 
@@ -1343,7 +1343,7 @@ describe("About page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open GitHub" }));
     expect(mocked.openGithub).toHaveBeenCalledTimes(1);
     expect((screen.getByRole("button", { name: "Not available" }) as HTMLButtonElement).disabled).toBe(true);
-    await screen.findByText("Java 21");
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
   it("opens the license from About", async () => {
@@ -1351,7 +1351,7 @@ describe("About page", () => {
     goTo("About");
     fireEvent.click(await screen.findByRole("button", { name: "Read the license" }));
     expect(await screen.findByRole("dialog", { name: "Cirrus Client license" })).toBeTruthy();
-    await screen.findByText("Java 21");
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
   it("shows an error when a link cannot be opened", async () => {
@@ -1360,7 +1360,7 @@ describe("About page", () => {
     goTo("About");
     fireEvent.click(await screen.findByRole("button", { name: "Open GitHub" }));
     expect(await screen.findByText("no browser")).toBeTruthy();
-    await screen.findByText("Java 21");
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 });
 

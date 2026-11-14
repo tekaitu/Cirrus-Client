@@ -114,7 +114,7 @@ export function Sidebar({ page, onNavigate, onAccount, onRescan, scanning, playe
             {playerName ? playerName.slice(0, 1).toUpperCase() : <UserIcon />}
           </span>
           <span className="nav-label rail-account-name" aria-hidden="true">
-            {playerName ?? "Not signed in"}
+            {playerName ?? "Guest"}
           </span>
         </button>
       </div>
