@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod discord;
 pub mod game;
 pub mod java;
 pub mod mods;
@@ -471,6 +472,11 @@ fn show_login_window(app: &AppHandle, url: &str, cancel: &AtomicBool) -> Result<
     let parsed: tauri::Url = url
         .parse()
         .map_err(|_| auth::AuthError::Failed("Could not build the sign-in address.".to_string()))?;
+    // A sign-in window left over from a crashed or interrupted attempt would make
+    // building a new one fail with "a window with this label already exists".
+    if let Some(stale) = app.get_webview_window("ms-login") {
+        let _ = stale.destroy();
+    }
     let (tx, rx) = mpsc::channel::<Result<String, auth::AuthError>>();
     let nav_tx = tx.clone();
     let window = tauri::WebviewWindowBuilder::new(app, "ms-login", tauri::WebviewUrl::External(parsed))
@@ -1041,12 +1047,39 @@ fn remove_mod(app: AppHandle, version: String, file_name: String, profile: Optio
     mods::remove(&dir, &file_name)
 }
 
+/// Show (or update) the Discord status. Returns "shown", "notConfigured" (this
+/// build has no Discord application ID) or "discordClosed" (Discord is not running).
+#[tauri::command]
+async fn discord_set_presence(
+    state: State<'_, discord::DiscordState>,
+    presence: discord::Presence,
+) -> Result<String, String> {
+    let Some(app_id) = discord::builtin_app_id() else {
+        return Ok("notConfigured".to_string());
+    };
+    let shown = state.set(app_id, &presence)?;
+    Ok(if shown { "shown".to_string() } else { "discordClosed".to_string() })
+}
+
+/// Remove the Discord status (the person switched it off).
+#[tauri::command]
+fn discord_clear_presence(state: State<'_, discord::DiscordState>) {
+    state.clear();
+}
+
+/// True when this build has a Discord application ID, i.e. the status can work.
+#[tauri::command]
+fn discord_available() -> bool {
+    discord::builtin_app_id().is_some()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(InstallState::default())
         .manage(AuthState::default())
         .manage(GameState::default())
+        .manage(discord::DiscordState::default())
         .invoke_handler(tauri::generate_handler![
             get_app_info,
             get_system_info,
@@ -1060,6 +1093,9 @@ pub fn run() {
             auth_sign_in_window,
             auth_cancel,
             auth_sign_out,
+            discord_set_presence,
+            discord_clear_presence,
+            discord_available,
             open_microsoft_link,
             load_settings,
             save_settings,

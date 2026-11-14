@@ -27,6 +27,8 @@ sha1 = "0.10"
 md-5 = "0.10"
 getrandom = "0.2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+# Discord Rich Presence over Discord's local IPC pipe (no network, no login)
+discord-rich-presence = "0.2"
 
 [dev-dependencies]
 tempfile = "3"
