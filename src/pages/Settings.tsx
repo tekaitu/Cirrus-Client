@@ -318,7 +318,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
         <Field
           id="ms-client-id"
           label="Azure application (client) ID"
-          hint="Advanced and optional. Leave blank to use the app ID built into Unlimited. It is an ID, not a secret. See docs/AUTH.md."
+          hint="Advanced and optional. Leave blank to use the app ID built into Cirrus Client. It is an ID, not a secret. See docs/AUTH.md."
           error={errors.msClientId}
         >
           <input
@@ -378,7 +378,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
                 aria-label={`${a.label} accent`}
                 title={a.label}
                 className={`accent-dot ${look.accent === a.id ? "accent-on" : ""}`}
-                style={{ background: a.color }}
+                style={{ background: a.color, color: a.ink }}
                 onClick={() => {
                   setAccent(a.id);
                   setLook((l) => ({ ...l, accent: a.id }));
@@ -416,7 +416,7 @@ function SettingsForm({ state, data }: { state: SettingsState; data: AppData }) 
             Join the Discord community
           </button>
           <span className="muted small">
-            <SparkIcon /> Unlimited {data.app.status === "ready" ? `v${data.app.data.version}` : ""} · early build
+            <SparkIcon /> Cirrus Client {data.app.status === "ready" ? `v${data.app.data.version}` : ""} · early build
           </span>
         </div>
       </Card>

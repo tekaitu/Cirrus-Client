@@ -3,7 +3,7 @@ import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
 import { DownloadIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
 import { Banner, Card, Spinner } from "../components/ui";
-import { FPS_PACK, formatDownloads, formatFileSize } from "../core/mods";
+import { MOD_PACKS, formatDownloads, formatFileSize, type ModPack } from "../core/mods";
 import type { AppData } from "../hooks/useAppData";
 
 const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
@@ -113,22 +113,26 @@ export function ModsPage({ data }: { data: AppData }) {
     }
   };
 
-  const installPack = async () => {
-    setBusy("pack");
+  const installPack = async (pack: ModPack) => {
+    setBusy(`pack:${pack.id}`);
     setNotice(null);
     const failed: string[] = [];
-    for (const mod of FPS_PACK) {
+    const skipped: string[] = [];
+    for (const mod of pack.mods) {
       try {
         await (profileId ? api.installMod("modrinth", mod.slug, version, profileId) : api.installMod("modrinth", mod.slug, version));
       } catch (e) {
-        failed.push(`${mod.name} (${errorMessage(e)})`);
+        const text = errorMessage(e);
+        if (text.startsWith("No version of this mod is available")) skipped.push(mod.name);
+        else failed.push(`${mod.name} (${text})`);
       }
     }
     if (!mounted.current) return;
+    const skippedText = skipped.length ? ` Not available for Minecraft ${version} yet: ${skipped.join(", ")}.` : "";
     setNotice(
       failed.length === 0
-        ? { tone: "good", text: "FPS pack installed. Start the game to use it." }
-        : { tone: "bad", text: `Some mods could not be installed: ${failed.join("; ")}` },
+        ? { tone: "good", text: `${pack.title} installed. Start the game to use it.${skippedText}` }
+        : { tone: "bad", text: `Some mods could not be installed: ${failed.join("; ")}.${skippedText}` },
     );
     setBusy(null);
     await refreshInstalled();
@@ -275,29 +279,33 @@ export function ModsPage({ data }: { data: AppData }) {
         </Card>
         </div>
         <aside className="mods-side" aria-label="Your mods">
-        <Card
-          title="FPS pack for low-end PCs"
-          description="Sodium, Lithium, FerriteCore, Entity Culling and ImmediatelyFast, from Modrinth."
-          action={
-            <button
-              type="button"
-              className="btn btn-primary btn-pill"
-              disabled={!fabricReady || busy !== null}
-              onClick={installPack}
-            >
-              <SparkIcon />
-              {busy === "pack" ? "Installing…" : "Install FPS pack"}
-            </button>
-          }
-        >
-          <ul className="pack-list">
-            {FPS_PACK.map((m) => (
-              <li key={m.slug}>
-                <strong>{m.name}</strong> <span className="muted small">{m.why}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        {MOD_PACKS.map((pack) => (
+          <Card
+            key={pack.id}
+            title={pack.title}
+            tone={pack.id === "hud" ? "cyan" : undefined}
+            description={pack.description}
+            action={
+              <button
+                type="button"
+                className="btn btn-primary btn-pill"
+                disabled={!fabricReady || busy !== null}
+                onClick={() => void installPack(pack)}
+              >
+                <SparkIcon />
+                {busy === `pack:${pack.id}` ? "Installing…" : `Install ${pack.id === "hud" ? "HUD pack" : "performance pack"}`}
+              </button>
+            }
+          >
+            <ul className="pack-list">
+              {pack.mods.map((m) => (
+                <li key={m.slug}>
+                  <strong>{m.name}</strong> <span className="muted small">{m.why}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))}
 
         <Card title="Installed mods" description={selection.profile ? `In your “${selection.profile.name}” profile` : `In the Minecraft ${version} Fabric profile`}>
           {installed.length === 0 ? (

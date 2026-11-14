@@ -108,7 +108,7 @@ export function JavaInstallPanel({ installer, needed }: { installer: JavaInstall
       </p>
       <p className="muted small">
         Downloads Eclipse Temurin {REQUIRED_JAVA_MAJOR} (LTS) from Adoptium, checks its SHA-256 checksum, and
-        keeps it in Unlimited&apos;s own folder. No administrator rights are needed and Windows settings
+        keeps it in Cirrus Client&apos;s own folder. No administrator rights are needed and Windows settings
         are not changed.
       </p>
       <button type="button" className="btn btn-primary" onClick={installer.start}>

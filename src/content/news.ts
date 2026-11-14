@@ -17,11 +17,19 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    id: "cirrus-packs",
+    kind: "Update",
+    date: "2026-11-14",
+    title: "Cirrus Client: new look and mod packs",
+    body: "Black-and-white theme, Library profiles, and one-click Performance and HUD packs (FPS, keystrokes, CPS, zoom).",
+    art: "sword",
+  },
+  {
     id: "java-installer",
     kind: "Update",
     date: "2026-11-01",
     title: "Java 21 installer and better detection",
-    body: "Unlimited can now find Java in more places and install a checked, portable Java 21 for you.",
+    body: "Cirrus Client can now find Java in more places and install a checked, portable Java 21 for you.",
     art: "speed",
   },
   {

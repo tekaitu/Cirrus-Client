@@ -17,7 +17,7 @@ export function buildReport(input: ReportInput): string {
   const { app, system, java, settings } = input;
   const lines: string[] = [];
 
-  lines.push("Unlimited diagnostics report");
+  lines.push("Cirrus Client diagnostics report");
   lines.push(`Generated: ${input.generatedAt.toISOString()}`);
   lines.push("");
 

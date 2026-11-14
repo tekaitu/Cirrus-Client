@@ -9,6 +9,7 @@ export interface ThemeInfo {
 }
 
 export const THEMES: readonly ThemeInfo[] = [
+  { id: "cirrus", label: "Cirrus", blurb: "Black and white", swatch: ["#09090b", "#111113", "#232327"] },
   { id: "midnight", label: "Midnight", blurb: "Deep violet-black", swatch: ["#14121a", "#1b1923", "#2e2a3b"] },
   { id: "graphite", label: "Graphite", blurb: "Neutral grey", swatch: ["#151618", "#1e2023", "#2f3236"] },
   { id: "ocean", label: "Ocean", blurb: "Deep blue", swatch: ["#0c1422", "#121c2e", "#1f2d45"] },
@@ -21,19 +22,22 @@ export interface AccentInfo {
   id: string;
   label: string;
   color: string;
+  /** Colour of a check mark drawn on top of the swatch. */
+  ink: string;
 }
 
 export const ACCENTS: readonly AccentInfo[] = [
-  { id: "violet", label: "Violet", color: "#8b5cf6" },
-  { id: "blue", label: "Blue", color: "#3b82f6" },
-  { id: "cyan", label: "Cyan", color: "#06b6d4" },
-  { id: "green", label: "Green", color: "#22c55e" },
-  { id: "pink", label: "Pink", color: "#ec4899" },
-  { id: "orange", label: "Orange", color: "#f97316" },
+  { id: "white", label: "White", color: "#f4f4f5", ink: "#0a0a0b" },
+  { id: "violet", label: "Violet", color: "#8b5cf6", ink: "#fff" },
+  { id: "blue", label: "Blue", color: "#3b82f6", ink: "#fff" },
+  { id: "cyan", label: "Cyan", color: "#06b6d4", ink: "#fff" },
+  { id: "green", label: "Green", color: "#22c55e", ink: "#fff" },
+  { id: "pink", label: "Pink", color: "#ec4899", ink: "#fff" },
+  { id: "orange", label: "Orange", color: "#f97316", ink: "#fff" },
 ];
 
-export const DEFAULT_THEME = "midnight";
-export const DEFAULT_ACCENT = "violet";
+export const DEFAULT_THEME = "cirrus";
+export const DEFAULT_ACCENT = "white";
 
 const THEME_KEY = "unlimited.theme";
 const ACCENT_KEY = "unlimited.accent";

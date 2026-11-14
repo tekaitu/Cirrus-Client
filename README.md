@@ -4,7 +4,7 @@ A Windows launcher for **Minecraft Java Edition 1.21.11** (Fabric), aimed at com
 
 > ## Status: interface and diagnostics build
 > **This is not a working Minecraft launcher yet.** What works today:
-> - **Home** shows the Limited FPS branding, the Minecraft 1.21.11 target, Fabric status, the Java installation found on your PC, and a Play section.
+> - **Home** shows the Cirrus Client branding, the Minecraft 1.21.11 target, Fabric status, the Java installation found on your PC, and a Play section.
 > - **Settings** (memory, custom Java path with a test button, game folder, reduce motion) are validated, saved to a file in your app config folder and restored on the next start. A damaged settings file is backed up and replaced with defaults, and Settings has a reset button.
 > - **Java installer**: when no compatible Java is found, "Install Java 21" downloads Eclipse Temurin 21 from Adoptium, verifies its SHA-256 checksum, and installs it into Limited FPS's own folder (no administrator rights; PATH, registry and Windows settings are untouched). See [docs/SECURITY.md](docs/SECURITY.md). **Not yet tested on a real PC.**
 > - **Microsoft sign-in** (official device-code flow, refresh token in Windows Credential Manager) is implemented but **not verified against the real services**: it needs your own Azure app ID in Settings and Mojang's approval. See [docs/AUTH.md](docs/AUTH.md).
@@ -48,8 +48,8 @@ The workflow also uploads a `generated-lockfiles` artifact. No lockfiles are com
 
 ## Playing, versions and mods
 
-- **Online and offline:** Playing online uses your Microsoft account (sign in once, it is remembered). Playing offline with a player name needs no sign-in and works for singleplayer and offline-mode servers. Unlimited is for people who own Minecraft: Java Edition; offline mode relies on that honesty, and signing in is what proves it. See `LICENSE`.
+- **Online and offline:** Playing online uses your Microsoft account (sign in once, it is remembered). Playing offline with a player name needs no sign-in and works for singleplayer and offline-mode servers. Cirrus Client is for people who own Minecraft: Java Edition; offline mode relies on that honesty, and signing in is what proves it. See `LICENSE`.
 - **Versions:** Minecraft 1.20.5 and newer (all Java 21), with Fabric or plain Vanilla. Each version/loader pair has its own folder under `instances/` for worlds, options and mods. Older versions need Java 8/17 installs, which are not built yet.
 - **Set up & play:** one click installs Java 21 (checksum verified), then Minecraft and Fabric, then starts the game.
 - **Mods:** the Mods tab searches Modrinth (no key needed) and CurseForge (needs `LIMITEDFPS_CF_API_KEY` as a GitHub secret at build time). Downloads come only from the providers' hosts and are checked against published hashes. Required dependencies are installed too.
-- **OptiFine:** not installed automatically (its download requires a manual step and its license forbids redistribution). On Fabric, the FPS pack (Sodium, Lithium, FerriteCore, Entity Culling, ImmediatelyFast) is the alternative.
+- **OptiFine:** not installed automatically (its download requires a manual step and its license forbids redistribution). On Fabric, the Mods tab offers two ready-made packs instead: a **Performance pack** (Sodium, Lithium, FerriteCore, Entity Culling, ImmediatelyFast, ModernFix, Dynamic FPS) and a **HUD & PvP pack** (Sodium Extra for the FPS/coordinates overlay, Modern Keystrokes, CPS+, Zoomify, Mod Menu). They are existing open-source Fabric mods from Modrinth; a mod with no build for your Minecraft version is skipped and reported.

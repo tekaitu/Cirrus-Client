@@ -580,7 +580,7 @@ describe("Diagnostics", () => {
     goTo("Diagnostics");
     expect(await screen.findByText("Java in use")).toBeTruthy();
     expect(screen.getByText("Java 21 (21.0.4)")).toBeTruthy();
-    expect(screen.getByText("Where Unlimited looked (2)")).toBeTruthy();
+    expect(screen.getByText("Where Cirrus Client looked (2)")).toBeTruthy();
     expect(screen.getByText("JAVA_HOME is not set.")).toBeTruthy();
   });
 
@@ -610,7 +610,7 @@ describe("Diagnostics", () => {
     fireEvent.click(copy);
     expect(await screen.findByText("Report copied to the clipboard.")).toBeTruthy();
     expect(writeText).toHaveBeenCalledTimes(1);
-    expect(String(writeText.mock.calls[0][0])).toContain("Unlimited diagnostics report");
+    expect(String(writeText.mock.calls[0][0])).toContain("Cirrus Client diagnostics report");
   });
 
   it("tells the user when the clipboard is unavailable", async () => {
@@ -942,13 +942,13 @@ describe("License", () => {
   it("must be accepted before the launcher is used", async () => {
     window.localStorage.removeItem("unlimited.license");
     render(<App />);
-    const dialog = await screen.findByRole("dialog", { name: "Unlimited license" });
+    const dialog = await screen.findByRole("dialog", { name: "Cirrus Client license" });
     expect(within(dialog).getByText(/You need Minecraft/)).toBeTruthy();
     const accept = within(dialog).getByRole("button", { name: "Accept and continue" }) as HTMLButtonElement;
     expect(accept.disabled).toBe(true);
     fireEvent.click(within(dialog).getByRole("checkbox"));
     fireEvent.click(accept);
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull());
     expect(window.localStorage.getItem("unlimited.license")).toBe("2");
   });
 
@@ -962,11 +962,11 @@ describe("License", () => {
 
   it("can be read again from the footer", async () => {
     render(<App />);
-    expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "License" }));
-    const dialog = await screen.findByRole("dialog", { name: "Unlimited license" });
+    const dialog = await screen.findByRole("dialog", { name: "Cirrus Client license" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-    expect(screen.queryByRole("dialog", { name: "Unlimited license" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
   });
 });
 
@@ -1088,7 +1088,23 @@ describe("Mods", () => {
     render(<App />);
     goTo("Mods");
     expect(await screen.findByText(/Install Minecraft 1.21.11 with Fabric first/)).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Install FPS pack" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Install performance pack" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("installs the HUD pack and says which mods have no build for this version yet", async () => {
+    withFabric();
+    mocked.installMod.mockImplementation(async (_p: string, id: string) => {
+      if (id === "cps-plus") throw new Error("No version of this mod is available for the chosen Minecraft version and loader.");
+      return { installed: [`${id}.jar`], present: [] };
+    });
+    render(<App />);
+    goTo("Mods");
+    const pack = await screen.findByRole("button", { name: "Install HUD pack" });
+    await waitFor(() => expect((pack as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(pack);
+    await waitFor(() => expect(mocked.installMod).toHaveBeenCalledTimes(5));
+    expect(mocked.installMod).toHaveBeenCalledWith("modrinth", "modern-keystrokes", "1.21.11");
+    expect(await screen.findByText(/HUD & PvP pack installed.*Not available for Minecraft 1.21.11 yet: CPS\+/)).toBeTruthy();
   });
 
   it("searches Modrinth for the chosen version and installs a mod", async () => {
@@ -1115,19 +1131,19 @@ describe("Mods", () => {
     expect(screen.getByText("2.0 MB")).toBeTruthy();
   });
 
-  it("installs the FPS pack and removes an installed mod", async () => {
+  it("installs the performance pack and removes an installed mod", async () => {
     withFabric();
     mocked.installMod.mockResolvedValue({ installed: ["x.jar"], present: [] });
     mocked.listMods.mockResolvedValue([{ fileName: "lithium.jar", size: 1024 }]);
     mocked.removeMod.mockResolvedValue(undefined);
     render(<App />);
     goTo("Mods");
-    const pack = await screen.findByRole("button", { name: "Install FPS pack" });
+    const pack = await screen.findByRole("button", { name: "Install performance pack" });
     await waitFor(() => expect((pack as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(pack);
-    await waitFor(() => expect(mocked.installMod).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(mocked.installMod).toHaveBeenCalledTimes(7));
     expect(mocked.installMod).toHaveBeenCalledWith("modrinth", "sodium", "1.21.11");
-    expect(await screen.findByText(/FPS pack installed/)).toBeTruthy();
+    expect(await screen.findByText(/Performance pack installed/)).toBeTruthy();
 
     fireEvent.click(await screen.findByRole("button", { name: "Remove lithium.jar" }));
     await waitFor(() => expect(mocked.removeMod).toHaveBeenCalledWith("1.21.11", "lithium.jar"));

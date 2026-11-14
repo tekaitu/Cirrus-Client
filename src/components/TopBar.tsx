@@ -36,7 +36,7 @@ export function TopBar({ data, page, onAccount, accountOpen }: { data: AppData; 
   return (
     <header className="topbar">
       <p className="crumbs" aria-label="You are here">
-        <span className="crumb-root">Unlimited</span>
+        <span className="crumb-root">Cirrus Client</span>
         <span className="crumb-sep" aria-hidden="true">/</span>
         <strong>{title}</strong>
       </p>

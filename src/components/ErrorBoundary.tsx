@@ -17,14 +17,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Unlimited UI error:", error, info.componentStack);
+    console.error("Cirrus Client UI error:", error, info.componentStack);
   }
 
   render() {
     if (this.state.error) {
       return (
         <div className="fatal" role="alert">
-          <h1>Unlimited hit a display problem</h1>
+          <h1>Cirrus Client hit a display problem</h1>
           <p>{this.state.error.message}</p>
           <button type="button" className="btn" onClick={() => window.location.reload()}>
             Reload the window

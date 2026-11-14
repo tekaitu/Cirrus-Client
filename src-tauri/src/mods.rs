@@ -92,7 +92,7 @@ pub fn is_allowed_url(url: &Url) -> bool {
 
 fn client() -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
-        .user_agent(concat!("Unlimited-Launcher/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("CirrusClient-Launcher/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(120))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {

@@ -55,7 +55,7 @@ pub struct AppInfo {
 
 pub fn app_info() -> AppInfo {
     AppInfo {
-        name: "Unlimited",
+        name: "Cirrus Client",
         version: env!("CARGO_PKG_VERSION"),
         target_minecraft: TARGET_MINECRAFT,
         launcher_ready: false,
@@ -420,7 +420,7 @@ async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Res
             "notConfigured",
             false,
             None,
-            Some("Sign-in is not set up in this build of Unlimited.".to_string()),
+            Some("Sign-in is not set up in this build of Cirrus Client.".to_string()),
         ));
     };
     let cancel = Arc::new(AtomicBool::new(false));
@@ -535,7 +535,7 @@ fn auth_sign_out(app: AppHandle, state: State<'_, AuthState>) -> AuthStatus {
 
 /// Open the Microsoft sign-in page in the default browser. Only Microsoft
 /// pages are accepted, and no shell is involved.
-/// The one non-Microsoft page the app can open: the Unlimited community server.
+/// The one non-Microsoft page the app can open: the Cirrus Client community server.
 const COMMUNITY_URL: &str = "https://discord.gg/tWmvXNP7Af";
 
 fn open_in_browser(url: &str) -> Result<(), String> {
@@ -1063,7 +1063,7 @@ pub fn run() {
             remove_mod
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Unlimited");
+        .expect("error while running Cirrus Client");
 }
 
 #[cfg(test)]

@@ -3,6 +3,7 @@ import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import type { PageId } from "../components/Sidebar";
 import { CardArt } from "../components/Art";
+import { CloudMark, Wordmark } from "../components/Logo";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { formatMemory, joinParts } from "../core/format";
 import { NEWS, formatNewsDate } from "../content/news";
@@ -102,6 +103,10 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
 
   return (
     <section className="hero" aria-labelledby="hero-title">
+      <span className="hero-watermark" aria-hidden="true">
+        <CloudMark size={300} />
+      </span>
+      <Wordmark height={46} />
       <p className="pill eyebrow">Minecraft Java Edition {data.selection.version}</p>
       <h1 id="hero-title">Sword PvP, tuned for low-end PCs</h1>
       <p className="hero-copy">

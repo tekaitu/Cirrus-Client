@@ -19,7 +19,7 @@ export function FooterBar({ data, onNavigate, onLicense }: { data: AppData; onNa
         <button
           type="button"
           className="pill pill-button pill-community"
-          title="Join the Unlimited community on Discord"
+          title="Join the Cirrus Client community on Discord"
           onClick={() => void api.openCommunity().catch(() => {})}
         >
           <ChatIcon />

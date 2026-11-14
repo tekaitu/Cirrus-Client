@@ -151,7 +151,7 @@ export function AccountPanel({
             Use a code instead
           </button>
           <p className="muted small">
-            Opens Microsoft&apos;s own sign-in page. Unlimited only asks to sign in to Minecraft and never sees
+            Opens Microsoft&apos;s own sign-in page. Cirrus Client only asks to sign in to Minecraft and never sees
             your password.
           </p>
         </>
@@ -178,7 +178,7 @@ export function AccountPanel({
           </p>
           <p className="muted small">
             Waiting for you to finish in your browser. The code works for about{" "}
-            {minutesLeft(state.code.expiresIn)} minutes. Unlimited never sees your password.
+            {minutesLeft(state.code.expiresIn)} minutes. Cirrus Client never sees your password.
           </p>
           <div className="row">
             {isMicrosoftLink(state.code.verificationUri) && (

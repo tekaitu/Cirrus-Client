@@ -1,30 +1,31 @@
-/* Unlimited: a flat, dark, card-based look in the style of the Modrinth app, with a purple accent. */
+/* Cirrus Client: a flat, dark, card-based look in the style of the Modrinth app, with a purple accent. */
 :root {
   color-scheme: dark;
-  --bg: #14121a;
-  --surface: #1b1923;
-  --raised: #252230;
-  --raised-2: #2e2a3b;
-  --border: #2f2b3c;
-  --border-strong: #433d57;
-  --text: #ecebf3;
-  --muted: #9b98ab;
-  --accent: #8b5cf6;
-  --accent-bright: #b49cfb;
-  --accent-strong: #7040e0;
-  --accent-2: #f472b6;
-  --accent-rgb: 139 92 246;
+  --bg: #09090b;
+  --surface: #111113;
+  --raised: #19191c;
+  --raised-2: #232327;
+  --border: #26262b;
+  --border-strong: #3a3a41;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --accent: #f4f4f5;
+  --accent-bright: #ffffff;
+  --accent-strong: #d4d4d8;
+  --accent-2: #9ca3af;
+  --accent-rgb: 244 244 245;
+  --on-accent: #0a0a0b;
   --accent-soft: rgb(var(--accent-rgb) / 0.16);
-  --text-soft: #c7c4d6;
-  --tooltip: #0e0c13;
+  --text-soft: #d4d4d8;
+  --tooltip: #000000;
   --tooltip-text: #ecebf3;
-  --scrim: rgba(6, 5, 10, 0.78);
+  --scrim: rgba(0, 0, 0, 0.8);
   --good: #3ddc97;
   --warn: #f5b942;
   --bad: #f2706d;
   --radius: 12px;
   --radius-lg: 16px;
-  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.5);
+  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.45);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -109,8 +110,8 @@ summary:hover { color: var(--text); }
 .profile-text { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; font-size: 0.82rem; }
 .profile-text small { color: var(--muted); font-size: 0.7rem; }
 .avatar { width: 34px; height: 34px; flex: none; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--raised-2); border: 1px solid var(--border); color: var(--muted); font-weight: 800; }
-.avatar-lg { border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }
-.avatar-ok { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; }
+.avatar-lg { border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: var(--on-accent); }
+.avatar-ok { color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; }
 
 .footbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px clamp(16px, 3vw, 36px); background: var(--surface); border-top: 1px solid var(--border); }
 .foot-right { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -167,9 +168,9 @@ summary:hover { color: var(--text); }
 .btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 0.88rem; font-weight: 600; line-height: 1.2; color: var(--text); background: var(--raised); border: 1px solid transparent; padding: 9px 16px; border-radius: var(--radius); cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s; }
 .btn:hover:not(:disabled) { background: var(--raised-2); transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover:not(:disabled) { filter: brightness(1.12); }
-.btn-primary:disabled { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); color: color-mix(in srgb, #fff 70%, var(--surface)); }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-bright); }
+.btn-primary:disabled { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); color: color-mix(in srgb, var(--on-accent) 60%, var(--surface)); }
 .btn-danger { background: #b83b3b; color: #fff; }
 .btn-danger:hover:not(:disabled) { background: #cf4848; }
 .btn-quiet { background: transparent; color: var(--muted); }
@@ -296,7 +297,7 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .instance-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: center; padding: 16px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); transition: transform 0.2s var(--ease), border-color 0.2s; }
 .instance-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
 .instance-icon { grid-row: span 2; width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius); font-weight: 800; font-size: 0.95rem; color: var(--text); background: linear-gradient(135deg, var(--raised-2), var(--raised)); }
-.instance-fabric { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.instance-fabric { color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 .instance-body p { margin: 0 0 4px; }
 .instance-actions { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 8px; }
 
@@ -310,7 +311,7 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .mod-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: var(--radius); background: var(--raised); border: 1px solid transparent; transition: transform 0.15s var(--ease), border-color 0.15s; }
 .mod-card:hover { transform: translateY(-1px); border-color: var(--border-strong); }
 .mod-icon { width: 56px; height: 56px; flex: none; border-radius: var(--radius); object-fit: cover; background: var(--raised-2); }
-.mod-icon-empty { display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.mod-icon-empty { display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 .mod-body { flex: 1; min-width: 0; }
 .mod-body h3 { margin: 0 0 2px; }
 .mod-body p { margin: 0 0 2px; overflow-wrap: anywhere; }
@@ -396,6 +397,11 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 
 
 /* ============================================================ themes */
+/* Midnight keeps the old violet-black look; pair it with the Violet accent. */
+:root[data-theme="midnight"] {
+  --bg: #14121a; --surface: #1b1923; --raised: #252230; --raised-2: #2e2a3b; --border: #2f2b3c; --border-strong: #433d57;
+  --text: #ecebf3; --muted: #9b98ab; --text-soft: #c7c4d6; --tooltip: #0e0c13; --scrim: rgba(6, 5, 10, 0.78); --accent-2: #f472b6;
+}
 :root[data-theme="graphite"] {
   --bg: #151618; --surface: #1e2023; --raised: #292c30; --raised-2: #34383d; --border: #33363b; --border-strong: #4a4e55;
   --text: #ecedef; --muted: #9a9ea6; --text-soft: #c4c7cc; --tooltip: #0c0d0e; --scrim: rgba(5, 6, 7, 0.78); --accent-2: #22d3ee;
@@ -414,6 +420,9 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 }
 
 /* Accent colours work with every theme */
+/* Every accent except White has light text on it */
+:root[data-accent="violet"], :root[data-accent="blue"], :root[data-accent="cyan"], :root[data-accent="green"], :root[data-accent="pink"], :root[data-accent="orange"] { --on-accent: #fff; }
+:root[data-accent="violet"] { --accent: #8b5cf6; --accent-bright: #b49cfb; --accent-strong: #7040e0; --accent-rgb: 139 92 246; }
 :root[data-accent="blue"] { --accent: #3b82f6; --accent-bright: #8fb8ff; --accent-strong: #2563eb; --accent-rgb: 59 130 246; }
 :root[data-accent="cyan"] { --accent: #06b6d4; --accent-bright: #67e8f9; --accent-strong: #0891b2; --accent-rgb: 6 182 212; }
 :root[data-accent="green"] { --accent: #16a34a; --accent-bright: #6ee7a0; --accent-strong: #15803d; --accent-rgb: 22 163 74; }
@@ -428,6 +437,8 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
   --accent-bright: color-mix(in srgb, var(--accent) 78%, #000);
   --good: #15935f; --warn: #b7791f; --bad: #d64545;
 }
+/* White on a light page would vanish, so the White accent turns near-black there */
+:root[data-theme="light"][data-accent="white"] { --accent: #18181b; --accent-strong: #09090b; --accent-rgb: 24 24 27; --on-accent: #fff; }
 :root[data-theme="light"] ::-webkit-scrollbar-thumb { background: var(--border-strong); }
 :root[data-theme="light"] .hero-copy { color: var(--text-soft); }
 :root[data-theme="light"] .btn-quiet { color: var(--text-soft); }
@@ -441,23 +452,19 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .tone-pink { --tone-rgb: 236 72 153; --tone: #f472b6; }
 .card-icon { color: var(--tone, var(--accent-bright)); background: rgb(var(--tone-rgb, var(--accent-rgb)) / 0.16); }
 :root[data-theme="light"] .card-icon { color: color-mix(in srgb, var(--tone, var(--accent)) 75%, #000); }
-.hue-0 { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+.hue-0 { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--on-accent); }
 .hue-1 { background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff; }
 .hue-2 { background: linear-gradient(135deg, #22c55e, #0d9488); color: #fff; }
 .hue-3 { background: linear-gradient(135deg, #f97316, #ec4899); color: #fff; }
 .hue-4 { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; }
 .hue-5 { background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; }
-.news-card:nth-child(4n+1) .card-art { filter: hue-rotate(0deg); }
-.news-card:nth-child(4n+2) .card-art { filter: hue-rotate(150deg) saturate(1.2); }
-.news-card:nth-child(4n+3) .card-art { filter: hue-rotate(260deg) saturate(1.1); }
-.news-card:nth-child(4n+4) .card-art { filter: hue-rotate(60deg) saturate(1.2); }
 .pill-good { border-color: rgb(61 220 151 / 0.35); }
 .pill-warn { border-color: rgb(245 185 66 / 0.4); }
 .mod-icon-empty { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 .stat dt { color: var(--muted); }
 .hero { background:
-  radial-gradient(120% 140% at 100% 0%, rgb(var(--accent-rgb) / 0.30) 0%, rgb(var(--accent-rgb) / 0) 55%),
-  radial-gradient(70% 100% at 0% 100%, color-mix(in srgb, var(--accent-2) 22%, transparent) 0%, transparent 60%),
+  radial-gradient(120% 140% at 100% 0%, rgb(var(--accent-rgb) / 0.14) 0%, rgb(var(--accent-rgb) / 0) 55%),
+  radial-gradient(70% 100% at 0% 100%, color-mix(in srgb, var(--accent-2) 12%, transparent) 0%, transparent 60%),
   var(--surface); }
 
 /* ============================================================ new pieces */
@@ -476,7 +483,7 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .btn-signin { justify-content: flex-start; gap: 12px; text-align: left; padding: 10px 14px; border: 1px solid transparent;
   background: linear-gradient(var(--raised), var(--raised)) padding-box, linear-gradient(135deg, var(--accent), var(--accent-2)) border-box; }
 .btn-signin:hover:not(:disabled) { background: linear-gradient(var(--raised-2), var(--raised-2)) padding-box, linear-gradient(135deg, var(--accent), var(--accent-2)) border-box; box-shadow: 0 8px 26px rgb(var(--accent-rgb) / 0.3); }
-.signin-badge { flex: none; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.signin-badge { flex: none; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 .signin-badge svg { width: 21px; height: 21px; }
 .signin-text { display: flex; flex-direction: column; line-height: 1.2; }
 .signin-text strong { font-size: 0.95rem; }
@@ -531,6 +538,15 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
 @keyframes wobble { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-12deg) scale(1.15); } 50% { transform: rotate(10deg) scale(1.15); } 80% { transform: rotate(-4deg); } }
-.logo-mark { filter: drop-shadow(0 4px 12px rgb(var(--accent-rgb) / 0.35)); }
-.brand-mark:hover .logo-spark { animation: twinkle 0.8s ease; transform-origin: 128px 92px; }
-@keyframes twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.5) rotate(90deg); } }
+.logo-mark { display: block; border-radius: 22%; filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.5)); }
+
+/* ============================================================ Cirrus Client branding */
+.wordmark { display: block; width: auto; max-width: 100%; margin-bottom: 4px; }
+:root[data-theme="light"] .wordmark, :root[data-theme="light"] .cloud-mark { filter: invert(1); }
+.hero { position: relative; overflow: hidden; }
+.hero > * { position: relative; }
+.hero-watermark { position: absolute !important; right: -30px; bottom: -40px; opacity: 0.07; pointer-events: none; transform: rotate(-6deg); }
+.hero-watermark img { display: block; }
+.brand-mark .logo-mark { transition: transform 0.4s var(--ease); }
+.brand-mark:hover .logo-mark { transform: scale(1.08) rotate(-4deg); }
+.account-hero .logo-mark { border-radius: 14px; }
