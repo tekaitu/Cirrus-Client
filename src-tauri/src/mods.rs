@@ -57,6 +57,8 @@ pub struct SearchResult {
 pub struct InstalledMod {
     pub file_name: String,
     pub size: u64,
+    /// `false` when the file ends in `.jar.disabled`: Fabric ignores it, so the mod stays installed but off.
+    pub enabled: bool,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Default)]
@@ -500,7 +502,9 @@ pub fn install(
             }
         };
         let dest = mods_dir.join(&spec.name);
-        if dest.is_file() {
+        // A copy that was switched off still counts as installed; the player can turn it back on.
+        let switched_off = mods_dir.join(format!("{}{DISABLED_SUFFIX}", spec.name));
+        if dest.is_file() || switched_off.is_file() {
             report.present.push(spec.name);
         } else {
             download_mod(&c, &spec, &dest)?;
@@ -518,8 +522,11 @@ pub fn list_installed(mods_dir: &Path) -> Vec<InstalledMod> {
                 .filter_map(|e| {
                     let name = e.file_name().to_string_lossy().to_string();
                     let meta = e.metadata().ok()?;
-                    (meta.is_file() && name.to_ascii_lowercase().ends_with(".jar"))
-                        .then(|| InstalledMod { file_name: name, size: meta.len() })
+                    let lower = name.to_ascii_lowercase();
+                    let on = lower.ends_with(".jar");
+                    let off = lower.ends_with(".jar.disabled");
+                    (meta.is_file() && (on || off))
+                        .then(|| InstalledMod { file_name: name, size: meta.len(), enabled: on })
                 })
                 .collect()
         })
@@ -528,9 +535,40 @@ pub fn list_installed(mods_dir: &Path) -> Vec<InstalledMod> {
     out
 }
 
+const DISABLED_SUFFIX: &str = ".disabled";
+
+/// Validates a listed mod file name (`x.jar` or `x.jar.disabled`) and returns it with whether it is enabled.
+fn listed_name(file_name: &str) -> Result<(String, bool), String> {
+    let (base, enabled) = match file_name.strip_suffix(DISABLED_SUFFIX) {
+        Some(base) => (base, false),
+        None => (file_name, true),
+    };
+    let safe = safe_jar_name(base).ok_or("That is not a mod file name.")?;
+    Ok((safe, enabled))
+}
+
+/// Turns a mod on or off by renaming `x.jar` <-> `x.jar.disabled`. Returns the new file name.
+pub fn set_enabled(mods_dir: &Path, file_name: &str, enabled: bool) -> Result<String, String> {
+    let (base, currently) = listed_name(file_name)?;
+    let from = mods_dir.join(file_name);
+    if !from.is_file() {
+        return Err("That mod is not installed any more.".to_string());
+    }
+    if currently == enabled {
+        return Ok(file_name.to_string());
+    }
+    let target = if enabled { base.clone() } else { format!("{base}{DISABLED_SUFFIX}") };
+    let to = mods_dir.join(&target);
+    if to.exists() {
+        return Err("A file with the new name already exists. Remove one of them first.".to_string());
+    }
+    fs::rename(&from, &to).map_err(|e| format!("Could not change the mod: {e}"))?;
+    Ok(target)
+}
+
 pub fn remove(mods_dir: &Path, file_name: &str) -> Result<(), String> {
-    let name = safe_jar_name(file_name).ok_or("That is not a mod file name.")?;
-    let path: PathBuf = mods_dir.join(name);
+    listed_name(file_name)?;
+    let path: PathBuf = mods_dir.join(file_name);
     if !path.is_file() {
         return Err("That mod is not installed any more.".to_string());
     }
@@ -653,5 +691,26 @@ mod tests {
         remove(dir.path(), "b.jar").unwrap();
         assert!(remove(dir.path(), "b.jar").is_err());
         assert_eq!(list_installed(dir.path()).len(), 1);
+    }
+
+    #[test]
+    fn mods_can_be_switched_off_and_on_without_losing_the_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("sodium.jar"), "xx").unwrap();
+        assert_eq!(set_enabled(dir.path(), "sodium.jar", false).unwrap(), "sodium.jar.disabled");
+        let list = list_installed(dir.path());
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].file_name, "sodium.jar.disabled");
+        assert!(!list[0].enabled);
+        // Doing it twice changes nothing; a bad name or a missing file is refused.
+        assert_eq!(set_enabled(dir.path(), "sodium.jar.disabled", false).unwrap(), "sodium.jar.disabled");
+        assert!(set_enabled(dir.path(), "../sodium.jar", false).is_err());
+        assert!(set_enabled(dir.path(), "missing.jar", true).is_err());
+        assert_eq!(set_enabled(dir.path(), "sodium.jar.disabled", true).unwrap(), "sodium.jar");
+        assert!(list_installed(dir.path())[0].enabled);
+        // A disabled mod can still be removed.
+        set_enabled(dir.path(), "sodium.jar", false).unwrap();
+        remove(dir.path(), "sodium.jar.disabled").unwrap();
+        assert!(list_installed(dir.path()).is_empty());
     }
 }

@@ -93,6 +93,7 @@ export const api = {
     call<Profile>("create_profile", { name, version, loader }),
   deleteProfile: (id: string) => call<void>("delete_profile", { id }),
   openCommunity: () => call<void>("open_community"),
+  openGithub: () => call<void>("open_github"),
   quitApp: () => call<void>("quit_app"),
   curseforgeAvailable: () => call<boolean>("curseforge_available"),
   searchMods: (provider: ModProvider, query: string, version: string, offset: number) =>
@@ -100,6 +101,8 @@ export const api = {
   installMod: (provider: ModProvider, id: string, version: string, profile?: string) =>
     call<ModInstallReport>("install_mod", { provider, id, version, profile: profile ?? null }),
   listMods: (version: string, profile?: string) => call<InstalledMod[]>("list_mods", { version, profile: profile ?? null }),
+  setModEnabled: (version: string, fileName: string, enabled: boolean, profile?: string) =>
+    call<string>("set_mod_enabled", { version, fileName, enabled, profile: profile ?? null }),
   removeMod: (version: string, fileName: string, profile?: string) =>
     call<void>("remove_mod", { version, fileName, profile: profile ?? null }),
   stopGame: () => call<boolean>("stop_game"),

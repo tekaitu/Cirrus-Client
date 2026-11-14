@@ -195,4 +195,6 @@ export interface ModInstallReport {
 export interface InstalledMod {
   fileName: string;
   size: number;
+  /** `false` for a `.jar.disabled` file: installed but switched off. Treated as on when missing. */
+  enabled?: boolean;
 }

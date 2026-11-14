@@ -53,3 +53,7 @@ The workflow also uploads a `generated-lockfiles` artifact. No lockfiles are com
 - **Set up & play:** one click installs Java 21 (checksum verified), then Minecraft and Fabric, then starts the game.
 - **Mods:** the Mods tab searches Modrinth (no key needed) and CurseForge (needs `LIMITEDFPS_CF_API_KEY` as a GitHub secret at build time). Downloads come only from the providers' hosts and are checked against published hashes. Required dependencies are installed too.
 - **OptiFine:** not installed automatically (its download requires a manual step and its license forbids redistribution). On Fabric, the Mods tab offers two ready-made packs instead: a **Performance pack** (Sodium, Lithium, FerriteCore, Entity Culling, ImmediatelyFast, ModernFix, Dynamic FPS) and a **HUD & PvP pack** (Sodium Extra for the FPS/coordinates overlay, Modern Keystrokes, CPS+, Zoomify, Mod Menu). They are existing open-source Fabric mods from Modrinth; a mod with no build for your Minecraft version is skipped and reported.
+
+## Desktop app layout
+
+Home, Play, Mods, Accounts, Settings (nine sections), About and Diagnostics. The plan and its honest limits are in [docs/DESKTOP_DESIGN.md](docs/DESKTOP_DESIGN.md).

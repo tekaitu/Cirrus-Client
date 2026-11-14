@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
-import { DownloadIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
+import { DownloadIcon, ModsIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
 import { Banner, Card, Spinner } from "../components/ui";
 import { MOD_PACKS, formatDownloads, formatFileSize, type ModPack } from "../core/mods";
 import type { AppData } from "../hooks/useAppData";
@@ -26,6 +26,8 @@ export function ModsPage({ data }: { data: AppData }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
   const [done, setDone] = useState<string[]>([]);
+  const [modFilter, setModFilter] = useState("");
+  const [filter, setFilter] = useState<"all" | "on" | "off">("all");
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -150,6 +152,27 @@ export function ModsPage({ data }: { data: AppData }) {
     }
   };
 
+  const toggle = async (m: InstalledMod) => {
+    setBusy(m.fileName);
+    try {
+      const on = m.enabled === false;
+      await (profileId
+        ? api.setModEnabled(version, m.fileName, on, profileId)
+        : api.setModEnabled(version, m.fileName, on));
+      await refreshInstalled();
+    } catch (e) {
+      setNotice({ tone: "bad", text: errorMessage(e) });
+    } finally {
+      if (mounted.current) setBusy(null);
+    }
+  };
+
+  const shownMods = installed.filter((m) => {
+    if (filter !== "all" && (m.enabled === false) !== (filter === "off")) return false;
+    return m.fileName.toLowerCase().includes(modFilter.trim().toLowerCase());
+  });
+  const offCount = installed.filter((m) => m.enabled === false).length;
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void search(query, 0);
@@ -182,7 +205,7 @@ export function ModsPage({ data }: { data: AppData }) {
       )}
       {selection.loader === "fabric" && game.status && !game.status.installed && (
         <Banner tone="info" title={`Install Minecraft ${version} with Fabric first`}>
-          Press <strong>Set up &amp; play</strong> on the Home page. Once it finishes, you can add mods here.
+          Press <strong>Set up &amp; play</strong> on the Home or Play page. Once it finishes, you can add mods here.
         </Banner>
       )}
 
@@ -309,26 +332,82 @@ export function ModsPage({ data }: { data: AppData }) {
 
         <Card title="Installed mods" description={selection.profile ? `In your “${selection.profile.name}” profile` : `In the Minecraft ${version} Fabric profile`}>
           {installed.length === 0 ? (
-            <p className="muted">{fabricReady ? "No mods installed yet." : "Nothing to show until Fabric is installed."}</p>
+            <div className="empty empty-big">
+              <ModsIcon />
+              <p>
+                <strong>{fabricReady ? "No mods installed yet" : "Nothing to show yet"}</strong>
+              </p>
+              <p className="muted small">
+                {fabricReady
+                  ? "Install a pack or search for a mod. Installed mods appear here, where you can switch them off or remove them."
+                  : "Install Minecraft with Fabric first. Then your mods show up here."}
+              </p>
+            </div>
           ) : (
-            <ul className="installed-list">
-              {installed.map((m) => (
-                <li key={m.fileName}>
-                  <span className="path">{m.fileName}</span>
-                  <span className="muted small">{formatFileSize(m.size)}</span>
-                  <button
-                    type="button"
-                    className="btn btn-pill btn-quiet"
-                    disabled={busy !== null}
-                    aria-label={`Remove ${m.fileName}`}
-                    onClick={() => remove(m.fileName)}
-                  >
-                    <TrashIcon />
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <div className="mod-filter">
+                <input
+                  type="text"
+                  aria-label="Filter installed mods"
+                  placeholder="Filter installed mods…"
+                  value={modFilter}
+                  onChange={(e) => setModFilter(e.target.value)}
+                />
+                <div className="seg" role="radiogroup" aria-label="Show mods">
+                  {(
+                    [
+                      ["all", "All"],
+                      ["on", "On"],
+                      ["off", `Off${offCount ? ` (${offCount})` : ""}`],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={filter === id}
+                      className={filter === id ? "seg-on" : ""}
+                      onClick={() => setFilter(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {shownMods.length === 0 && <p className="muted small">No installed mod matches.</p>}
+              <ul className="installed-list">
+                {shownMods.map((m) => {
+                  const off = m.enabled === false;
+                  const label = m.fileName.replace(/\.disabled$/i, "");
+                  return (
+                    <li key={m.fileName} className={off ? "mod-off" : ""}>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!off}
+                        aria-label={`${off ? "Enable" : "Disable"} ${label}`}
+                        className="toggle"
+                        disabled={busy !== null}
+                        onClick={() => void toggle(m)}
+                      />
+                      <span className="path">{label}</span>
+                      <span className="muted small">{off ? "Off" : formatFileSize(m.size)}</span>
+                      <button
+                        type="button"
+                        className="btn btn-pill btn-quiet"
+                        disabled={busy !== null}
+                        aria-label={`Remove ${m.fileName}`}
+                        onClick={() => remove(m.fileName)}
+                      >
+                        <TrashIcon />
+                        Remove
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="muted small">Switched-off mods stay installed but are not loaded the next time the game starts.</p>
+            </>
           )}
         </Card>
         </aside>

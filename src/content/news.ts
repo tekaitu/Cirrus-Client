@@ -17,11 +17,11 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
-    id: "cirrus-packs",
+    id: "cirrus-desktop",
     kind: "Update",
     date: "2026-11-14",
-    title: "Cirrus Client: new look and mod packs",
-    body: "Black-and-white theme, Library profiles, and one-click Performance and HUD packs (FPS, keystrokes, CPS, zoom).",
+    title: "A new layout: Play, Accounts and About",
+    body: "Version and launch options now live on Play, Settings is split into sections, and mods can be switched off without deleting them.",
     art: "sword",
   },
   {

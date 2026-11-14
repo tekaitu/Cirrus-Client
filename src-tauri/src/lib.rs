@@ -569,6 +569,14 @@ fn open_community() -> Result<(), String> {
     open_in_browser(COMMUNITY_URL)
 }
 
+/// The project page on GitHub (the repository was renamed to Cirrus-Client; GitHub redirects the old name).
+const GITHUB_URL: &str = "https://github.com/tekaitu/Cirrus-Client";
+
+#[tauri::command]
+fn open_github() -> Result<(), String> {
+    open_in_browser(GITHUB_URL)
+}
+
 #[tauri::command]
 async fn load_settings(app: AppHandle) -> Result<SettingsState, String> {
     let total = system::total_ram_mb();
@@ -1016,6 +1024,18 @@ fn list_mods(app: AppHandle, version: String, profile: Option<String>) -> Result
 }
 
 #[tauri::command]
+fn set_mod_enabled(
+    app: AppHandle,
+    version: String,
+    file_name: String,
+    enabled: bool,
+    profile: Option<String>,
+) -> Result<String, String> {
+    let dir = mods_folder(&app, &version, profile.as_deref())?;
+    mods::set_enabled(&dir, &file_name, enabled)
+}
+
+#[tauri::command]
 fn remove_mod(app: AppHandle, version: String, file_name: String, profile: Option<String>) -> Result<(), String> {
     let dir = mods_folder(&app, &version, profile.as_deref())?;
     mods::remove(&dir, &file_name)
@@ -1050,6 +1070,7 @@ pub fn run() {
             create_profile,
             delete_profile,
             open_community,
+            open_github,
             install_game,
             cancel_game_install,
             launch_game,
@@ -1060,6 +1081,7 @@ pub fn run() {
             search_mods,
             install_mod,
             list_mods,
+            set_mod_enabled,
             remove_mod
         ])
         .run(tauri::generate_context!())

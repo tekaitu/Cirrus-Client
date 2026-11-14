@@ -1,15 +1,7 @@
 import { progressView } from "../core/installer";
 import { REQUIRED_JAVA_MAJOR, TARGET_MINECRAFT_VERSION } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
-import type { PageId } from "./Sidebar";
-
-const PAGE_TITLES: Record<PageId, string> = {
-  home: "Home",
-  library: "Library",
-  mods: "Discover mods",
-  settings: "Settings",
-  diagnostics: "Diagnostics",
-};
+import { PAGE_TITLES, type PageId } from "./Sidebar";
 
 function javaPill(data: AppData): { text: string; busy: boolean; tone: "good" | "warn" | "idle" } {
   const inst = data.installer.state;

@@ -26,10 +26,13 @@ export function PlayPanel({
   data,
   onNavigate,
   onOpenAccount,
+  variant = "full",
 }: {
   data: AppData;
   onNavigate: (page: PageId) => void;
   onOpenAccount: () => void;
+  /** "quick" (Home) is the big Play button and a one-line summary; "full" (Play page) adds every choice. */
+  variant?: "quick" | "full";
 }) {
   const { game, selection } = data;
   const [mode, setMode] = useState<PlayMode>(() => (read("unlimited.playMode") === "offline" ? "offline" : "microsoft"));
@@ -159,7 +162,27 @@ export function PlayPanel({
           <span className={`steps-fill steps-fill-${doneCount}`} />
         </li>
       </ol>
-      {selection.profile && (
+      {variant === "quick" && (
+        <p className="play-summary">
+          <span>
+            Minecraft <strong>{selection.version}</strong> · {selection.loader === "fabric" ? "Fabric" : "Vanilla"}
+            {selection.profile && <> · profile <strong>{selection.profile.name}</strong></>}
+          </span>
+          <span className="muted">
+            {mode === "offline" ? (
+              <>Offline as <strong>{name.trim() || "…"}</strong></>
+            ) : signedIn ? (
+              <>Playing as <strong>{acct.profile.name}</strong></>
+            ) : (
+              "Not signed in"
+            )}
+          </span>
+          <button type="button" className="link-inline" onClick={() => onNavigate("play")}>
+            Change
+          </button>
+        </p>
+      )}
+      {variant === "full" && selection.profile && (
         <div className="profile-chip">
           <PackageIcon />
           <span>
@@ -170,6 +193,7 @@ export function PlayPanel({
           </button>
         </div>
       )}
+      {variant === "full" && (<>
       <div className="pick-row">
         <label className="pick">
           <span>Minecraft version</span>
@@ -262,6 +286,7 @@ export function PlayPanel({
           )}
         </p>
       )}
+      </>)}
 
       {progress ? (
         <div className="install-inline" role="status" aria-live="polite">
@@ -288,9 +313,9 @@ export function PlayPanel({
             {action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <ShieldIcon /> : !action.disabled && <PlayArrowIcon />}
             {action.label}
           </button>
-          <button type="button" className="btn btn-pill" onClick={() => onNavigate("settings")}>
+          <button type="button" className="btn btn-pill" onClick={() => onNavigate(variant === "quick" ? "play" : "settings")}>
             <SettingsIcon />
-            Configure
+            {variant === "quick" ? "Launch options" : "Settings"}
           </button>
         </div>
       )}

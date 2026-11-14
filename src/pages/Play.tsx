@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstanceSummary, Profile } from "../api/types";
-import { PackageIcon, PlayArrowIcon, PlusIcon, TrashIcon } from "../components/Icons";
+import { CubeIcon, FolderIcon, JavaIcon, MemoryIcon, PackageIcon, PlayArrowIcon, PlusIcon, TrashIcon } from "../components/Icons";
+import { PlayPanel } from "../components/PlayPanel";
 import type { PageId } from "../components/Sidebar";
+import { formatMemory } from "../core/format";
+import { javaTitle } from "../components/JavaStatus";
 import { Badge, Banner, Card, Skeleton } from "../components/ui";
 import type { LoaderId } from "../core/game";
 import type { AppData } from "../hooks/useAppData";
@@ -13,7 +16,7 @@ function instanceName(i: InstanceSummary): string {
 }
 
 /** Create, play and delete named profiles. Each has its own version, loader, worlds and mods. */
-function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
+function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId, section?: string) => void }) {
   const { selection } = data;
   const list = data.profiles.status === "ready" ? data.profiles.data : [];
   const [name, setName] = useState("");
@@ -54,9 +57,10 @@ function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: Page
     }
   };
 
-  const open = (p: Profile, page: PageId) => {
+  const open = (p: Profile, page: PageId | null) => {
     selection.selectProfile(p);
-    onNavigate(page);
+    if (page) onNavigate(page);
+    else window.scrollTo?.({ top: 0 });
   };
 
   return (
@@ -141,7 +145,7 @@ function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: Page
                   type="button"
                   className="btn btn-primary"
                   aria-label={`Play profile ${p.name}`}
-                  onClick={() => open(p, "home")}
+                  onClick={() => open(p, null)}
                 >
                   <PlayArrowIcon />
                   Play
@@ -172,29 +176,108 @@ function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: Page
   );
 }
 
+const MEMORY_PRESETS_MB = [2048, 4096, 6144, 8192];
+
+/** Memory, Java and game folder at a glance. Memory changes are saved at once through the real settings. */
+function LaunchConfig({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId, section?: string) => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const settings = data.settings.status === "ready" ? data.settings.data : null;
+  const java = data.java.status === "ready" ? data.java.data.selected : null;
+
+  const setMemory = async (mb: number) => {
+    if (!settings) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const outcome = await api.saveSettings({ ...settings.settings, memoryMb: mb });
+      if (outcome.ok && outcome.state) data.applySettings(outcome.state);
+      else setError(outcome.errors[0]?.message ?? "The memory setting was not saved.");
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card id="launch-config" title="Launch configuration" icon={<CubeIcon />} description="What the game starts with.">
+      {!settings ? (
+        <Skeleton label="Loading launch settings" lines={3} />
+      ) : (
+        <dl className="config-list">
+          <div>
+            <dt>
+              <MemoryIcon /> Memory
+            </dt>
+            <dd>
+              <strong>{formatMemory(settings.settings.memoryMb)}</strong>
+              <span className="muted small"> of {formatMemory(settings.totalRamMb)} installed</span>
+              <div className="presets" role="group" aria-label="Memory for the game">
+                {MEMORY_PRESETS_MB.filter((mb) => mb >= settings.minMemoryMb && mb <= settings.maxMemoryMb).map((mb) => (
+                  <button
+                    key={mb}
+                    type="button"
+                    className={`chip ${settings.settings.memoryMb === mb ? "chip-on" : ""}`}
+                    aria-pressed={settings.settings.memoryMb === mb}
+                    disabled={saving}
+                    onClick={() => void setMemory(mb)}
+                  >
+                    {mb / 1024} GB
+                  </button>
+                ))}
+              </div>
+            </dd>
+          </div>
+          <div>
+            <dt>
+              <JavaIcon /> Java
+            </dt>
+            <dd>
+              {java ? <strong>{javaTitle(java)}</strong> : <span className="muted">Not found yet. Set up &amp; play installs it.</span>}
+              <button type="button" className="link-inline" onClick={() => onNavigate("settings", "performance")}>
+                Change
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>
+              <FolderIcon /> Game folder
+            </dt>
+            <dd>
+              <span className="path">{settings.settings.gameDir}</span>
+              <button type="button" className="link-inline" onClick={() => onNavigate("settings", "folder")}>
+                Change
+              </button>
+            </dd>
+          </div>
+        </dl>
+      )}
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      )}
+    </Card>
+  );
+}
+
 /** Everything that is installed on this PC, one card per game version and loader. */
-export function LibraryPage({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
+function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId, section?: string) => void }) {
   const { selection } = data;
   const installedNow = data.game.status?.installed ?? null;
   const list = useResource<InstanceSummary[]>(() => api.listInstances(), String(installedNow));
 
-  const open = (i: InstanceSummary, page: PageId) => {
+  const open = (i: InstanceSummary, page: PageId | null) => {
     const loader: LoaderId = i.loader ? "fabric" : "vanilla";
     selection.setVersion(i.minecraft);
     selection.setLoader(loader);
-    onNavigate(page);
+    if (page) onNavigate(page);
+    else window.scrollTo?.({ top: 0 });
   };
 
   return (
-    <div className="page library-page">
-      <header className="page-head">
-        <h1>Library</h1>
-        <p className="muted">Your profiles and every Minecraft version installed on this PC.</p>
-      </header>
-
-      <Profiles data={data} onNavigate={onNavigate} />
-
-      <h2 className="section-title">Installed versions</h2>
+    <Card id="installations" title="Installed versions" icon={<CubeIcon />} description="Every Minecraft version on this PC, one card per version and loader.">
       {list.state.status === "loading" && <Skeleton label="Loading library" lines={3} />}
       {list.state.status === "error" && (
         <Banner
@@ -211,11 +294,9 @@ export function LibraryPage({ data, onNavigate }: { data: AppData; onNavigate: (
       )}
       {list.state.status === "ready" && list.state.data.length === 0 && (
         <div className="empty empty-big">
+          <CubeIcon />
           <h2>Nothing installed yet</h2>
-          <p className="muted">Press “Set up &amp; play” on the Home page. Your game will show up here.</p>
-          <button type="button" className="btn btn-primary" onClick={() => onNavigate("home")}>
-            Go to Home
-          </button>
+          <p className="muted">Press “Set up &amp; play” above. The version you pick is downloaded and shows up here.</p>
         </div>
       )}
       {list.state.status === "ready" && list.state.data.length > 0 && (
@@ -240,10 +321,10 @@ export function LibraryPage({ data, onNavigate }: { data: AppData; onNavigate: (
                     type="button"
                     className="btn btn-primary"
                     aria-label={`Play ${instanceName(i)} ${i.loader ? "with Fabric" : "vanilla"}`}
-                    onClick={() => open(i, "home")}
+                    onClick={() => open(i, null)}
                   >
                     <PlayArrowIcon />
-                    Play
+                    Select
                   </button>
                   {i.loader && (
                     <button
@@ -261,6 +342,34 @@ export function LibraryPage({ data, onNavigate }: { data: AppData; onNavigate: (
           })}
         </ul>
       )}
+    </Card>
+  );
+}
+
+/** Version, installation and launch controls in one place. Home keeps only the big Play button. */
+export function PlayPage({
+  data,
+  onNavigate,
+  onOpenAccount,
+}: {
+  data: AppData;
+  onNavigate: (page: PageId, section?: string) => void;
+  onOpenAccount: () => void;
+}) {
+  return (
+    <div className="page play-page">
+      <header className="page-head">
+        <h1>Play</h1>
+        <p className="muted">Choose a version, set up what it needs, and start the game.</p>
+      </header>
+      <div className="play-grid">
+        <Card id="launch" title="Launch" icon={<PlayArrowIcon />} description="Version, loader, player and the Play button.">
+          <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="full" />
+        </Card>
+        <LaunchConfig data={data} onNavigate={onNavigate} />
+      </div>
+      <Profiles data={data} onNavigate={onNavigate} />
+      <Installations data={data} onNavigate={onNavigate} />
     </div>
   );
 }
