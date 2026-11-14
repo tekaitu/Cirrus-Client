@@ -7,7 +7,7 @@ const base: InstallResult = {
   message: null,
   javaPath: "C:\\x\\java.exe",
   version: "21.0.5",
-  source: "Limited FPS runtime",
+  source: "Cirrus Client runtime",
   configured: true,
   settings: null,
 };

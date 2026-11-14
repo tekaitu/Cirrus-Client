@@ -9,7 +9,7 @@
 //! * Extraction refuses paths that escape the target folder, symlinks, and
 //!   absurd sizes; files are written into a staging folder and moved into
 //!   place only after the new `java` has been run and reports Java 21+.
-//! * Nothing outside the Limited FPS runtime folder is touched. No PATH,
+//! * Nothing outside the Cirrus Client runtime folder is touched. No PATH,
 //!   registry, Defender, or Windows Update changes. No administrator rights.
 
 use crate::java;
@@ -136,7 +136,7 @@ pub struct InstallOutcome {
     pub version: Option<String>,
     /// Where an already-present runtime was found.
     pub source: String,
-    /// Whether this runtime is Limited FPS' own copy (then Settings points at it).
+    /// Whether this runtime is Cirrus Client' own copy (then Settings points at it).
     pub managed: bool,
 }
 
@@ -280,7 +280,7 @@ fn http_client(policy: &UrlPolicy, timeout: Duration) -> Result<reqwest::blockin
         .redirect(redirect)
         .connect_timeout(Duration::from_secs(20))
         .timeout(timeout)
-        .user_agent(concat!("LimitedFPS/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("CirrusClient/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| format!("Could not set up a secure connection: {e}"))
 }
@@ -614,7 +614,7 @@ pub fn install_from_zip(
     Ok((final_dir.join("bin").join(java::JAVA_EXE), version))
 }
 
-/// The newest Limited FPS runtime that runs and is Java 21+, if any.
+/// The newest Cirrus Client runtime that runs and is Java 21+, if any.
 pub fn existing_managed(runtime_dir: &Path) -> Option<(PathBuf, String)> {
     let mut candidates = java::scan_vendor_roots(&managed_roots(runtime_dir), java::SRC_MANAGED);
     candidates.sort_by(|a, b| b.path.cmp(&a.path));

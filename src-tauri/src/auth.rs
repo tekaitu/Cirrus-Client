@@ -2,7 +2,7 @@
 //!
 //! Flow (the one documented by Microsoft and Mojang for third-party launchers):
 //! 1. Microsoft identity platform *device code* flow: the person opens a
-//!    Microsoft page and types a short code. Limited FPS never sees a password.
+//!    Microsoft page and types a short code. Cirrus Client never sees a password.
 //! 2. Xbox Live user token, then XSTS token for `rp://api.minecraftservices.com/`.
 //! 3. Minecraft services `login_with_xbox`, then the Minecraft profile.
 //!
@@ -25,7 +25,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 pub const SCOPE: &str = "XboxLive.signin offline_access";
-pub const KEYRING_SERVICE: &str = "Limited FPS";
+pub const KEYRING_SERVICE: &str = "Limited FPS"; // kept so existing sign-ins keep working
 pub const KEYRING_USER: &str = "microsoft-refresh-token";
 const MAX_BODY: u64 = 1024 * 1024;
 
@@ -213,7 +213,7 @@ pub fn http_client() -> Result<Client, AuthError> {
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(30))
-        .user_agent(concat!("LimitedFPS/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("CirrusClient/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| failed(format!("Could not set up a secure connection: {e}")))
 }
@@ -313,7 +313,7 @@ fn wait(total: Duration, cancel: &AtomicBool) -> Result<(), AuthError> {
 /// Register this exact address under "Mobile and desktop applications" in Azure.
 pub const REDIRECT_URI: &str = "https://login.microsoftonline.com/consumers/oauth2/nativeclient";
 
-/// The public app ID built into this copy of Limited FPS, if the build had one.
+/// The public app ID built into this copy of Cirrus Client, if the build had one.
 pub fn builtin_client_id() -> Option<&'static str> {
     option_env!("LIMITEDFPS_MS_CLIENT_ID")
         .map(str::trim)
@@ -451,7 +451,7 @@ pub fn sign_in_window(
     show_window: &dyn Fn(&str) -> Result<String, AuthError>,
 ) -> Result<Session, AuthError> {
     if !is_valid_client_id(client_id) {
-        return Err(failed("Sign-in is not set up in this build of Limited FPS."));
+        return Err(failed("Sign-in is not set up in this build of Cirrus Client."));
     }
     let client = http_client()?;
     let request = build_auth_request(ep, client_id)?;

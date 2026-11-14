@@ -238,7 +238,7 @@ async fn install_java(app: AppHandle, state: State<'_, InstallState>) -> Result<
         Err(runtime::InstallError::Cancelled) => Ok(InstallResult::bare("cancelled", None)),
         Err(runtime::InstallError::Failed(message)) => Ok(InstallResult::bare("failed", Some(message))),
         Ok(done) => {
-            // Only Limited FPS' own copy is written to Settings; an existing
+            // Only Cirrus Client' own copy is written to Settings; an existing
             // system Java is left alone and reported.
             let (configured, settings_state, note) = if done.managed {
                 match configure_java_path(&app, &done.java_path) {

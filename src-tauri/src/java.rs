@@ -22,7 +22,7 @@ pub const SRC_JAVA_HOME: &str = "JAVA_HOME";
 pub const SRC_PATH: &str = "PATH";
 pub const SRC_COMMON: &str = "Common install folder";
 pub const SRC_MINECRAFT: &str = "Minecraft launcher runtime";
-pub const SRC_MANAGED: &str = "Limited FPS runtime";
+pub const SRC_MANAGED: &str = "Cirrus Client runtime";
 
 const MAX_CANDIDATES: usize = 40;
 const RUN_TIMEOUT: Duration = Duration::from_secs(15);
@@ -263,7 +263,7 @@ fn count_existing(dirs: &[PathBuf]) -> usize {
 
 /// Candidate order is the priority order: configured, JAVA_HOME, PATH, common
 /// install folders, the Minecraft launcher's bundled runtimes, then runtimes
-/// installed by Limited FPS itself.
+/// installed by Cirrus Client itself.
 pub fn gather_with_env(env: &Env, configured: Option<&str>, managed_roots: &[PathBuf]) -> Gathered {
     let mut all: Vec<Candidate> = Vec::new();
     let mut notes: Vec<String> = Vec::new();
@@ -385,14 +385,14 @@ pub fn gather_with_env(env: &Env, configured: Option<&str>, managed_roots: &[Pat
     ));
     all.extend(minecraft);
 
-    // 6. Runtimes installed by Limited FPS
+    // 6. Runtimes installed by Cirrus Client
     let managed = scan_vendor_roots(managed_roots, SRC_MANAGED);
     let shown = managed_roots
         .first()
         .map(|p| p.display().to_string())
         .unwrap_or_else(|| "none".to_string());
     notes.push(format!(
-        "Limited FPS runtimes ({shown}): {} Java found",
+        "Cirrus Client runtimes ({shown}): {} Java found",
         managed.len()
     ));
     all.extend(managed);
@@ -910,7 +910,7 @@ mod tests {
         let g = gather_with_env(&no_env(), None, &[managed_root]);
         assert_eq!(g.candidates.len(), 1);
         assert_eq!(g.candidates[0].source, SRC_MANAGED);
-        assert!(g.notes.iter().any(|n| n.contains("Limited FPS runtimes") && n.ends_with("1 Java found")));
+        assert!(g.notes.iter().any(|n| n.contains("Cirrus Client runtimes") && n.ends_with("1 Java found")));
     }
 
     #[test]

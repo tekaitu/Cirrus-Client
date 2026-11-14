@@ -1,30 +1,30 @@
 /* Cirrus Client: a flat, dark, card-based look in the style of the Modrinth app, with a purple accent. */
 :root {
   color-scheme: dark;
-  --bg: #09090b;
-  --surface: #111113;
-  --raised: #19191c;
-  --raised-2: #232327;
-  --border: #26262b;
-  --border-strong: #3a3a41;
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --accent: #f4f4f5;
-  --accent-bright: #ffffff;
-  --accent-strong: #d4d4d8;
-  --accent-2: #9ca3af;
-  --accent-rgb: 244 244 245;
-  --on-accent: #0a0a0b;
+  --bg: #111214;
+  --surface: #191b20;
+  --raised: #202329;
+  --raised-2: #2a2e36;
+  --border: #2a2d35;
+  --border-strong: #3b404b;
+  --text: #ffffff;
+  --muted: #a0a5b0;
+  --accent: #246bfd;
+  --accent-bright: #b9deff;
+  --accent-strong: #1455ff;
+  --accent-2: #b9deff;
+  --accent-rgb: 36 107 253;
+  --on-accent: #ffffff;
   --accent-soft: rgb(var(--accent-rgb) / 0.16);
-  --text-soft: #d4d4d8;
+  --text-soft: #d0d3da;
   --tooltip: #000000;
-  --tooltip-text: #ecebf3;
+  --tooltip-text: #ffffff;
   --scrim: rgba(0, 0, 0, 0.8);
   --good: #3ddc97;
   --warn: #f5b942;
   --bad: #f2706d;
-  --radius: 12px;
-  --radius-lg: 16px;
+  --radius: 6px;
+  --radius-lg: 8px;
   --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.45);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -97,7 +97,7 @@ summary:hover { color: var(--text); }
 .crumb-root { color: var(--muted); }
 .crumb-sep { color: var(--border-strong); }
 .topbar-pills { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
-.pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: var(--raised); border: 1px solid var(--border); font-size: 0.8rem; font-weight: 600; white-space: nowrap; color: var(--text); }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 6px; background: var(--raised); border: 1px solid var(--border); font-size: 0.8rem; font-weight: 600; white-space: nowrap; color: var(--text); }
 .pill-good .dot { background: var(--good); }
 .pill-warn .dot { background: var(--warn); }
 .pill-button { font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
@@ -105,7 +105,7 @@ summary:hover { color: var(--text); }
 .pill-button:disabled { opacity: 0.55; cursor: not-allowed; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-bright); flex: none; }
 .mini-spinner { width: 13px; height: 13px; border: 2px solid var(--border-strong); border-top-color: var(--accent-bright); border-radius: 50%; animation: spin 0.8s linear infinite; }
-.profile { display: inline-flex; align-items: center; gap: 10px; padding: 4px 4px 4px 14px; border-radius: 999px; background: var(--raised); border: 1px solid var(--border); color: var(--text); font: inherit; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.profile { display: inline-flex; align-items: center; gap: 10px; padding: 4px 4px 4px 14px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); color: var(--text); font: inherit; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
 .profile:hover { border-color: var(--accent); background: var(--raised-2); }
 .profile-text { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; font-size: 0.82rem; }
 .profile-text small { color: var(--muted); font-size: 0.7rem; }
@@ -165,23 +165,23 @@ summary:hover { color: var(--text); }
 .banner-info { border-left-color: var(--accent); }
 
 /* ------------------------------------------------------------ buttons and forms */
-.btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 0.88rem; font-weight: 600; line-height: 1.2; color: var(--text); background: var(--raised); border: 1px solid transparent; padding: 9px 16px; border-radius: var(--radius); cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s; }
+.btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 0.86rem; font-weight: 600; line-height: 1.2; color: var(--text); background: var(--raised); border: 1px solid var(--border); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s; }
 .btn:hover:not(:disabled) { background: var(--raised-2); transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn-primary { background: var(--accent); color: var(--on-accent); }
-.btn-primary:hover:not(:disabled) { background: var(--accent-bright); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
 .btn-primary:disabled { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); color: color-mix(in srgb, var(--on-accent) 60%, var(--surface)); }
 .btn-danger { background: #b83b3b; color: #fff; }
 .btn-danger:hover:not(:disabled) { background: #cf4848; }
 .btn-quiet { background: transparent; color: var(--muted); }
 .btn-quiet:hover:not(:disabled) { background: var(--raised); color: var(--text); }
 .btn-pill { padding: 9px 18px; }
-.btn-glow:not(:disabled) { box-shadow: 0 6px 22px rgb(var(--accent-rgb) / 0.35); }
+.btn-glow { box-shadow: none; }
 .btn-play { padding: 11px 24px; }
 .btn-block { display: flex; width: 100%; }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-.chip { font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--muted); background: var(--raised); border: 1px solid transparent; padding: 5px 13px; border-radius: 999px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.chip { font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--muted); background: var(--raised); border: 1px solid transparent; padding: 5px 13px; border-radius: 6px; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .chip:hover { color: var(--text); background: var(--raised-2); }
 .chip-on { color: var(--text); background: var(--accent-soft); border-color: var(--accent); }
 .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -222,8 +222,8 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
 
 progress { appearance: none; -webkit-appearance: none; width: 100%; height: 8px; border: 0; border-radius: 999px; overflow: hidden; background: var(--bg); }
 progress::-webkit-progress-bar { background: var(--bg); }
-progress::-webkit-progress-value { background: linear-gradient(90deg, var(--accent-strong), var(--accent-2)); border-radius: 999px; transition: width 0.25s; }
-progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-strong), var(--accent-2)); }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; transition: width 0.25s; }
+progress::-moz-progress-bar { background: var(--accent); }
 
 .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 .skeleton { display: flex; flex-direction: column; gap: 10px; }
@@ -269,7 +269,7 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .step-active { color: var(--text); }
 .step-active .step-dot { border-color: var(--accent); animation: ping 1.8s ease-out infinite; }
 .steps .steps-meter { flex-basis: 100%; height: 4px; border-radius: 999px; background: var(--bg); overflow: hidden; }
-.steps-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--accent-strong), var(--accent-2)); transition: width 0.6s var(--ease); }
+.steps-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width 0.6s var(--ease); }
 .steps-fill-1 { width: 34%; } .steps-fill-2 { width: 67%; } .steps-fill-3 { width: 100%; }
 
 .status-card h2 { font-size: 1rem; }
@@ -362,8 +362,6 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .page-enter .page > *:nth-child(3), .page-enter .news-grid > li:nth-child(3), .page-enter .instance-grid > li:nth-child(3) { animation-delay: 0.1s; }
 .page-enter .page > *:nth-child(n+4), .page-enter .news-grid > li:nth-child(n+4), .page-enter .instance-grid > li:nth-child(n+4) { animation-delay: 0.15s; }
 .settings-page > .section-nav { animation: none !important; }
-.btn-glow:not(:disabled)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%); transform: translateX(-120%); animation: sheen 3.6s ease-in-out infinite; pointer-events: none; overflow: hidden; }
-.btn-glow { overflow: hidden; }
 @keyframes sheen { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
 
 /* Reduce motion: user setting or OS preference */
@@ -420,7 +418,8 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 }
 
 /* Accent colours work with every theme */
-/* Every accent except White has light text on it */
+:root[data-accent="white"] { --accent: #f4f4f5; --accent-bright: #ffffff; --accent-strong: #d4d4d8; --accent-rgb: 244 244 245; --on-accent: #0a0a0b; }
+/* Every other accent has light text on it */
 :root[data-accent="violet"], :root[data-accent="blue"], :root[data-accent="cyan"], :root[data-accent="green"], :root[data-accent="pink"], :root[data-accent="orange"] { --on-accent: #fff; }
 :root[data-accent="violet"] { --accent: #8b5cf6; --accent-bright: #b49cfb; --accent-strong: #7040e0; --accent-rgb: 139 92 246; }
 :root[data-accent="blue"] { --accent: #3b82f6; --accent-bright: #8fb8ff; --accent-strong: #2563eb; --accent-rgb: 59 130 246; }
@@ -462,10 +461,7 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .pill-warn { border-color: rgb(245 185 66 / 0.4); }
 .mod-icon-empty { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 .stat dt { color: var(--muted); }
-.hero { background:
-  radial-gradient(120% 140% at 100% 0%, rgb(var(--accent-rgb) / 0.14) 0%, rgb(var(--accent-rgb) / 0) 55%),
-  radial-gradient(70% 100% at 0% 100%, color-mix(in srgb, var(--accent-2) 12%, transparent) 0%, transparent 60%),
-  var(--surface); }
+.hero { background: linear-gradient(180deg, rgb(var(--accent-rgb) / 0.07), transparent 55%), var(--surface); }
 
 /* ============================================================ new pieces */
 .field-label { display: block; font-weight: 700; font-size: 0.88rem; margin-bottom: 8px; }
@@ -480,10 +476,9 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .profile-grid { margin-top: 6px; }
 
 /* Sign-in button */
-.btn-signin { justify-content: flex-start; gap: 12px; text-align: left; padding: 10px 14px; border: 1px solid transparent;
-  background: linear-gradient(var(--raised), var(--raised)) padding-box, linear-gradient(135deg, var(--accent), var(--accent-2)) border-box; }
-.btn-signin:hover:not(:disabled) { background: linear-gradient(var(--raised-2), var(--raised-2)) padding-box, linear-gradient(135deg, var(--accent), var(--accent-2)) border-box; box-shadow: 0 8px 26px rgb(var(--accent-rgb) / 0.3); }
-.signin-badge { flex: none; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.btn-signin { justify-content: flex-start; gap: 12px; text-align: left; padding: 10px 14px; border: 1px solid var(--accent); background: var(--raised); }
+.btn-signin:hover:not(:disabled) { background: var(--raised-2); }
+.signin-badge { flex: none; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--on-accent); background: var(--accent); }
 .signin-badge svg { width: 21px; height: 21px; }
 .signin-text { display: flex; flex-direction: column; line-height: 1.2; }
 .signin-text strong { font-size: 0.95rem; }
@@ -500,9 +495,9 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 
 /* Theme and accent pickers */
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.theme-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 8px 10px; font: inherit; color: var(--text); text-align: left; cursor: pointer; border-radius: 14px; background: var(--raised); border: 2px solid transparent; transition: border-color 0.18s, transform 0.18s var(--ease), box-shadow 0.18s; }
+.theme-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 8px 10px; font: inherit; color: var(--text); text-align: left; cursor: pointer; border-radius: 8px; background: var(--raised); border: 2px solid transparent; transition: border-color 0.18s, transform 0.18s var(--ease), box-shadow 0.18s; }
 .theme-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
-.theme-on, .theme-on:hover { border-color: var(--accent); box-shadow: 0 6px 22px rgb(var(--accent-rgb) / 0.25); }
+.theme-on, .theme-on:hover { border-color: var(--accent); }
 .theme-preview { position: relative; display: block; width: 100%; height: 58px; margin-bottom: 6px; border-radius: 9px; border: 1px solid rgb(128 128 128 / 0.25); overflow: hidden; }
 .theme-preview i { position: absolute; left: 8px; height: 14px; border-radius: 4px; }
 .theme-preview i:nth-child(1) { top: 8px; width: 46%; }
@@ -534,7 +529,6 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-st
 .nav-item:hover:not(:disabled) svg { transform: scale(1.14); }
 .nav-item:hover:not(:disabled) svg:not(.ico-settings) { transform: scale(1.14) rotate(-4deg); }
 .rail-avatar:hover svg { transform: scale(1.12); }
-.btn-glow:hover:not(:disabled) { box-shadow: 0 10px 30px rgb(var(--accent-rgb) / 0.5); }
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
 @keyframes wobble { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-12deg) scale(1.15); } 50% { transform: rotate(10deg) scale(1.15); } 80% { transform: rotate(-4deg); } }

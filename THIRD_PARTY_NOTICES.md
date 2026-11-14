@@ -6,11 +6,11 @@ The project depends on open-source packages installed from npm and crates.io at 
 
 Any launcher library adopted later must have its license verified first and its required notices added here before release. See [docs/LIBRARY-EVALUATION.md](docs/LIBRARY-EVALUATION.md).
 
-"Minecraft" is a trademark of Mojang AB / Microsoft. Limited FPS is not affiliated with or endorsed by Mojang or Microsoft.
+"Minecraft" is a trademark of Mojang AB / Microsoft. Cirrus Client is not affiliated with or endorsed by Mojang or Microsoft.
 
 ## Java runtime downloaded by the app
 
-When the person clicks "Install Java 21", Limited FPS downloads **Eclipse Temurin 21** (GPLv2 with the Classpath Exception) from Adoptium and unpacks it into its own data folder. Limited FPS does not bundle or redistribute it. See https://adoptium.net for the license and notices.
+When the person clicks "Install Java 21", Cirrus Client downloads **Eclipse Temurin 21** (GPLv2 with the Classpath Exception) from Adoptium and unpacks it into its own data folder. Cirrus Client does not bundle or redistribute it. See https://adoptium.net for the license and notices.
 
 ## Logo and icons
 

@@ -52,7 +52,7 @@ export function validateDraft(s: Settings, limits: MemoryLimits): SettingsErrors
   if (s.gameDir.trim() === "") {
     errors.gameDir = "Game directory is required.";
   } else if (!WINDOWS_ABSOLUTE.test(s.gameDir.trim()) && !s.gameDir.trim().startsWith("/")) {
-    errors.gameDir = "Use a full path, for example C:\\Users\\you\\LimitedFPS.";
+    errors.gameDir = "Use a full path, for example C:\\Users\\you\\CirrusClient.";
   }
   const id = s.msClientId?.trim();
   if (id && !CLIENT_ID_PATTERN.test(id)) {

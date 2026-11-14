@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    limited_fps_lib::run()
+    cirrus_client_lib::run()
 }

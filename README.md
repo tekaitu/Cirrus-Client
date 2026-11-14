@@ -1,4 +1,4 @@
-# Limited FPS
+# Cirrus Client
 
 A Windows launcher for **Minecraft Java Edition 1.21.11** (Fabric), aimed at competitive sword PvP on lower-to-mid-range hardware. Built with Tauri 2 (Rust) + React + TypeScript.
 
@@ -6,7 +6,7 @@ A Windows launcher for **Minecraft Java Edition 1.21.11** (Fabric), aimed at com
 > **This is not a working Minecraft launcher yet.** What works today:
 > - **Home** shows the Cirrus Client branding, the Minecraft 1.21.11 target, Fabric status, the Java installation found on your PC, and a Play section.
 > - **Settings** (memory, custom Java path with a test button, game folder, reduce motion) are validated, saved to a file in your app config folder and restored on the next start. A damaged settings file is backed up and replaced with defaults, and Settings has a reset button.
-> - **Java installer**: when no compatible Java is found, "Install Java 21" downloads Eclipse Temurin 21 from Adoptium, verifies its SHA-256 checksum, and installs it into Limited FPS's own folder (no administrator rights; PATH, registry and Windows settings are untouched). See [docs/SECURITY.md](docs/SECURITY.md). **Not yet tested on a real PC.**
+> - **Java installer**: when no compatible Java is found, "Install Java 21" downloads Eclipse Temurin 21 from Adoptium, verifies its SHA-256 checksum, and installs it into Cirrus Client's own folder (no administrator rights; PATH, registry and Windows settings are untouched). See [docs/SECURITY.md](docs/SECURITY.md). **Not yet tested on a real PC.**
 > - **Microsoft sign-in** (official device-code flow, refresh token in Windows Credential Manager) is implemented but **not verified against the real services**: it needs your own Azure app ID in Settings and Mojang's approval. See [docs/AUTH.md](docs/AUTH.md).
 > - **Diagnostics** shows real OS, CPU and RAM information and every Java installation found (JAVA_HOME, PATH, common install folders, the Minecraft launcher's runtimes), with a copyable report.
 >
@@ -31,12 +31,12 @@ npm test                 # unit + component tests (Vitest, jsdom)
 npm run build            # builds the frontend into dist/
 cd src-tauri; cargo test --lib; cd ..   # Rust unit tests
 npx tauri dev            # run the app
-npx tauri build --no-bundle   # produces src-tauri/target/release/limited-fps.exe
+npx tauri build --no-bundle   # produces src-tauri/target/release/cirrus-client.exe
 ```
 
 ## Continuous integration
 
-`.github/workflows/build-windows.yml` runs on `windows-latest` for pushes to `main`, pull requests and manual runs (`workflow_dispatch`). It type-checks, runs the frontend (Vitest) and Rust tests, builds the executable, verifies it exists and is non-empty, then uploads it as the workflow artifact **LimitedFPS-windows-exe** (kept 14 days). Nothing is published as a Release automatically, and `.exe` files are never committed.
+`.github/workflows/build-windows.yml` runs on `windows-latest` for pushes to `main`, pull requests and manual runs (`workflow_dispatch`). It type-checks, runs the frontend (Vitest) and Rust tests, builds the executable, verifies it exists and is non-empty, then uploads it as the workflow artifact **CirrusClient-windows-exe** (kept 14 days). Nothing is published as a Release automatically, and `.exe` files are never committed.
 
 The workflow also uploads a `generated-lockfiles` artifact. No lockfiles are committed yet because they could not be generated in the environment where this skeleton was written. Commit them from that artifact so builds become reproducible, then switch the workflow to `npm ci`.
 

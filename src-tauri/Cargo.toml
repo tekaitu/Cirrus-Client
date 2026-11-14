@@ -1,13 +1,13 @@
 [package]
-name = "limited-fps"
+name = "cirrus-client"
 version = "0.1.0"
-authors = ["Limited FPS"]
-description = "Limited FPS: a Windows launcher for Minecraft Java 1.21.11 (interface and diagnostics build)"
+authors = ["Cirrus Client"]
+description = "Cirrus Client: a Windows launcher for Minecraft Java 1.21.11 (interface and diagnostics build)"
 edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "limited_fps_lib"
+name = "cirrus_client_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

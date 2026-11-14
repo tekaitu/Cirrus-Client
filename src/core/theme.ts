@@ -9,7 +9,7 @@ export interface ThemeInfo {
 }
 
 export const THEMES: readonly ThemeInfo[] = [
-  { id: "cirrus", label: "Cirrus", blurb: "Black and white", swatch: ["#09090b", "#111113", "#232327"] },
+  { id: "cirrus", label: "Cirrus", blurb: "Dark with Cirrus blue", swatch: ["#111214", "#191b20", "#202329"] },
   { id: "midnight", label: "Midnight", blurb: "Deep violet-black", swatch: ["#14121a", "#1b1923", "#2e2a3b"] },
   { id: "graphite", label: "Graphite", blurb: "Neutral grey", swatch: ["#151618", "#1e2023", "#2f3236"] },
   { id: "ocean", label: "Ocean", blurb: "Deep blue", swatch: ["#0c1422", "#121c2e", "#1f2d45"] },
@@ -27,6 +27,7 @@ export interface AccentInfo {
 }
 
 export const ACCENTS: readonly AccentInfo[] = [
+  { id: "cirrus", label: "Cirrus blue", color: "#246bfd", ink: "#fff" },
   { id: "white", label: "White", color: "#f4f4f5", ink: "#0a0a0b" },
   { id: "violet", label: "Violet", color: "#8b5cf6", ink: "#fff" },
   { id: "blue", label: "Blue", color: "#3b82f6", ink: "#fff" },
@@ -37,7 +38,7 @@ export const ACCENTS: readonly AccentInfo[] = [
 ];
 
 export const DEFAULT_THEME = "cirrus";
-export const DEFAULT_ACCENT = "white";
+export const DEFAULT_ACCENT = "cirrus";
 
 const THEME_KEY = "unlimited.theme";
 const ACCENT_KEY = "unlimited.accent";

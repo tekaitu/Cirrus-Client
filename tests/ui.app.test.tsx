@@ -232,7 +232,7 @@ const installedResult = (extra: Partial<InstallResult> = {}): InstallResult => (
   message: null,
   javaPath: "C:\\Users\\player\\AppData\\Local\\com.limitedfps.app\\runtime\\temurin-21\\jdk-21.0.5_11-jre\\bin\\java.exe",
   version: "21.0.5",
-  source: "Limited FPS runtime",
+  source: "Cirrus Client runtime",
   configured: true,
   settings: settingsState({
     javaPath:
