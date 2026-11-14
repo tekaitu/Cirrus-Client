@@ -326,7 +326,7 @@ describe("Microsoft account", () => {
     mocked.openMicrosoftLink.mockResolvedValue(undefined);
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Use a code instead" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     expect(await screen.findByText("Contacting Microsoft…")).toBeTruthy();
 
     await waitFor(() => expect(codeHandler).not.toBeNull());
@@ -348,7 +348,7 @@ describe("Microsoft account", () => {
     mocked.authSignInWindow.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use the Microsoft window instead" }));
     expect(await screen.findByText("Finish signing in in the Microsoft window…")).toBeTruthy();
     expect(mocked.authSignIn).not.toHaveBeenCalled();
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
@@ -361,7 +361,7 @@ describe("Microsoft account", () => {
     mocked.authSignInWindow.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use the Microsoft window instead" }));
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(mocked.authCancel).toHaveBeenCalledTimes(1);
     await act(async () => finish(authStatus({ state: "cancelled", configured: true })));
@@ -373,7 +373,7 @@ describe("Microsoft account", () => {
     mocked.authSignIn.mockReturnValue(new Promise<AuthStatus>(() => {}));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Use a code instead" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     await waitFor(() => expect(codeHandler).not.toBeNull());
     act(() => codeHandler?.({ userCode: "ZZZZ", verificationUri: "https://evil.example.com/link", expiresIn: 900 }));
     expect(await screen.findByText(/unexpected address/)).toBeTruthy();
@@ -386,7 +386,7 @@ describe("Microsoft account", () => {
     mocked.authSignIn.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Use a code instead" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     await waitFor(() => expect(codeHandler).not.toBeNull());
     act(() => codeHandler?.({ userCode: "ABCD1234", verificationUri: "https://www.microsoft.com/link", expiresIn: 900 }));
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
@@ -397,7 +397,7 @@ describe("Microsoft account", () => {
 
   it("shows the reason when sign-in fails and lets the user retry", async () => {
     mocked.authStatus.mockResolvedValue(configured());
-    mocked.authSignInWindow.mockResolvedValueOnce(
+    mocked.authSignIn.mockResolvedValueOnce(
       authStatus({
         state: "failed",
         configured: true,
@@ -409,7 +409,7 @@ describe("Microsoft account", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     expect(await screen.findByText("Sign-in problem")).toBeTruthy();
     expect(screen.getByText(/does not own Minecraft/)).toBeTruthy();
-    mocked.authSignInWindow.mockResolvedValueOnce(authStatus({ state: "signedIn", configured: true, profile: steve }));
+    mocked.authSignIn.mockResolvedValueOnce(authStatus({ state: "signedIn", configured: true, profile: steve }));
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findAllByText("Steve")).toBeTruthy();
   });
