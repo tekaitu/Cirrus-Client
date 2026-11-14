@@ -1,6 +1,7 @@
 import { progressView } from "../core/installer";
 import { REQUIRED_JAVA_MAJOR, TARGET_MINECRAFT_VERSION } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
+import { ChatIcon } from "./Icons";
 import { PAGE_TITLES, type PageId } from "./Sidebar";
 
 function javaPill(data: AppData): { text: string; busy: boolean; tone: "good" | "warn" | "idle" } {
@@ -18,7 +19,20 @@ function javaPill(data: AppData): { text: string; busy: boolean; tone: "good" | 
 }
 
 /** Three pills across the top: game version, Java activity, and the account. */
-export function TopBar({ data, page, onAccount, accountOpen }: { data: AppData; page: PageId; onAccount: () => void; accountOpen: boolean }) {
+export function TopBar({
+  data,
+  page,
+  onAccount,
+  accountOpen,
+  discord,
+}: {
+  data: AppData;
+  page: PageId;
+  onAccount: () => void;
+  accountOpen: boolean;
+  /** Discord Presence switch (optional so the bar still works without it). */
+  discord?: { enabled: boolean; onToggle: () => void };
+}) {
   const java = javaPill(data);
   const acct = data.account.state;
   const name = acct.phase === "signedIn" ? acct.profile.name : "Sign in";
@@ -42,6 +56,19 @@ export function TopBar({ data, page, onAccount, accountOpen }: { data: AppData; 
           {java.busy ? <span className="mini-spinner" aria-hidden="true" /> : <span className="dot" aria-hidden="true" />}
           <span>{java.text}</span>
         </div>
+        {discord && (
+          <button
+            type="button"
+            className={`pill pill-button pill-presence ${discord.enabled ? "pill-presence-on" : ""}`}
+            aria-label="Discord Presence"
+            aria-pressed={discord.enabled}
+            title={discord.enabled ? "Your Discord status shows what you are doing. Click to turn off." : "Discord status is off. Click to turn on."}
+            onClick={discord.onToggle}
+          >
+            <ChatIcon />
+            <span>{discord.enabled ? "Presence on" : "Presence off"}</span>
+          </button>
+        )}
       </div>
 
       <button

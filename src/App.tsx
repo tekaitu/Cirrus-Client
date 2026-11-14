@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AccountPanel } from "./components/AccountPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
+import { SignInDialog } from "./components/SignInDialog";
 import { FooterBar } from "./components/FooterBar";
 import { CloseIcon } from "./components/Icons";
 import { Sidebar, type PageId } from "./components/Sidebar";
@@ -17,6 +18,8 @@ import { PlayPage } from "./pages/Play";
 import { SettingsPage } from "./pages/Settings";
 import { pageForShortcut } from "./core/shortcuts";
 import { readRecent, writeRecent, type RecentPlay } from "./core/recent";
+import { readDiscordEnabled, writeDiscordEnabled } from "./core/discord";
+import { useDiscordPresence } from "./hooks/useDiscordPresence";
 
 export default function App() {
   const data = useAppData();
@@ -93,6 +96,21 @@ export default function App() {
   }, [runPhase, data.selection.version, data.selection.loader, data.selection.profile]);
   const scanning = data.java.status === "loading";
 
+  // Discord status ("Playing Minecraft 1.21.11", "Browsing mods", ...). On by default, can be switched off.
+  const [discordOn, setDiscordOn] = useState(readDiscordEnabled);
+  const toggleDiscord = () =>
+    setDiscordOn((v) => {
+      writeDiscordEnabled(!v);
+      return !v;
+    });
+  useDiscordPresence({
+    enabled: discordOn,
+    page,
+    running: runPhase === "running",
+    version: data.selection.version,
+    loader: data.selection.loader,
+  });
+
   /** Saves the pasted Azure app ID so sign-in can start right away. Returns an error message or null. */
   const saveClientId = async (id: string): Promise<string | null> => {
     if (data.settings.status !== "ready") return "Settings are not loaded yet. Try again in a moment.";
@@ -119,7 +137,13 @@ export default function App() {
         playerName={data.account.state.phase === "signedIn" ? data.account.state.profile.name : null}
       />
       <div className="workspace">
-        <TopBar data={data} page={page} onAccount={toggleAccount} accountOpen={accountOpen} />
+        <TopBar
+          data={data}
+          page={page}
+          onAccount={toggleAccount}
+          accountOpen={accountOpen}
+          discord={{ enabled: discordOn, onToggle: toggleDiscord }}
+        />
         <main className="content">
           <div key={page} className="page-enter">
           {page === "home" && (
@@ -138,6 +162,7 @@ export default function App() {
       {!accepted && (
         <LicenseDialog mode="gate" onAccept={accept} onDecline={() => void api.quitApp().catch(() => {})} />
       )}
+      {accepted && <SignInDialog account={data.account} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}
       {accountOpen && (
         <div className="popover" role="dialog" aria-label="Account">

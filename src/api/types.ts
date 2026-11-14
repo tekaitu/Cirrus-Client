@@ -198,3 +198,11 @@ export interface InstalledMod {
   /** `false` for a `.jar.disabled` file: installed but switched off. Treated as on when missing. */
   enabled?: boolean;
 }
+
+/** What the launcher shows on the person's Discord profile. */
+export interface DiscordPresence {
+  details: string;
+  state?: string | null;
+  /** Unix time in seconds; Discord shows elapsed time from it. */
+  startedAt?: number | null;
+}

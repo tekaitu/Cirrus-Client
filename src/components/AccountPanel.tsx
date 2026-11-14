@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CLIENT_ID_PATTERN } from "../core/settings";
-import { formatUuid, isMicrosoftLink, minutesLeft } from "../core/auth";
+import { formatUuid } from "../core/auth";
 import type { Account } from "../hooks/useAuth";
 import type { PageId } from "./Sidebar";
 import { KeyIcon, ShieldIcon } from "./Icons";
@@ -12,6 +12,31 @@ import { Banner, Card, Skeleton } from "./ui";
  * sign-in button only exists once an Azure app ID has been saved in Settings.
  */
 const REDIRECT_URI = "https://login.microsoftonline.com/consumers/oauth2/nativeclient";
+
+/** QR code of the Microsoft link with the code already filled in. Quietly shows nothing if it cannot be drawn. */
+export function CodeQr({ code }: { code: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void import("qrcode")
+      .then((m) => (m.default ?? m).toDataURL(`https://www.microsoft.com/link?otc=${encodeURIComponent(code)}`, { margin: 1, width: 132 }))
+      .then((url) => alive && setSrc(url))
+      .catch(() => alive && setSrc(null));
+    return () => {
+      alive = false;
+    };
+  }, [code]);
+  if (!src) return null;
+  return (
+    <div className="code-qr">
+      <img src={src} width={76} height={76} alt="QR code that opens the Microsoft page with your code filled in" />
+      <div>
+        <strong>Scan the code</strong>
+        <small>Opens the page with the code already filled in.</small>
+      </div>
+    </div>
+  );
+}
 
 /** One-time owner setup: paste the Azure application ID and sign in straight away. */
 function SignInSetup({ onSave }: { onSave: (id: string) => Promise<string | null> }) {
@@ -136,7 +161,7 @@ export function AccountPanel({
             type="button"
             className="btn btn-signin btn-block"
             aria-label="Sign in with Microsoft"
-            onClick={() => account.signIn("window")}
+            onClick={() => account.signIn("code")}
           >
             <span className="signin-badge" aria-hidden="true">
               <ShieldIcon />
@@ -146,64 +171,18 @@ export function AccountPanel({
               <small>For Minecraft: Java Edition</small>
             </span>
           </button>
-          <button type="button" className="btn btn-quiet btn-block" onClick={() => account.signIn("code")}>
+          <button type="button" className="btn btn-quiet btn-block" onClick={() => account.signIn("window")}>
             <KeyIcon />
-            Use a code instead
+            Use the Microsoft window instead
           </button>
           <p className="muted small">
-            Opens Microsoft&apos;s own sign-in page. Cirrus Client only asks to sign in to Minecraft and never sees
+            Shows a code to enter on Microsoft&apos;s own page. Cirrus Client only asks to sign in to Minecraft and never sees
             your password.
           </p>
         </>
       )}
 
-      {state.phase === "starting" && (
-        <div role="status" aria-live="polite">
-          <p className="account-name">
-            {state.method === "window" ? "Finish signing in in the Microsoft window…" : "Contacting Microsoft…"}
-          </p>
-          <div className="row">
-            <button type="button" className="btn" onClick={account.cancel}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {state.phase === "waiting" && (
-        <div role="status" aria-live="polite">
-          <p className="muted small">On the Microsoft page, enter this code:</p>
-          <p className="device-code" aria-label={`Sign-in code ${state.code.userCode}`}>
-            {state.code.userCode}
-          </p>
-          <p className="muted small">
-            Waiting for you to finish in your browser. The code works for about{" "}
-            {minutesLeft(state.code.expiresIn)} minutes. Cirrus Client never sees your password.
-          </p>
-          <div className="row">
-            {isMicrosoftLink(state.code.verificationUri) && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => account.openLink(state.code.verificationUri)}
-              >
-                Open Microsoft page
-              </button>
-            )}
-            <button type="button" className="btn" onClick={account.cancel}>
-              Cancel
-            </button>
-          </div>
-          {!isMicrosoftLink(state.code.verificationUri) && (
-            <p className="error-text" role="alert">
-              Microsoft returned an unexpected address, so no button is offered. Do not enter the code
-              anywhere except a microsoft.com page.
-            </p>
-          )}
-          <p className="muted small path">{state.code.verificationUri}</p>
-          {account.linkError && <p className="error-text" role="alert">{account.linkError}</p>}
-        </div>
-      )}
+      {/* "starting" and "waiting" are shown by SignInDialog, a window in the middle of the screen */}
 
       {state.phase === "signedIn" && (
         <>
@@ -228,7 +207,7 @@ export function AccountPanel({
           tone="bad"
           title="Sign-in problem"
           actions={
-            <button type="button" className="btn" onClick={() => account.signIn("window")}>
+            <button type="button" className="btn" onClick={() => account.signIn("code")}>
               Try again
             </button>
           }
