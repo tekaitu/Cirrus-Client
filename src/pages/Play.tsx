@@ -103,6 +103,7 @@ function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: Page
                 type="button"
                 role="radio"
                 aria-checked={loader === l}
+                aria-label={`${l === "fabric" ? "Fabric" : "Vanilla"} for the new profile`}
                 className={loader === l ? "seg-on" : ""}
                 onClick={() => setLoader(l)}
               >
