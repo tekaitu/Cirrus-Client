@@ -1,7 +1,7 @@
 import { PlayPanel } from "../components/PlayPanel";
 import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
-import type { PageId } from "../components/Sidebar";
+import type { PageId } from "../components/Navigation";
 import { CardArt } from "../components/Art";
 import { CloudMark, Wordmark } from "../components/Logo";
 import { ClockIcon, ModsIcon, PlayArrowIcon, SettingsIcon, UserIcon } from "../components/Icons";

@@ -4,6 +4,7 @@ pub mod java;
 pub mod mods;
 pub mod runtime;
 pub mod settings;
+pub mod skins;
 pub mod system;
 
 use serde::Serialize;
@@ -734,6 +735,87 @@ fn list_instances(app: AppHandle) -> Result<Vec<game::InstanceSummary>, String> 
 }
 
 #[tauri::command]
+fn list_skins(app: AppHandle) -> Result<Vec<skins::SkinView>, String> {
+    let (root, _) = game_root(&app)?;
+    Ok(skins::list(&root))
+}
+
+#[tauri::command]
+fn add_skin_file(app: AppHandle, name: String, model: String, data_base64: String) -> Result<skins::SkinView, String> {
+    let (root, _) = game_root(&app)?;
+    let bytes = skins::b64_decode(&data_base64).ok_or("The skin file could not be read.")?;
+    skins::add(&root, &name, &model, "file", &bytes)
+}
+
+#[tauri::command]
+async fn add_skin_player(app: AppHandle, player: String) -> Result<skins::SkinView, String> {
+    let (root, _) = game_root(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let client = skins::http_client()?;
+        let (name, png, model) = skins::fetch_player_skin(&client, &skins::Endpoints::production(), &player)?;
+        skins::add(&root, &format!("{name}'s skin"), &model, &format!("player:{name}"), &png)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn add_skin_url(app: AppHandle, url: String, name: String, model: String) -> Result<skins::SkinView, String> {
+    let (root, _) = game_root(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let client = skins::http_client()?;
+        let png = skins::download_texture(&client, url.trim())?;
+        skins::add(&root, &name, &model, "url", &png)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn set_skin_model(app: AppHandle, id: String, model: String) -> Result<skins::SkinView, String> {
+    let (root, _) = game_root(&app)?;
+    skins::set_model(&root, &id, &model)
+}
+
+#[tauri::command]
+fn remove_skin(app: AppHandle, id: String) -> Result<(), String> {
+    let (root, _) = game_root(&app)?;
+    skins::remove(&root, &id)
+}
+
+/// Uploads a library skin to the signed-in Minecraft account.
+#[tauri::command]
+async fn apply_skin(app: AppHandle, auth: State<'_, AuthState>, id: String) -> Result<(), String> {
+    let token = auth
+        .session
+        .lock()
+        .ok()
+        .and_then(|s| s.as_ref().map(|s| s.mc_token.clone()))
+        .ok_or("Sign in with Microsoft first. Offline players have no account to change.")?;
+    let (root, _) = game_root(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let (stored, png) = skins::get(&root, &id)?;
+        let client = skins::http_client()?;
+        skins::apply(&client, &skins::Endpoints::production(), &token, &stored.model, &png)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// The current skin of a player (by id or name) as a PNG data address, for avatars. `None` when unavailable.
+#[tauri::command]
+async fn player_skin(player: String) -> Option<String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let client = skins::http_client().ok()?;
+        let (_, png, _) = skins::fetch_player_skin(&client, &skins::Endpoints::production(), &player).ok()?;
+        Some(skins::png_data_url(&png))
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
+#[tauri::command]
 fn list_profiles(app: AppHandle) -> Result<Vec<game::Profile>, String> {
     let (root, _) = game_root(&app)?;
     Ok(game::list_profiles(&root))
@@ -1081,6 +1163,14 @@ pub fn run() {
             search_mods,
             install_mod,
             list_mods,
+            list_skins,
+            add_skin_file,
+            add_skin_player,
+            add_skin_url,
+            set_skin_model,
+            remove_skin,
+            apply_skin,
+            player_skin,
             set_mod_enabled,
             remove_mod
         ])

@@ -3,8 +3,7 @@ import { AccountPanel } from "./components/AccountPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { FooterBar } from "./components/FooterBar";
 import { CloseIcon } from "./components/Icons";
-import { Sidebar, type PageId } from "./components/Sidebar";
-import { TopBar } from "./components/TopBar";
+import { TopNav, type PageId } from "./components/Navigation";
 import { LICENSE_VERSION } from "./content/license";
 import { api, errorMessage } from "./api/client";
 import { useAppData } from "./hooks/useAppData";
@@ -13,6 +12,7 @@ import { HomePage } from "./pages/Home";
 import { AboutPage } from "./pages/About";
 import { AccountsPage } from "./pages/Accounts";
 import { ModsPage } from "./pages/Mods";
+import { SkinsPage } from "./pages/Skins";
 import { PlayPage } from "./pages/Play";
 import { SettingsPage } from "./pages/Settings";
 import { pageForShortcut } from "./core/shortcuts";
@@ -61,7 +61,7 @@ export default function App() {
   // The Accounts page already shows the account, so the account button does not also open a menu there.
   const toggleAccount = () => (page === "accounts" ? undefined : setAccountOpen((v) => !v));
 
-  // Alt + 1..6 jumps between pages (listed under Settings > Keybinds).
+  // Alt + 1..7 jumps between pages (listed under Settings > Keybinds).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = pageForShortcut(e);
@@ -110,16 +110,16 @@ export default function App() {
 
   return (
     <div className="layout">
-      <Sidebar
-        page={page}
-        onNavigate={navigate}
-        onAccount={toggleAccount}
-        onRescan={data.reloadJava}
-        scanning={scanning}
-        playerName={data.account.state.phase === "signedIn" ? data.account.state.profile.name : null}
-      />
       <div className="workspace">
-        <TopBar data={data} page={page} onAccount={toggleAccount} accountOpen={accountOpen} />
+        <TopNav
+          page={page}
+          onNavigate={navigate}
+          onAccount={toggleAccount}
+          onRescan={data.reloadJava}
+          scanning={scanning}
+          accountOpen={accountOpen}
+          player={data.account.state.phase === "signedIn" ? data.account.state.profile : null}
+        />
         <main className="content">
           <div key={page} className="page-enter">
           {page === "home" && (
@@ -127,6 +127,7 @@ export default function App() {
           )}
           {page === "play" && <PlayPage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />}
           {page === "mods" && <ModsPage data={data} />}
+          {page === "skins" && <SkinsPage data={data} />}
           {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} onSaveClientId={saveClientId} />}
           {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} />}
           {page === "about" && <AboutPage data={data} onLicense={() => setLicenseOpen(true)} />}

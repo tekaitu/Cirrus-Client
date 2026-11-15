@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CLIENT_ID_PATTERN } from "../core/settings";
 import { formatUuid, isMicrosoftLink, minutesLeft } from "../core/auth";
 import type { Account } from "../hooks/useAuth";
-import type { PageId } from "./Sidebar";
+import type { PageId } from "./Navigation";
 import { KeyIcon, ShieldIcon } from "./Icons";
 import { LogoMark } from "./Logo";
 import { Banner, Card, Skeleton } from "./ui";

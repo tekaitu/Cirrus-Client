@@ -336,3 +336,19 @@ export function ClockIcon() {
     </svg>
   );
 }
+
+export function ShirtIcon() {
+  return (
+    <svg {...common}>
+      <path d="m8.5 3.5-5 2.2 1.6 4 2.4-.9V20h9V8.8l2.4.9 1.6-4-5-2.2c-.6 1.2-1.9 2-3.5 2s-2.9-.8-3.5-2Z" />
+    </svg>
+  );
+}
+
+export function UploadIcon() {
+  return (
+    <svg {...common}>
+      <path d="M12 16V4M7 9l5-5 5 5M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17" />
+    </svg>
+  );
+}

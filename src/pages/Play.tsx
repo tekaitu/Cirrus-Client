@@ -3,7 +3,7 @@ import { api, errorMessage } from "../api/client";
 import type { InstanceSummary, Profile } from "../api/types";
 import { CubeIcon, FolderIcon, JavaIcon, MemoryIcon, PackageIcon, PlayArrowIcon, PlusIcon, TrashIcon } from "../components/Icons";
 import { PlayPanel } from "../components/PlayPanel";
-import type { PageId } from "../components/Sidebar";
+import type { PageId } from "../components/Navigation";
 import { formatMemory } from "../core/format";
 import { javaTitle } from "../components/JavaStatus";
 import { Badge, Banner, Card, Skeleton } from "../components/ui";

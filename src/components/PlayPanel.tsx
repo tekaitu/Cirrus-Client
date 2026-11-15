@@ -4,7 +4,7 @@ import { REQUIRED_JAVA_MAJOR } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
 import { PackageIcon, PlayArrowIcon, SettingsIcon, ShieldIcon, StopIcon } from "./Icons";
 import { Banner } from "./ui";
-import type { PageId } from "./Sidebar";
+import type { PageId } from "./Navigation";
 
 function read(key: string): string | null {
   try {

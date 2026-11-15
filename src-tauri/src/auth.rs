@@ -279,6 +279,14 @@ fn oauth_error(v: &Value, fallback: &str) -> AuthError {
         "In Azure, open the app registration, then Authentication, and turn on \"Allow public client flows\".".to_string()
     } else if desc.contains("AADSTS50020") || desc.contains("AADSTS500200") {
         "In Azure, set the app's supported account types to include personal Microsoft accounts.".to_string()
+    } else if desc.contains("AADSTS16000") {
+        "This Microsoft account cannot use the app in that directory. Set the app's supported account types to \"Personal Microsoft accounts only\" so players can sign in with their normal account.".to_string()
+    } else if desc.contains("AADSTS7000215") || desc.contains("AADSTS9002325") || code == "unauthorized_client" {
+        "Microsoft refused this app registration. Check that \"Allow public client flows\" is on and that the redirect address is added under Mobile and desktop applications.".to_string()
+    } else if desc.contains("AADSTS65001") {
+        "Microsoft needs the player to approve the app. Try signing in again and accept the permission request.".to_string()
+    } else if desc.contains("AADSTS70011") {
+        "Microsoft rejected the sign-in permission the app asked for (XboxLive.signin). Check the app registration.".to_string()
     } else if !first_line.is_empty() {
         format!("{fallback}: {first_line}")
     } else if !code.is_empty() {
@@ -619,7 +627,7 @@ fn minecraft_login(client: &Client, ep: &Endpoints, xsts: &str, uhs: &str) -> Re
     match status {
         200 => text(&v, "access_token").ok_or_else(|| failed("Minecraft's answer had no access token.")),
         403 => Err(failed(
-            "Minecraft services rejected this app registration (HTTP 403). New Azure apps must be approved by Mojang before sign-in works; see docs/AUTH.md.",
+            "Minecraft services rejected this app registration (HTTP 403, \"Invalid app registration\"). Mojang only accepts apps it has approved: request approval at aka.ms/AppRegInfo, then try again. Offline play still works meanwhile. See docs/AUTH.md.",
         )),
         429 => Err(failed("Minecraft services are rate-limiting sign-in. Wait a few minutes and try again.")),
         other => Err(failed(format!("Minecraft sign-in failed (HTTP {other})."))),
@@ -804,6 +812,20 @@ mod tests {
                 _ => (404, "{}".to_string()),
             }
         })
+    }
+
+    #[test]
+    fn microsoft_errors_are_explained_in_plain_language() {
+        let err = |code: &str, desc: &str| match oauth_error(&json!({ "error": code, "error_description": desc }), "Sign-in failed") {
+            AuthError::Failed(m) | AuthError::Rejected(m) => m,
+            other => format!("{other:?}"),
+        };
+        assert!(err("interaction_required", "AADSTS16000: User account does not exist in tenant").contains("Personal Microsoft accounts only"));
+        assert!(err("invalid_request", "AADSTS9002325: Proof Key for Code Exchange is required").contains("public client flows"));
+        assert!(err("invalid_client", "AADSTS7000218: The request body must contain client_assertion").contains("Allow public client flows"));
+        assert!(err("invalid_request", "AADSTS70011: The provided value for the input parameter 'scope' is not valid").contains("XboxLive.signin"));
+        assert!(err("invalid_grant", "AADSTS70008: expired").contains("sign in again"));
+        assert_eq!(err("other", "Something else happened\r\nTrace ID: x"), "Sign-in failed: Something else happened");
     }
 
     #[test]

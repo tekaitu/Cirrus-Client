@@ -18,7 +18,7 @@ import {
   SettingsIcon,
   UserIcon,
 } from "../components/Icons";
-import type { PageId } from "../components/Sidebar";
+import type { PageId } from "../components/Navigation";
 import { PAGE_SHORTCUTS } from "../core/shortcuts";
 import { usernameError, type LoaderId } from "../core/game";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";

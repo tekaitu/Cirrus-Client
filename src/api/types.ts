@@ -197,4 +197,23 @@ export interface InstalledMod {
   size: number;
   /** `false` for a `.jar.disabled` file: installed but switched off. Treated as on when missing. */
   enabled?: boolean;
+  /** What the mod says about itself (fabric.mod.json); missing for jars without it. */
+  name?: string | null;
+  version?: string | null;
+  description?: string | null;
+  authors?: string[];
+  /** The mod's own icon as a PNG data address. */
+  icon?: string | null;
+}
+
+export type SkinModel = "classic" | "slim";
+
+export interface SkinEntry {
+  id: string;
+  name: string;
+  model: SkinModel;
+  /** "file", "player:<name>" or "url". */
+  source: string;
+  /** The skin PNG as a data address, ready to draw. */
+  dataUrl: string;
 }

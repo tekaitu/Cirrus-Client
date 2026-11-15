@@ -28,14 +28,34 @@ Only those fixed Microsoft, Xbox and Minecraft addresses are contacted; redirect
 
 ## You must register the Azure app (once)
 
-Cirrus Client does not ship an app ID and never borrows another launcher's.
+Cirrus Client does not ship an app ID and never borrows another launcher's. It is free: no Azure subscription or payment is needed. (Checked against Microsoft's error-code reference and current launcher documentation, November 2026.)
 
-1. In the Azure portal create an **App registration**. Supported account types: **Personal Microsoft accounts only** (or any account type that includes personal accounts).
-2. Under **Authentication**, turn on **Allow public client flows**.
-3. Under **Authentication > Add a platform > Mobile and desktop applications**, add the redirect address `https://login.microsoftonline.com/consumers/oauth2/nativeclient`.
-4. Copy the **Application (client) ID** (it is an ID, not a secret) and build it in: in the GitHub repository open Settings > Secrets and variables > Actions > **Variables** and add `LIMITEDFPS_MS_CLIENT_ID`; the next build embeds it. For a quick local test, paste it into Settings > Microsoft sign-in (advanced override).
-5. Ask Mojang to approve the app for the Minecraft services (their app-registration review). Until it is approved, the last step fails with HTTP 403 and Cirrus Client says so. This approval is outside Cirrus Client's control.
+### 1. Register the app (free)
+1. Open <https://entra.microsoft.com> and sign in with your own Microsoft account. If you see **AADSTS16000** here, your personal account has no directory yet. Create a free one at <https://entra.microsoft.com/#create/tenant> (or by starting a free Azure account, which does not charge you), then sign in again.
+2. **Identity > Applications > App registrations > New registration.** Name it "Cirrus Client".
+3. **Supported account types: Personal Microsoft accounts only.** (Do not choose single tenant: players would hit AADSTS16000 or AADSTS50020.)
+4. Leave the redirect URI empty here and press **Register**.
+5. Open **Authentication**. Under **Add a platform > Mobile and desktop applications**, tick or add `https://login.microsoftonline.com/consumers/oauth2/nativeclient`.
+6. On the same page, turn **Allow public client flows** on (needed for the "Use a code instead" fallback) and Save.
+7. Copy the **Application (client) ID** from the Overview page. It is an ID, not a secret; never create or share a client secret.
+
+### 2. Give it to the app (no hardcoding)
+- **Released build:** in the GitHub repository open Settings > Secrets and variables > Actions > **Variables** and add `LIMITEDFPS_MS_CLIENT_ID` (the name is kept so existing setups keep working). The next build embeds it.
+- **Quick local test:** paste it into Settings > General > Microsoft sign-in (advanced). It is stored in the settings file and overrides the built-in value.
+
+### 3. Get it approved for Minecraft (the part that decides everything)
+Microsoft sign-in succeeding does **not** mean Minecraft sign-in works. Mojang's services (`api.minecraftservices.com/authentication/login_with_xbox`) answer **HTTP 403 "Invalid app registration"** for any app ID that is not on their allow list. Request approval through the form linked from <https://aka.ms/AppRegInfo> (Mojang's review). The outcome and the time it takes are up to Mojang; Cirrus Client cannot speed it up and cannot work around it. Until approved, Cirrus shows the 403 message, **offline play keeps working**, and nobody should substitute another launcher's ID.
+
+### Errors Cirrus explains
+| Code | Meaning | Fix |
+| --- | --- | --- |
+| AADSTS16000 / 50020 | Account not allowed in that directory | Supported account types: Personal Microsoft accounts only |
+| AADSTS700016 | App ID unknown | Re-copy the Application (client) ID |
+| AADSTS7000218 / 700025 / 9002325 / 7000215 | Public client flow not enabled or wrong redirect | Allow public client flows; add the native client redirect |
+| AADSTS70011 | Scope rejected | Check the app registration |
+| HTTP 403 at Minecraft | App not approved by Mojang | Request approval (step 3) |
+| XSTS 2148916233 / 2148916235 / 2148916238 | No Xbox profile / Xbox not available in region / child account | Fix on the Xbox / Microsoft family settings page |
 
 ## Status
 
-Verified only by unit tests against a local fake server and by CI. It has **not** been run against the real Microsoft, Xbox or Minecraft services, because that needs an Azure app registration and Mojang approval. Play stays disabled: signing in does not launch anything.
+Verified only by unit tests against a local fake server and by CI. It has **not** been run against the real Microsoft, Xbox or Minecraft services, because that needs your Client ID and Mojang's approval.

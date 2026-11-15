@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type {
+  SkinEntry,
+  SkinModel,
   AppInfo,
   AuthStatus,
   DeviceCodeInfo,
@@ -94,6 +96,15 @@ export const api = {
   deleteProfile: (id: string) => call<void>("delete_profile", { id }),
   openCommunity: () => call<void>("open_community"),
   openGithub: () => call<void>("open_github"),
+  listSkins: () => call<SkinEntry[]>("list_skins"),
+  addSkinFile: (name: string, model: SkinModel, dataBase64: string) =>
+    call<SkinEntry>("add_skin_file", { name, model, dataBase64 }),
+  addSkinPlayer: (player: string) => call<SkinEntry>("add_skin_player", { player }),
+  addSkinUrl: (url: string, name: string, model: SkinModel) => call<SkinEntry>("add_skin_url", { url, name, model }),
+  setSkinModel: (id: string, model: SkinModel) => call<SkinEntry>("set_skin_model", { id, model }),
+  removeSkin: (id: string) => call<void>("remove_skin", { id }),
+  applySkin: (id: string) => call<void>("apply_skin", { id }),
+  playerSkin: (player: string) => call<string | null>("player_skin", { player }),
   quitApp: () => call<void>("quit_app"),
   curseforgeAvailable: () => call<boolean>("curseforge_available"),
   searchMods: (provider: ModProvider, query: string, version: string, offset: number) =>

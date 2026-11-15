@@ -59,6 +59,88 @@ pub struct InstalledMod {
     pub size: u64,
     /// `false` when the file ends in `.jar.disabled`: Fabric ignores it, so the mod stays installed but off.
     pub enabled: bool,
+    /// What the mod says about itself in its `fabric.mod.json` (all optional: not every jar has one).
+    pub name: Option<String>,
+    pub version: Option<String>,
+    pub description: Option<String>,
+    pub authors: Vec<String>,
+    /// The mod's own icon as a PNG data address.
+    pub icon: Option<String>,
+}
+
+/// The few fields of `fabric.mod.json` the Mods page shows.
+#[derive(Debug, Default, PartialEq)]
+pub struct ModMeta {
+    pub name: Option<String>,
+    pub version: Option<String>,
+    pub description: Option<String>,
+    pub authors: Vec<String>,
+    pub icon: Option<String>,
+}
+
+const MAX_META_BYTES: u64 = 512 * 1024;
+
+fn read_zip_entry(zip: &mut zip::ZipArchive<File>, name: &str) -> Option<Vec<u8>> {
+    let entry = zip.by_name(name).ok()?;
+    let mut bytes = Vec::new();
+    entry.take(MAX_META_BYTES).read_to_end(&mut bytes).ok()?;
+    Some(bytes)
+}
+
+/// Parses the text of a `fabric.mod.json`. `icon_path` is the icon's location inside the jar, if any.
+pub fn parse_fabric_meta(text: &str) -> (ModMeta, Option<String>) {
+    let json: Value = match serde_json::from_str(text.trim_start_matches('\u{feff}')) {
+        Ok(v) => v,
+        Err(_) => return (ModMeta::default(), None),
+    };
+    let string = |key: &str| json.get(key).and_then(Value::as_str).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let authors = json
+        .get("authors")
+        .and_then(Value::as_array)
+        .map(|list| {
+            list.iter()
+                .filter_map(|a| match a {
+                    Value::String(s) => Some(s.clone()),
+                    other => other.get("name").and_then(Value::as_str).map(str::to_string),
+                })
+                .take(4)
+                .collect()
+        })
+        .unwrap_or_default();
+    // "icon" is either one path or a map of pixel size -> path; take the largest size.
+    let icon_path = match json.get("icon") {
+        Some(Value::String(s)) => Some(s.clone()),
+        Some(Value::Object(map)) => map
+            .iter()
+            .filter_map(|(k, v)| Some((k.parse::<u32>().ok()?, v.as_str()?.to_string())))
+            .max_by_key(|(size, _)| *size)
+            .map(|(_, path)| path),
+        _ => None,
+    };
+    let meta = ModMeta {
+        name: string("name").or_else(|| string("id")),
+        version: string("version"),
+        description: string("description"),
+        authors,
+        icon: None,
+    };
+    (meta, icon_path)
+}
+
+/// Reads what a mod jar says about itself. Never fails: a jar without metadata just shows its file name.
+pub fn read_meta(jar: &Path) -> ModMeta {
+    let Ok(file) = File::open(jar) else { return ModMeta::default() };
+    let Ok(mut zip) = zip::ZipArchive::new(file) else { return ModMeta::default() };
+    let Some(bytes) = read_zip_entry(&mut zip, "fabric.mod.json") else { return ModMeta::default() };
+    let (mut meta, icon_path) = parse_fabric_meta(&String::from_utf8_lossy(&bytes));
+    if let Some(path) = icon_path.filter(|p| !p.contains("..")) {
+        if let Some(png) = read_zip_entry(&mut zip, path.trim_start_matches('/')) {
+            if png.starts_with(&[0x89, b'P', b'N', b'G']) {
+                meta.icon = Some(crate::skins::png_data_url(&png));
+            }
+        }
+    }
+    meta
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Default)]
@@ -525,8 +607,19 @@ pub fn list_installed(mods_dir: &Path) -> Vec<InstalledMod> {
                     let lower = name.to_ascii_lowercase();
                     let on = lower.ends_with(".jar");
                     let off = lower.ends_with(".jar.disabled");
-                    (meta.is_file() && (on || off))
-                        .then(|| InstalledMod { file_name: name, size: meta.len(), enabled: on })
+                    (meta.is_file() && (on || off)).then(|| {
+                        let info = read_meta(&e.path());
+                        InstalledMod {
+                            file_name: name,
+                            size: meta.len(),
+                            enabled: on,
+                            name: info.name,
+                            version: info.version,
+                            description: info.description,
+                            authors: info.authors,
+                            icon: info.icon,
+                        }
+                    })
                 })
                 .collect()
         })
@@ -691,6 +784,48 @@ mod tests {
         remove(dir.path(), "b.jar").unwrap();
         assert!(remove(dir.path(), "b.jar").is_err());
         assert_eq!(list_installed(dir.path()).len(), 1);
+    }
+
+    #[test]
+    fn fabric_metadata_is_read_from_the_jar() {
+        use std::io::Write as _;
+        let dir = tempfile::tempdir().unwrap();
+        let jar = dir.path().join("cool.jar");
+        let mut zip = zip::ZipWriter::new(File::create(&jar).unwrap());
+        let opts = zip::write::SimpleFileOptions::default();
+        zip.start_file("fabric.mod.json", opts).unwrap();
+        zip.write_all(
+            br#"{"schemaVersion":1,"id":"cool","name":"Cool Mod","version":"1.2.3","description":"Does cool things.",
+            "authors":["Ann",{"name":"Bob"}],"icon":{"16":"a.png","128":"assets/cool/icon.png"}}"#,
+        )
+        .unwrap();
+        zip.start_file("assets/cool/icon.png", opts).unwrap();
+        zip.write_all(&[0x89, b'P', b'N', b'G', 1, 2, 3]).unwrap();
+        zip.finish().unwrap();
+        let meta = read_meta(&jar);
+        assert_eq!(meta.name.as_deref(), Some("Cool Mod"));
+        assert_eq!(meta.version.as_deref(), Some("1.2.3"));
+        assert_eq!(meta.description.as_deref(), Some("Does cool things."));
+        assert_eq!(meta.authors, vec!["Ann".to_string(), "Bob".to_string()]);
+        assert!(meta.icon.unwrap().starts_with("data:image/png;base64,"));
+        // The same facts show up in the installed list, even while the mod is switched off.
+        set_enabled(dir.path(), "cool.jar", false).unwrap();
+        let listed = list_installed(dir.path());
+        assert_eq!(listed[0].name.as_deref(), Some("Cool Mod"));
+        assert!(!listed[0].enabled);
+    }
+
+    #[test]
+    fn a_jar_without_metadata_still_lists_by_file_name() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("plain.jar"), "not a zip").unwrap();
+        let listed = list_installed(dir.path());
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].name, None);
+        assert_eq!(parse_fabric_meta("not json"), (ModMeta::default(), None));
+        let (meta, icon) = parse_fabric_meta(r#"{"id":"only-id","icon":"i.png"}"#);
+        assert_eq!(meta.name.as_deref(), Some("only-id"));
+        assert_eq!(icon.as_deref(), Some("i.png"));
     }
 
     #[test]
