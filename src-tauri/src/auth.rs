@@ -321,11 +321,17 @@ fn wait(total: Duration, cancel: &AtomicBool) -> Result<(), AuthError> {
 /// Register this exact address under "Mobile and desktop applications" in Azure.
 pub const REDIRECT_URI: &str = "https://login.microsoftonline.com/consumers/oauth2/nativeclient";
 
-/// The public app ID built into this copy of Cirrus Client, if the build had one.
+/// Cirrus Client's own Microsoft application (client) ID. It is public by design (it ships inside every
+/// launcher); it is not a secret and carries no password.
+pub const DEFAULT_CLIENT_ID: &str = "eacfd73b-93b5-4f1c-81ec-889620103c1f";
+
+/// The public app ID built into this copy of Cirrus Client. A `LIMITEDFPS_MS_CLIENT_ID` given at build time
+/// wins (handy for testing another registration); otherwise Cirrus Client's own ID is used.
 pub fn builtin_client_id() -> Option<&'static str> {
     option_env!("LIMITEDFPS_MS_CLIENT_ID")
         .map(str::trim)
         .filter(|id| is_valid_client_id(id))
+        .or(Some(DEFAULT_CLIENT_ID))
 }
 
 /// URL-safe base64 without padding (RFC 4648 section 5).
@@ -918,6 +924,12 @@ mod tests {
         let err = sign_in_window(&endpoints(&base), ID, &MemoryStore::default(), &AtomicBool::new(false), &|_| Ok(format!("{REDIRECT_URI}?code=X&state=forged"))).unwrap_err();
         assert!(err.to_string().contains("did not match"));
         assert_eq!(hits.load(Ordering::SeqCst), 0); // no request ever left
+    }
+
+    #[test]
+    fn cirrus_has_its_own_application_id_built_in() {
+        assert!(is_valid_client_id(DEFAULT_CLIENT_ID));
+        assert!(builtin_client_id().is_some());
     }
 
     #[test]

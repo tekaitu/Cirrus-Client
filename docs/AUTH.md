@@ -28,7 +28,7 @@ Only those fixed Microsoft, Xbox and Minecraft addresses are contacted; redirect
 
 ## You must register the Azure app (once)
 
-Cirrus Client does not ship an app ID and never borrows another launcher's. It is free: no Azure subscription or payment is needed. (Checked against Microsoft's error-code reference and current launcher documentation, November 2026.)
+Cirrus Client ships its own public app ID (`eacfd73b-93b5-4f1c-81ec-889620103c1f`, built in; an app ID is not a secret) and never borrows another launcher's. It is free: no Azure subscription or payment is needed. (Checked against Microsoft's error-code reference and current launcher documentation, November 2026.)
 
 ### 1. Register the app (free)
 1. Open <https://entra.microsoft.com> and sign in with your own Microsoft account. If you see **AADSTS16000** here, your personal account has no directory yet. Create a free one at <https://entra.microsoft.com/#create/tenant> (or by starting a free Azure account, which does not charge you), then sign in again.
@@ -39,8 +39,9 @@ Cirrus Client does not ship an app ID and never borrows another launcher's. It i
 6. On the same page, turn **Allow public client flows** on (needed for the "Use a code instead" fallback) and Save.
 7. Copy the **Application (client) ID** from the Overview page. It is an ID, not a secret; never create or share a client secret.
 
-### 2. Give it to the app (no hardcoding)
-- **Released build:** in the GitHub repository open Settings > Secrets and variables > Actions > **Variables** and add `LIMITEDFPS_MS_CLIENT_ID` (the name is kept so existing setups keep working). The next build embeds it.
+### 2. Give it to the app
+- **Built in:** the ID above is compiled into `src-tauri/src/auth.rs` (`DEFAULT_CLIENT_ID`), so players can sign in without configuring anything.
+- **Released build:** in the GitHub repository open Settings > Secrets and variables > Actions > **Variables** and add `LIMITEDFPS_MS_CLIENT_ID` to build with a different registration instead of the built-in one. The next build embeds it.
 - **Quick local test:** paste it into Settings > General > Microsoft sign-in (advanced). It is stored in the settings file and overrides the built-in value.
 
 ### 3. Get it approved for Minecraft (the part that decides everything)
