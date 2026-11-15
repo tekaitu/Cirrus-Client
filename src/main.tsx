@@ -4,7 +4,11 @@ import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initTheme } from "./core/theme";
 import { initWindowFrame } from "./core/windowFrame";
-import "./styles.css";
+import "./styles/legacy.css";
+import "./styles/tokens.css";
+import "./styles/base.css";
+import "./styles/shell.css";
+import "./styles/pages.css";
 
 initTheme();
 initWindowFrame();

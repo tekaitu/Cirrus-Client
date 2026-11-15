@@ -150,77 +150,7 @@ export function PlayPanel({
   const doneCount = steps.filter((x) => x.done).length;
 
   return (
-    <div className={`play-panel cirrus-play-panel cirrus-play-panel-${variant}`}>
-      <style>{`
-        .cirrus-play-panel {
-          position: relative;
-          padding: 20px;
-          border: 1px solid rgba(151, 190, 255, .16);
-          border-radius: 20px;
-          background: linear-gradient(145deg, rgba(20, 37, 67, .72), rgba(7, 15, 31, .78));
-          box-shadow: 0 18px 55px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.055);
-          backdrop-filter: blur(24px) saturate(145%);
-          -webkit-backdrop-filter: blur(24px) saturate(145%);
-        }
-        .cirrus-play-panel .steps { gap: 10px; }
-        .cirrus-play-panel .steps li { color: rgba(213,225,246,.62); }
-        .cirrus-play-panel .step-dot {
-          border: 1px solid rgba(151,190,255,.22);
-          background: rgba(13,27,49,.8);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-        }
-        .cirrus-play-panel .step-done .step-dot,
-        .cirrus-play-panel .step-active .step-dot {
-          color: #fff;
-          border-color: rgba(99,169,255,.55);
-          background: linear-gradient(145deg, #2878ed, #55b4ff);
-          box-shadow: 0 0 20px rgba(55,139,255,.28);
-        }
-        .cirrus-play-panel .pick select,
-        .cirrus-play-panel .name-field input {
-          border: 1px solid rgba(151,190,255,.17);
-          border-radius: 11px;
-          background: rgba(5,13,28,.72);
-          color: #f3f7ff;
-        }
-        .cirrus-play-panel .seg {
-          padding: 4px;
-          border: 1px solid rgba(151,190,255,.13);
-          border-radius: 12px;
-          background: rgba(4,11,24,.48);
-        }
-        .cirrus-play-panel .seg button { border-radius: 9px; transition: background .18s ease, color .18s ease, box-shadow .18s ease; }
-        .cirrus-play-panel .seg button.seg-on {
-          color: #fff;
-          background: rgba(49,126,239,.24);
-          box-shadow: inset 0 0 0 1px rgba(106,174,255,.25), 0 3px 14px rgba(27,91,190,.16);
-        }
-        .cirrus-play-panel .play-dock {
-          margin-top: 16px;
-          padding: 14px;
-          border: 1px solid rgba(123,177,255,.2);
-          border-radius: 15px;
-          background: rgba(5,14,30,.72);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
-          backdrop-filter: blur(18px);
-        }
-        .cirrus-play-panel .btn-primary {
-          border: 1px solid rgba(174,215,255,.38);
-          background: linear-gradient(110deg, #1766e8, #398cff 58%, #62baff);
-          box-shadow: 0 7px 24px rgba(36,115,244,.3), inset 0 1px 0 rgba(255,255,255,.2);
-          transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-        }
-        .cirrus-play-panel .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          filter: brightness(1.08);
-          box-shadow: 0 10px 30px rgba(36,115,244,.42), inset 0 1px 0 rgba(255,255,255,.24);
-        }
-        .cirrus-play-panel .btn:disabled { cursor: not-allowed; opacity: .58; }
-        .cirrus-play-panel .hero-note { margin-top: 10px; }
-        .cirrus-play-panel-quick { padding: 17px; }
-        @media (max-width: 620px) { .cirrus-play-panel { padding: 14px; border-radius: 16px; } }
-        @media (prefers-reduced-motion: reduce) { .cirrus-play-panel *, .cirrus-play-panel *::before, .cirrus-play-panel *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
-      `}</style>
+    <div className={`play-panel lp lp-${variant}`}>
       <ol className="steps" aria-label="Setup progress">
         {steps.map((st, i) => (
           <li key={st.label} className={`${st.done ? "step-done" : ""} ${st.active ? "step-active" : ""}`.trim()}>
@@ -354,7 +284,7 @@ export function PlayPanel({
               "Not signed in"
             )}
           </span>
-          <button type="button" className="link-inline" onClick={() => onNavigate("play")}>
+          <button type="button" className="link-inline" onClick={() => onNavigate("versions")}>
             Change
           </button>
         </p>
@@ -377,7 +307,7 @@ export function PlayPanel({
         <div className="hero-actions">
           <button
             type="button"
-            className={`btn btn-pill ${action.danger ? "btn-danger" : "btn-primary btn-glow"}`}
+            className={`btn btn-pill lp-go ${action.danger ? "btn-danger" : "btn-primary btn-glow"}`}
             disabled={action.disabled}
             onClick={action.onClick}
           >
@@ -390,7 +320,7 @@ export function PlayPanel({
               View log
             </button>
           ) : (
-            <button type="button" className="btn btn-pill" onClick={() => onNavigate(variant === "quick" ? "play" : "settings")}>
+            <button type="button" className="btn btn-pill" onClick={() => onNavigate(variant === "quick" ? "versions" : "settings")}>
               <SettingsIcon />
               {variant === "quick" ? "Launch options" : "Settings"}
             </button>

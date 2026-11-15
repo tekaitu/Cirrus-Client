@@ -81,3 +81,28 @@ export const MOD_CATEGORIES: ReadonlyArray<{ id: string; label: string }> = [
   { id: "minigame", label: "Minigame" },
   { id: "cursed", label: "Cursed" },
 ];
+
+/** How many results one page of the browser shows (the same number the search asks for). */
+export const PAGE_SIZE = 20;
+
+export const MOD_SORTS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "", label: "Best match" },
+  { id: "downloads", label: "Most downloaded" },
+  { id: "newest", label: "Newest" },
+  { id: "updated", label: "Recently updated" },
+];
+
+/** The page numbers to show: always the first and last, and a few around the current one. `null` is a gap ("…"). */
+export function pageWindow(page: number, pages: number): Array<number | null> {
+  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+  const keep = new Set([1, pages, page - 1, page, page + 1]);
+  if (page <= 3) [2, 3, 4].forEach((n) => keep.add(n));
+  if (page >= pages - 2) [pages - 3, pages - 2, pages - 1].forEach((n) => keep.add(n));
+  const list = [...keep].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const out: Array<number | null> = [];
+  list.forEach((n, i) => {
+    if (i > 0 && n - list[i - 1] > 1) out.push(null);
+    out.push(n);
+  });
+  return out;
+}

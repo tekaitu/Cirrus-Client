@@ -1,0 +1,128 @@
+/* ==========================================================================
+   Cirrus design tokens. Every colour, radius, blur and timing used by the new
+   interface lives here, once, for both appearances (Dark and Light).
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+
+  /* surfaces (midnight navy) */
+  --bg: #080d18;
+  --bg-2: #0d1422;
+  --surface: rgba(13, 20, 34, 0.66);
+  --surface-solid: #0d1422;
+  --raised: rgba(24, 36, 58, 0.72);
+  --raised-solid: #131d2d;
+  --raised-2: rgba(34, 50, 78, 0.78);
+  --glass: rgba(12, 19, 33, 0.58);
+  --glass-strong: rgba(10, 16, 28, 0.84);
+  --glass-border: rgba(150, 178, 230, 0.16);
+  --glass-hi: rgba(255, 255, 255, 0.06);
+  --blur: 18px;
+  --border: rgba(146, 170, 214, 0.14);
+  --border-strong: rgba(146, 170, 214, 0.28);
+
+  /* text */
+  --text: #f2f5ff;
+  --text-soft: #c7d0e4;
+  --muted: #929db2;
+
+  /* accents */
+  --accent: #368bff;
+  --accent-strong: #1f6fe8;
+  --accent-bright: #7bb4ff;
+  --accent-2: #42c8f5;
+  --violet: #8874ff;
+  --accent-rgb: 54 139 255;
+  --accent-soft: rgb(var(--accent-rgb) / 0.16);
+  --on-accent: #ffffff;
+  --good: #3ddc97;
+  --warn: #f5b942;
+  --bad: #f2706d;
+
+  /* shape and depth */
+  --radius: 12px;
+  --radius-sm: 9px;
+  --radius-lg: 18px;
+  --shadow: 0 10px 30px rgba(2, 6, 16, 0.35);
+  --shadow-lg: 0 24px 70px rgba(2, 6, 16, 0.5);
+  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.45);
+  --tooltip: #04070f;
+  --tooltip-text: #ffffff;
+  --scrim: rgba(3, 6, 14, 0.7);
+
+  /* type */
+  --font: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+
+  /* motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fast: 140ms;
+  --med: 220ms;
+
+  /* the picture behind the window */
+  --scene-veil: linear-gradient(180deg, rgba(8, 13, 24, 0.62) 0%, rgba(8, 13, 24, 0.42) 38%, rgba(8, 13, 24, 0.82) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(4, 8, 18, 0.7) 100%);
+  --scene-filter: saturate(1.05);
+
+  /* names the older stylesheet still uses */
+  --hero-scrim: linear-gradient(90deg, rgba(8, 13, 24, 0.85), rgba(8, 13, 24, 0.3));
+  --dock-bg: var(--glass-strong);
+  --dock-border: var(--glass-border);
+  --sky-top: #060a18;
+  --sky-mid: #0d1c47;
+  --sky-bottom: #1a3f88;
+  --sky-glow: #6aa5ff;
+  --sky-cloud: #b9deff;
+  --sky-cloud-far: 0.07;
+  --sky-cloud-near: 0.13;
+  --sky-hills: #080c18;
+  --sky-stars: 0.55;
+  --sky-sun: #dcebff;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #e8eef9;
+  --bg-2: #f3f6fc;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-solid: #ffffff;
+  --raised: rgba(255, 255, 255, 0.82);
+  --raised-solid: #f4f7fd;
+  --raised-2: rgba(232, 238, 250, 0.9);
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(40, 70, 130, 0.16);
+  --glass-hi: rgba(255, 255, 255, 0.8);
+  --border: rgba(40, 70, 130, 0.14);
+  --border-strong: rgba(40, 70, 130, 0.3);
+  --text: #0e1626;
+  --text-soft: #2a3550;
+  --muted: #5a6780;
+  --accent: #2470f0;
+  --accent-strong: #1558d4;
+  --accent-bright: #1b5ae0;
+  --accent-2: #0b9fd0;
+  --violet: #6a56e6;
+  --accent-rgb: 36 112 240;
+  --good: #12935f;
+  --warn: #b7791f;
+  --bad: #d64545;
+  --shadow: 0 10px 30px rgba(30, 50, 90, 0.14);
+  --shadow-lg: 0 24px 60px rgba(30, 50, 90, 0.22);
+  --tooltip: #0e1626;
+  --scrim: rgba(14, 22, 38, 0.42);
+  --scene-veil: linear-gradient(180deg, rgba(240, 245, 255, 0.55) 0%, rgba(240, 245, 255, 0.4) 40%, rgba(236, 242, 253, 0.86) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(210, 222, 245, 0.7) 100%);
+  --scene-filter: saturate(0.95) brightness(1.05);
+  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
+  --sky-top: #7fb4f5;
+  --sky-mid: #b5d7fb;
+  --sky-bottom: #e3f0ff;
+  --sky-glow: #ffffff;
+  --sky-cloud: #ffffff;
+  --sky-cloud-far: 0.55;
+  --sky-cloud-near: 0.9;
+  --sky-hills: #8fb3e3;
+  --sky-stars: 0;
+  --sky-sun: #ffffff;
+}

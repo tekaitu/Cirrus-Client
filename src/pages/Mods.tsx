@@ -1,9 +1,10 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
-import { DownloadIcon, GridIcon, ListIcon, ModsIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
+import { CompassIcon, DownloadIcon, GridIcon, ListIcon, ModsIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
+import type { PageId } from "../components/Navigation";
 import { Banner, Card, Spinner } from "../components/ui";
-import { MOD_CATEGORIES, MOD_PACKS, formatDownloads, formatFileSize, type ModPack } from "../core/mods";
+import { MOD_CATEGORIES, MOD_PACKS, MOD_SORTS, PAGE_SIZE, formatDownloads, formatFileSize, pageWindow, type ModPack } from "../core/mods";
 import type { AppData } from "../hooks/useAppData";
 
 const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
@@ -11,7 +12,39 @@ const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
   { id: "curseforge", label: "CurseForge" },
 ];
 
-export function ModsPage({ data }: { data: AppData }) {
+/** The pages of results, like 1 2 3 … 40, with first/previous/next/last. */
+function Pagination({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
+  if (pages <= 1) return null;
+  return (
+    <nav className="pager" aria-label="Pagination">
+      <button type="button" className="pager-btn" aria-label="First page" disabled={page === 1} onClick={() => onPage(1)}>
+        «
+      </button>
+      <button type="button" className="pager-btn" aria-label="Previous page" disabled={page === 1} onClick={() => onPage(page - 1)}>
+        ‹
+      </button>
+      {pageWindow(page, pages).map((n, i) =>
+        n === null ? (
+          <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">
+            …
+          </span>
+        ) : (
+          <button key={n} type="button" className={`pager-btn ${n === page ? "pager-on" : ""}`} aria-label={`Page ${n}`} aria-current={n === page ? "page" : undefined} onClick={() => onPage(n)}>
+            {n}
+          </button>
+        ),
+      )}
+      <button type="button" className="pager-btn" aria-label="Next page" disabled={page === pages} onClick={() => onPage(page + 1)}>
+        ›
+      </button>
+      <button type="button" className="pager-btn" aria-label="Last page" disabled={page === pages} onClick={() => onPage(pages)}>
+        »
+      </button>
+    </nav>
+  );
+}
+
+export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "manage" | "browse"; onNavigate: (page: PageId) => void }) {
   const { selection, game } = data;
   const version = selection.version;
   const profileId = selection.profile?.id;
@@ -28,7 +61,9 @@ export function ModsPage({ data }: { data: AppData }) {
   const [done, setDone] = useState<string[]>([]);
   const [modFilter, setModFilter] = useState("");
   const [filter, setFilter] = useState<"all" | "on" | "off">("all");
-  const [view, setView] = useState<"manage" | "browse">("manage");
+  const view = mode;
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState("");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [category, setCategory] = useState<string>("");
   const mounted = useRef(true);
@@ -59,35 +94,40 @@ export function ModsPage({ data }: { data: AppData }) {
   }, [version, profileId]);
 
   const search = useCallback(
-    async (text: string, offset: number, cat: string = category) => {
+    async (text: string, pageNo: number, cat: string = category, order: string = sort) => {
       setSearching(true);
       setSearchError(null);
+      const offset = (pageNo - 1) * PAGE_SIZE;
+      const catArg = cat && provider === "modrinth" ? cat : undefined;
       try {
-        const result = await (cat && provider === "modrinth"
-          ? api.searchMods(provider, text, version, offset, cat)
-          : api.searchMods(provider, text, version, offset));
+        const result = await (order
+          ? api.searchMods(provider, text, version, offset, catArg, order)
+          : catArg
+            ? api.searchMods(provider, text, version, offset, catArg)
+            : api.searchMods(provider, text, version, offset));
         if (!mounted.current) return;
-        setHits((prev) => (offset > 0 && prev ? [...prev, ...result.hits] : result.hits));
+        setHits(result.hits);
         setTotal(result.total);
+        setPage(pageNo);
       } catch (e) {
         if (mounted.current) {
           setSearchError(errorMessage(e));
-          if (offset === 0) setHits([]);
+          setHits([]);
         }
       } finally {
         if (mounted.current) setSearching(false);
       }
     },
-    [provider, version, category],
+    [provider, version, category, sort],
   );
 
   // Popular mods for the chosen version and site.
   useEffect(() => {
     setDone([]);
     setNotice(null);
-    void search(query, 0);
+    if (view === "browse") void search(query, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider, version, category]);
+  }, [provider, version, category, sort, view]);
 
   useEffect(() => {
     setDone([]);
@@ -180,24 +220,26 @@ export function ModsPage({ data }: { data: AppData }) {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    void search(query, 0);
+    void search(query, 1);
   };
 
   const clearFilters = () => {
     setCategory("");
+    setSort("");
     setQuery("");
-    void search("", 0, "");
+    void search("", 1, "", "");
   };
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const versionLabel = `${version} · ${selection.loader === "fabric" ? "Fabric" : "Vanilla"}`;
 
   return (
-    <div className="page mods-page mods-page-cirrus">
-      <header className="page-head page-head-row mods-hero">
+    <div className={`page mods-page ${view === "browse" ? "browse-page" : ""}`}>
+      <header className="page-head page-head-row">
         <div>
-          <div className="mods-eyebrow"><span className="mods-eyebrow-dot" /> CIRRUS LIBRARY</div>
-          <h1>{view === "browse" ? "Discover your next mods." : "Your Minecraft, your way."}</h1>
-          <p className="muted">
+          <p className="eyebrow">{view === "browse" ? "Discover" : "Library"}</p>
+          <h1>{view === "browse" ? "Browse mods" : "Mod manager"}</h1>
+          <p>
             {view === "browse"
               ? `Fabric mods for Minecraft ${version}, from Modrinth and CurseForge.`
               : selection.profile
@@ -205,18 +247,31 @@ export function ModsPage({ data }: { data: AppData }) {
                 : `Installed for Minecraft ${version} with Fabric. Each version keeps its own mods.`}
           </p>
         </div>
-        <div className="page-actions mods-hero-actions">
-          <span className="chip" title="Change the version on the Play page">
-            {versionLabel}
-          </span>
+        <div className="page-actions">
+          {view === "browse" ? (
+            <label className="for-picker">
+              <span>for</span>
+              <select aria-label="Minecraft version for mods" value={version} onChange={(e) => selection.setVersion(e.target.value)}>
+                {selection.versions.map((v) => (
+                  <option key={v} value={v}>
+                    {v} · {selection.loader === "fabric" ? "Fabric" : "Vanilla"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <span className="chip" title="Change the version on the Versions page">
+              {versionLabel}
+            </span>
+          )}
           {selection.profile && <span className="chip chip-accent">{selection.profile.name}</span>}
           {view === "browse" ? (
-            <button type="button" className="btn" onClick={() => setView("manage")}>
+            <button type="button" className="btn" onClick={() => onNavigate("mods")}>
               Back to my mods
             </button>
           ) : (
-            <button type="button" className="btn btn-primary" onClick={() => setView("browse")}>
-              <SearchIcon />
+            <button type="button" className="btn btn-primary" onClick={() => onNavigate("browse")}>
+              <CompassIcon />
               Browse mods
             </button>
           )}
@@ -238,7 +293,7 @@ export function ModsPage({ data }: { data: AppData }) {
       )}
       {selection.loader === "fabric" && game.status && !game.status.installed && (
         <Banner tone="info" title={`Install Minecraft ${version} with Fabric first`}>
-          Press <strong>Set up &amp; play</strong> on the Home or Play page. Once it finishes, you can add mods here.
+          Press <strong>Set up &amp; play</strong> on the Home or Versions page. Once it finishes, you can add mods here.
         </Banner>
       )}
 
@@ -263,7 +318,7 @@ export function ModsPage({ data }: { data: AppData }) {
                     : "Install Minecraft with Fabric first. Then your mods show up here."}
                 </p>
                 {fabricReady && (
-                  <button type="button" className="btn btn-primary" onClick={() => setView("browse")}>
+                  <button type="button" className="btn btn-primary" onClick={() => onNavigate("browse")}>
                     Browse for mods
                   </button>
                 )}
@@ -408,19 +463,12 @@ export function ModsPage({ data }: { data: AppData }) {
 
       {view === "browse" && (
         <div className="browse mods-browser-layout">
-          <aside className="browse-filters mods-glass-panel" aria-label="Filters">
+          <aside className="browse-filters" aria-label="Filters">
             <div className="filter-block">
               <h2 className="filter-title">Site</h2>
               <div className="seg seg-stack" role="tablist" aria-label="Mod site">
                 {PROVIDERS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={provider === p.id}
-                    className={provider === p.id ? "seg-on" : ""}
-                    onClick={() => setProvider(p.id)}
-                  >
+                  <button key={p.id} type="button" role="tab" aria-selected={provider === p.id} className={provider === p.id ? "seg-on" : ""} onClick={() => setProvider(p.id)}>
                     {p.label}
                   </button>
                 ))}
@@ -429,10 +477,9 @@ export function ModsPage({ data }: { data: AppData }) {
             <div className="filter-block">
               <h2 className="filter-title">Minecraft version</h2>
               <p className="chip chip-wide">{version}</p>
-              <p className="muted small">Change it on the Play page.</p>
             </div>
             {provider === "modrinth" && (
-              <div className="filter-block">
+              <div className="filter-block filter-cats">
                 <div className="filter-title-row">
                   <h2 className="filter-title" id="cat-label">
                     Categories
@@ -443,14 +490,7 @@ export function ModsPage({ data }: { data: AppData }) {
                 </div>
                 <div className="radio-list" role="radiogroup" aria-labelledby="cat-label">
                   {[{ id: "", label: "All" }, ...MOD_CATEGORIES].map((c) => (
-                    <button
-                      key={c.id || "all"}
-                      type="button"
-                      role="radio"
-                      aria-checked={category === c.id}
-                      className={`radio-row ${category === c.id ? "radio-on" : ""}`}
-                      onClick={() => setCategory(c.id)}
-                    >
+                    <button key={c.id || "all"} type="button" role="radio" aria-checked={category === c.id} className={`radio-row ${category === c.id ? "radio-on" : ""}`} onClick={() => setCategory(c.id)}>
                       <span className="radio-dot" aria-hidden="true" />
                       {c.label}
                     </button>
@@ -460,74 +500,85 @@ export function ModsPage({ data }: { data: AppData }) {
             )}
           </aside>
 
-          <div className="browse-main mods-browser-main">
+          <div className="browse-main">
             {provider === "curseforge" && !curseforge && (
               <p className="muted small">
-                CurseForge search needs an API key from CurseForge, which this build does not include. Modrinth works
-                without one.
+                CurseForge search needs an API key from CurseForge, which this build does not include. Modrinth works without one.
               </p>
             )}
-            <form className="search-row mods-search" onSubmit={onSubmit} role="search">
-              <input
-                type="text"
-                aria-label="Search mods"
-                placeholder="Search mods…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <button type="submit" className="btn btn-primary" disabled={searching}>
+            <div className="browse-bar">
+              <div className="seg seg-icons" role="radiogroup" aria-label="Result layout">
+                <button type="button" role="radio" aria-checked={layout === "grid"} aria-label="Grid results" className={layout === "grid" ? "seg-on" : ""} onClick={() => setLayout("grid")}>
+                  <GridIcon />
+                </button>
+                <button type="button" role="radio" aria-checked={layout === "list"} aria-label="List results" className={layout === "list" ? "seg-on" : ""} onClick={() => setLayout("list")}>
+                  <ListIcon />
+                </button>
+              </div>
+              <form className="search-box search-grow" onSubmit={onSubmit} role="search">
                 <SearchIcon />
-                Search
-              </button>
-            </form>
+                <input type="text" aria-label="Search mods" placeholder="Search for content…" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <button type="submit" className="btn btn-primary btn-small" disabled={searching}>
+                  Search
+                </button>
+              </form>
+              <label className="sort-pick">
+                <span className="visually-hidden">Sort by</span>
+                <select aria-label="Sort by" value={sort} onChange={(e) => setSort(e.target.value)}>
+                  {MOD_SORTS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             {searchError && <p className="error-text" role="alert">{searchError}</p>}
             {searching && hits === null && <Spinner label="Searching" />}
-            {hits && hits.length === 0 && !searching && !searchError && (
-              <p className="muted">No Fabric mods found for Minecraft {version}.</p>
-            )}
+            {hits && hits.length === 0 && !searching && !searchError && <p className="muted">No Fabric mods found for Minecraft {version}.</p>}
             {hits && hits.length > 0 && (
-              <ul className="mod-list">
+              <ul className={`mod-results ${layout === "list" ? "mod-results-list" : ""} ${searching ? "is-loading" : ""}`}>
                 {hits.map((h) => {
                   const key = `${h.provider}:${h.id}`;
                   const isDone = done.includes(key);
                   return (
                     <li key={key} className="mod-card">
-                      {h.iconUrl ? (
-                        <img className="mod-icon" src={h.iconUrl} alt="" loading="lazy" width={72} height={72} referrerPolicy="no-referrer" />
-                      ) : (
-                        <span className="mod-icon mod-icon-empty" aria-hidden="true">
-                          {h.title.slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
+                      <div className="mod-card-art" aria-hidden="true">
+                        {h.iconUrl && <img className="mod-card-blur" src={h.iconUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />}
+                        {h.iconUrl ? (
+                          <img className="mod-icon" src={h.iconUrl} alt="" loading="lazy" width={72} height={72} referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="mod-icon mod-icon-empty">{h.title.slice(0, 1).toUpperCase()}</span>
+                        )}
+                      </div>
                       <div className="mod-body">
                         <h3>{h.title}</h3>
-                        <p className="muted small mod-desc">{h.description}</p>
-                        <p className="muted small">
-                          {h.author && <>by {h.author} · </>}
-                          {formatDownloads(h.downloads)} downloads
-                        </p>
+                        <p className="mod-by">{h.author ? `by ${h.author}` : "\u00a0"}</p>
+                        <p className="mod-desc">{h.description}</p>
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        disabled={!fabricReady || busy !== null || isDone}
-                        aria-label={`Install ${h.title}`}
-                        onClick={() => install(h.provider, h.id, h.title)}
-                      >
-                        {!isDone && busy !== h.id && <DownloadIcon />}
-                        {isDone ? "Installed" : busy === h.id ? "Installing…" : "Install"}
-                      </button>
+                      <div className="mod-foot">
+                        <span className="mod-downloads">
+                          <DownloadIcon />
+                          {formatDownloads(h.downloads)}
+                          <span className="visually-hidden"> downloads</span>
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-small"
+                          disabled={!fabricReady || busy !== null || isDone}
+                          aria-label={`Install ${h.title}`}
+                          onClick={() => install(h.provider, h.id, h.title)}
+                        >
+                          {isDone ? "Installed" : busy === h.id ? "Installing…" : "Install"}
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
               </ul>
             )}
-            {hits && hits.length < total && !searching && (
-              <button type="button" className="btn btn-pill" onClick={() => search(query, hits.length)}>
-                Show more
-              </button>
-            )}
+            <Pagination page={page} pages={pages} onPage={(n) => void search(query, n)} />
           </div>
         </div>
       )}

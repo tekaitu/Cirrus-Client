@@ -141,7 +141,7 @@ export function AccountsPage({
               Offline play starts Minecraft with a player name you choose. It works for singleplayer and
               for servers that run in offline mode. Servers that verify Microsoft accounts will refuse it.
             </p>
-            <button type="button" className="btn" onClick={() => onNavigate("play")}>
+            <button type="button" className="btn" onClick={() => onNavigate("versions")}>
               <PlayArrowIcon />
               Choose a player name
             </button>

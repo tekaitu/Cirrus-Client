@@ -110,8 +110,8 @@ export const api = {
   playerSkin: (player: string) => call<string | null>("player_skin", { player }),
   quitApp: () => call<void>("quit_app"),
   curseforgeAvailable: () => call<boolean>("curseforge_available"),
-  searchMods: (provider: ModProvider, query: string, version: string, offset: number, category?: string) =>
-    call<ModSearchResult>("search_mods", { provider, query, version, offset, category: category ?? null }),
+  searchMods: (provider: ModProvider, query: string, version: string, offset: number, category?: string, sort?: string) =>
+    call<ModSearchResult>("search_mods", { provider, query, version, offset, category: category ?? null, sort: sort ?? null }),
   installMod: (provider: ModProvider, id: string, version: string, profile?: string) =>
     call<ModInstallReport>("install_mod", { provider, id, version, profile: profile ?? null }),
   listMods: (version: string, profile?: string) => call<InstalledMod[]>("list_mods", { version, profile: profile ?? null }),

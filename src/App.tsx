@@ -4,6 +4,7 @@ import { LicenseDialog } from "./components/LicenseDialog";
 import { SignInDialog } from "./components/SignInDialog";
 import { GameDialog } from "./components/GameDialog";
 import { FooterBar } from "./components/FooterBar";
+import { AppBackground, type BackdropId } from "./components/Scene";
 import { CloseIcon } from "./components/Icons";
 import { TopNav, type PageId } from "./components/Navigation";
 import { LICENSE_VERSION } from "./content/license";
@@ -15,12 +16,27 @@ import { AboutPage } from "./pages/About";
 import { AccountsPage } from "./pages/Accounts";
 import { ModsPage } from "./pages/Mods";
 import { SkinsPage } from "./pages/Skins";
-import { PlayPage } from "./pages/Play";
+import { VersionsPage } from "./pages/Versions";
+import { ModpacksPage } from "./pages/Modpacks";
 import { SettingsPage } from "./pages/Settings";
 import { pageForShortcut } from "./core/shortcuts";
 import { readRecent, writeRecent, type RecentPlay } from "./core/recent";
 import { readDiscordEnabled, writeDiscordEnabled } from "./core/discord";
 import { useDiscordPresence } from "./hooks/useDiscordPresence";
+
+/** Which picture sits behind each page. */
+const BACKDROPS: Record<PageId, BackdropId> = {
+  home: "home",
+  versions: "library",
+  mods: "library",
+  modpacks: "library",
+  skins: "library",
+  browse: "browse",
+  accounts: "night",
+  settings: "night",
+  about: "night",
+  diagnostics: "night",
+};
 
 export default function App() {
   const data = useAppData();
@@ -129,6 +145,7 @@ export default function App() {
 
   return (
     <div className="layout">
+      <AppBackground id={BACKDROPS[page]} />
       <div className="workspace">
         <TopNav
           page={page}
@@ -145,8 +162,10 @@ export default function App() {
           {page === "home" && (
             <HomePage data={data} recent={recent} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />
           )}
-          {page === "play" && <PlayPage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />}
-          {page === "mods" && <ModsPage data={data} />}
+          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />}
+          {page === "browse" && <ModsPage data={data} mode="browse" onNavigate={navigate} />}
+          {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
+          {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
           {page === "skins" && <SkinsPage data={data} />}
           {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} onSaveClientId={saveClientId} />}
           {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} />}

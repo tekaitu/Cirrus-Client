@@ -1,9 +1,11 @@
 import { PlayPanel } from "../components/PlayPanel";
+import { VersionCard } from "../components/VersionCard";
+import { loaderLabel, loaderOf, useInstances } from "../hooks/useInstances";
 import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import type { PageId } from "../components/Navigation";
-import { CardArt, SkyScene } from "../components/Art";
-import { ClockIcon, ModsIcon, PlayArrowIcon, SettingsIcon, UserIcon } from "../components/Icons";
+import { CardArt } from "../components/Art";
+import { ClockIcon, CompassIcon, CubeIcon, GridIcon, ModsIcon, PackageIcon, SettingsIcon, UserIcon } from "../components/Icons";
 import { formatAgo, type RecentPlay } from "../core/recent";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { formatMemory, joinParts } from "../core/format";
@@ -93,7 +95,6 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
   const java = data.java;
   const javaCheck: CheckState =
     java.status === "loading" ? "checking" : java.status === "ready" && java.data.selected ? "ok" : "missing";
-
   const gameState: CheckState = data.game.status?.installed ? "ok" : "notInstalled";
   const checks: Array<{ label: string; state: CheckState }> = [
     { label: `Java ${REQUIRED_JAVA_MAJOR} or newer`, state: javaCheck },
@@ -101,19 +102,14 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
     { label: "Minecraft game files", state: gameState },
     { label: "Fabric loader", state: gameState },
   ];
-
+  const { selection } = data;
   return (
-    <section className="hero hero-cinematic" aria-labelledby="hero-title">
-      <SkyScene />
-      <div className="hero-text">
-        <p className="pill eyebrow">CIRRUS CLIENT <span aria-hidden="true">/</span> MINECRAFT JAVA {data.selection.version}</p>
-        <h1 id="hero-title">Your world.
-          <span className="hero-title-accent"> Your way.</span>
-        </h1>
-        <p className="hero-copy">
-          A focused Minecraft experience with a lightweight Fabric setup, quick access to your mods, and the controls you need before you launch.
-        </p>
-      </div>
+    <section className="home-hero" aria-labelledby="hero-title">
+      <p className="eyebrow">Cirrus Client</p>
+      <h1 id="hero-title" className="home-title">
+        {selection.version} <span>{loaderLabel(selection.loader)}</span>
+      </h1>
+      <p className="home-sub">{selection.profile ? `Profile ${selection.profile.name}` : "Minecraft Java Edition"}</p>
       <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
       <ul className="chips" aria-label="What Play needs">
         {checks.map((c) => (
@@ -122,6 +118,55 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
             <Badge tone={CHECK_LABEL[c.state].tone}>{CHECK_LABEL[c.state].text}</Badge>
           </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Installed versions as cards along the bottom of the first screen. Picking one makes it the version to play. */
+function VersionRow({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
+  const { selection } = data;
+  const list = useInstances(data);
+  const installed = list.state.status === "ready" ? list.state.data : [];
+  const hasCurrent = installed.some((i) => i.minecraft === selection.version && loaderOf(i) === selection.loader);
+  return (
+    <section className="home-versions" aria-label="Your versions">
+      <ul className="vrow">
+        {installed.map((i) => {
+          const l = loaderOf(i);
+          return (
+            <li key={`${i.minecraft}-${l}`}>
+              <VersionCard
+                version={i.minecraft}
+                loader={loaderLabel(l)}
+                line={l === "fabric" ? `${i.modCount} ${i.modCount === 1 ? "mod" : "mods"}` : "No mods"}
+                selected={selection.version === i.minecraft && selection.loader === l}
+                onSelect={() => {
+                  selection.setVersion(i.minecraft);
+                  selection.setLoader(l);
+                }}
+              />
+            </li>
+          );
+        })}
+        {!hasCurrent && (
+          <li>
+            <VersionCard
+              version={selection.version}
+              loader={loaderLabel(selection.loader)}
+              line="Not installed yet"
+              selected
+              onSelect={() => undefined}
+              selectLabel={`${selection.version} ${loaderLabel(selection.loader)} (selected, not installed)`}
+            />
+          </li>
+        )}
+        <li>
+          <button type="button" className="vc-more" onClick={() => onNavigate("versions")}>
+            <GridIcon />
+            <span>All versions</span>
+          </button>
+        </li>
       </ul>
     </section>
   );
@@ -159,10 +204,12 @@ function StatusPanel({ data }: { data: AppData }) {
 
 function Shortcuts({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   const items: Array<{ page: PageId; label: string; hint: string; icon: JSX.Element }> = [
-    { page: "play", label: "Version and launch options", hint: "Pick a version, profile or memory", icon: <PlayArrowIcon /> },
-    { page: "mods", label: "Browse mods", hint: "Packs, Modrinth and CurseForge", icon: <ModsIcon /> },
+    { page: "versions", label: "Versions", hint: "Install, select and manage versions", icon: <CubeIcon /> },
+    { page: "browse", label: "Browse mods", hint: "Modrinth and CurseForge", icon: <CompassIcon /> },
+    { page: "mods", label: "My mods", hint: "Switch mods on or off", icon: <ModsIcon /> },
+    { page: "modpacks", label: "Modpacks", hint: "Your own setups", icon: <PackageIcon /> },
     { page: "accounts", label: "Accounts", hint: "Sign in or play offline", icon: <UserIcon /> },
-    { page: "settings", label: "Settings", hint: "Memory, Java, themes", icon: <SettingsIcon /> },
+    { page: "settings", label: "Settings", hint: "Memory, Java, appearance", icon: <SettingsIcon /> },
   ];
   return (
     <Card title="Shortcuts" description="Jump straight to what you need.">
@@ -247,22 +294,13 @@ export function HomePage({
   onOpenAccount: () => void;
 }) {
   return (
-    <div className="home home-redesign">
-      <header className="home-heading">
-        <div>
-          <p className="home-kicker">YOUR MINECRAFT SPACE</p>
-          <h2>Welcome back<span aria-hidden="true">.</span></h2>
-          <p className="muted small">Everything you need to get into the game.</p>
-        </div>
-        <div className="home-version-pill"><span className="dot dot-live" aria-hidden="true" /> Minecraft {data.selection.version}</div>
-      </header>
-      <div className="home-top">
+    <div className="home">
+      <div className="home-screen">
         <Hero data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
-        <div className="home-side">
-          <StatusPanel data={data} />
-        </div>
+        <VersionRow data={data} onNavigate={onNavigate} />
       </div>
-      <div className="home-row home-utility-row">
+      <div className="home-more">
+        <StatusPanel data={data} />
         <RecentActivity recent={recent} running={data.game.run.phase === "running"} />
         <Shortcuts onNavigate={onNavigate} />
       </div>

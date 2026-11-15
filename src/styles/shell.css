@@ -1,0 +1,92 @@
+/* ==========================================================================
+   Application shell: the picture behind the window, the top bar, the footer.
+   ========================================================================== */
+.layout { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+.workspace { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; min-height: 0; }
+.content { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 6px clamp(16px, 3vw, 44px) 28px; }
+.page-enter { animation: page-in 0.4s var(--ease) both; min-height: 100%; }
+.page-enter .page > *, .page-enter .home > *, .page-enter .home-top > *, .page-enter .news-grid > li, .page-enter .instance-grid > li, .page-enter .mods-layout > * { animation: none; }
+
+/* ---------------------------------------------------------------- scene behind everything */
+.app-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
+.app-bg-layer { position: absolute; inset: 0; animation: fade 0.8s ease both; }
+.app-bg-canvas, .app-bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; filter: var(--scene-filter); transform: scale(1.04); }
+.app-bg-img { image-rendering: auto; }
+.app-bg-veil { position: absolute; inset: 0; background: var(--scene-veil); }
+.app-bg-vignette { position: absolute; inset: 0; background: var(--scene-vignette); }
+.scene-canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+/* ---------------------------------------------------------------- top bar */
+.hdr { position: relative; z-index: 30; flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; height: 64px; padding: 0 clamp(14px, 2vw, 28px); }
+.hdr-brand { display: inline-flex; align-items: center; gap: 10px; padding: 4px 8px 4px 4px; border: 0; border-radius: 12px; background: transparent; color: var(--text); cursor: pointer; transition: background var(--fast); }
+.hdr-brand:hover { background: rgb(255 255 255 / 0.07); }
+.hdr-brand .logo-mark { border-radius: 9px; display: block; }
+.hdr-brand-name { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; letter-spacing: 0.2em; color: var(--text); }
+
+.hdr-tabs { justify-self: center; min-width: 0; max-width: 100%; }
+.hdr-tabs ul, .hdr-tools ul { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.hdr-tabs ul { padding: 4px; border-radius: 14px; border: 1px solid var(--glass-border); background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(140%); box-shadow: inset 0 1px 0 var(--glass-hi); }
+.hdr-tab { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: 0.86rem; font-weight: 650; cursor: pointer; white-space: nowrap; transition: color var(--fast), background var(--fast); }
+.hdr-tab-icon { display: inline-flex; }
+.hdr-tab-icon svg { width: 17px; height: 17px; }
+.hdr-tab:hover { color: var(--text); background: rgb(255 255 255 / 0.07); }
+.hdr-tab.active { color: var(--text); background: linear-gradient(180deg, rgb(var(--accent-rgb) / 0.3), rgb(var(--accent-rgb) / 0.14)); box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 0.5), 0 4px 14px rgb(var(--accent-rgb) / 0.18); }
+.hdr-tab.active .hdr-tab-icon { color: var(--accent-bright); }
+:root[data-theme="light"] .hdr-tab:hover { background: rgb(30 60 120 / 0.08); }
+
+.hdr-right { display: flex; align-items: center; gap: 8px; justify-self: end; }
+.hdr-tools ul { gap: 2px; }
+.hdr-tool { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; transition: color var(--fast), background var(--fast), border-color var(--fast); }
+.hdr-tool svg, .hdr-tool .brand-icon { width: 18px; height: 18px; }
+.hdr-tool:hover:not(:disabled) { color: var(--text); background: rgb(255 255 255 / 0.08); }
+.hdr-tool.active { color: var(--accent-bright); background: var(--accent-soft); border-color: rgb(var(--accent-rgb) / 0.4); }
+.hdr-tool.on { color: #8c97ff; }
+.hdr-tool:disabled { opacity: 0.55; cursor: progress; }
+.hdr-tool:disabled svg { animation: spin 1s linear infinite; }
+
+.hdr-account { display: inline-flex; align-items: center; gap: 9px; height: 42px; padding: 0 12px 0 6px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); backdrop-filter: blur(var(--blur)); color: var(--text); cursor: pointer; transition: border-color var(--fast), background var(--fast); }
+.hdr-account:hover, .hdr-account[aria-expanded="true"] { border-color: var(--border-strong); background: var(--raised); }
+.hdr-account .skin-head, .hdr-account > :first-child { border-radius: 8px; flex: none; }
+.hdr-account-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
+.hdr-account-text small { color: var(--muted); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; }
+.hdr-account-text strong { font-size: 0.84rem; font-weight: 700; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.hdr-win { display: inline-flex; align-items: center; margin-left: 4px; }
+.hdr-win button { display: inline-grid; place-items: center; width: 40px; height: 36px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--text-soft); cursor: pointer; transition: background var(--fast), color var(--fast); }
+.hdr-win button svg { width: 15px; height: 15px; }
+.hdr-win button:hover { background: rgb(255 255 255 / 0.1); color: var(--text); }
+.hdr-win .hdr-win-close:hover { background: #d0393a; color: #fff; }
+
+@media (max-width: 1260px) {
+  .hdr-tab:not(.active) .hdr-tab-label { display: none; }
+  .hdr-tab:not(.active) { padding: 0 11px; }
+  .hdr-account-text { display: none; }
+  .hdr-account { padding: 0 6px; }
+}
+@media (max-width: 880px) {
+  .hdr { gap: 6px; }
+  .hdr-brand-name { display: none; }
+  .hdr-tool:not(.active):nth-child(n+2) { display: none; }
+  .hdr-tab.active .hdr-tab-label { display: none; }
+  .hdr-tab.active { padding: 0 11px; }
+}
+
+/* ---------------------------------------------------------------- footer */
+.footbar { position: relative; z-index: 2; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px clamp(14px, 2vw, 28px); border-top: 1px solid var(--glass-border); background: var(--glass); backdrop-filter: blur(var(--blur)); }
+.foot-left, .foot-right { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.footbar .pill { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--muted); font-size: 0.74rem; font-weight: 600; white-space: nowrap; }
+.footbar .pill-button { cursor: pointer; transition: background var(--fast), color var(--fast); }
+.footbar .pill-button:hover { background: var(--raised); color: var(--text); }
+.footbar .pill-good .dot { background: var(--good); }
+.footbar .pill-warn .dot { background: var(--warn); }
+.footbar svg, .footbar .brand-icon { width: 14px; height: 14px; }
+@media (max-width: 760px) { .foot-right .pill:not(.pill-community) { display: none; } }
+
+/* ---------------------------------------------------------------- page frame */
+.page { display: flex; flex-direction: column; gap: 18px; max-width: 1280px; margin: 0 auto; padding-top: 6px; }
+.page-head { display: flex; flex-direction: column; gap: 4px; }
+.page-head-row { flex-direction: row; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.page-head h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+.page-head p { color: var(--text-soft); max-width: 62ch; }
+.page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 750; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-2); }
