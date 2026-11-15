@@ -960,3 +960,6 @@ input[type="text"], input[type="number"], select, textarea { border-radius: 8px;
 .play-page .play-dock { width: 100%; }
 .play-page .play-panel { align-items: stretch; }
 .settings-switches, .switch-row { margin-top: 6px; }
+.hero-text { max-width: 680px; padding-bottom: 20px; }
+.hero h1 { white-space: nowrap; }
+@media (max-width: 760px) { .hero h1 { white-space: normal; } }
