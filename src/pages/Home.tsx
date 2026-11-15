@@ -103,14 +103,15 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
   ];
 
   return (
-    <section className="hero" aria-labelledby="hero-title">
+    <section className="hero hero-cinematic" aria-labelledby="hero-title">
       <SkyScene />
       <div className="hero-text">
-        <p className="pill eyebrow">Minecraft Java Edition {data.selection.version}</p>
-        <h1 id="hero-title">The sky is the limit.</h1>
+        <p className="pill eyebrow">CIRRUS CLIENT <span aria-hidden="true">/</span> MINECRAFT JAVA {data.selection.version}</p>
+        <h1 id="hero-title">Your world.
+          <span className="hero-title-accent"> Your way.</span>
+        </h1>
         <p className="hero-copy">
-          A lightweight Fabric launcher built around steady frame rates and low input delay. Early build: the game
-          download and launch are new and have not been tried on many PCs yet.
+          A focused Minecraft experience with a lightweight Fabric setup, quick access to your mods, and the controls you need before you launch.
         </p>
       </div>
       <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
@@ -246,14 +247,22 @@ export function HomePage({
   onOpenAccount: () => void;
 }) {
   return (
-    <div className="home">
+    <div className="home home-redesign">
+      <header className="home-heading">
+        <div>
+          <p className="home-kicker">YOUR MINECRAFT SPACE</p>
+          <h2>Welcome back<span aria-hidden="true">.</span></h2>
+          <p className="muted small">Everything you need to get into the game.</p>
+        </div>
+        <div className="home-version-pill"><span className="dot dot-live" aria-hidden="true" /> Minecraft {data.selection.version}</div>
+      </header>
       <div className="home-top">
         <Hero data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
         <div className="home-side">
           <StatusPanel data={data} />
         </div>
       </div>
-      <div className="home-row">
+      <div className="home-row home-utility-row">
         <RecentActivity recent={recent} running={data.game.run.phase === "running"} />
         <Shortcuts onNavigate={onNavigate} />
       </div>
