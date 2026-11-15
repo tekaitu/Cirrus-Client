@@ -88,7 +88,9 @@ export function AccountsPage({
   onNavigate: (page: PageId, section?: string) => void;
   onSaveClientId: (id: string) => Promise<string | null>;
 }) {
-  const signedIn = data.account.state.phase === "signedIn";
+  // Keep a stable reference so TypeScript can narrow the discriminated union.
+  const accountState = data.account.state;
+  const signedIn = accountState.phase === "signedIn";
 
   return (
     <div className="page accounts-page">
@@ -123,8 +125,8 @@ export function AccountsPage({
 
       <div className="accounts-grid">
         <div className="accounts-main">
-          {data.account.state.phase === "signedIn" && (
-            <ProfileCard player={data.account.state.profile} onNavigate={onNavigate} />
+          {accountState.phase === "signedIn" && (
+            <ProfileCard player={accountState.profile} onNavigate={onNavigate} />
           )}
           <AccountPanel
             account={data.account}
