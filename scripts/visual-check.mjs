@@ -39,8 +39,8 @@ function installMock() {
   const skin = (hair, shirt, pants) =>
     png((g) => {
       const r = (c, x, y, w, h) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-      r("#c58c6b", 8, 8, 8, 8); r(hair, 8, 0, 8, 8); r(hair, 0, 8, 32, 8);
-      r("#c58c6b", 0, 8, 8, 8); r("#c58c6b", 16, 8, 8, 8); r("#c58c6b", 24, 8, 8, 8);
+      r(hair, 8, 0, 8, 8); r(hair, 0, 8, 32, 8);
+      r("#c58c6b", 8, 8, 8, 8); r("#c58c6b", 0, 8, 8, 8); r("#c58c6b", 16, 8, 8, 8); r("#c58c6b", 24, 8, 8, 8);
       r("#3a2a22", 10, 12, 2, 2); r("#3a2a22", 13, 12, 2, 2);
       r(shirt, 16, 16, 24, 4); r(shirt, 20, 20, 8, 12); r(shirt, 16, 20, 4, 12); r(shirt, 28, 20, 4, 12); r(shirt, 32, 20, 8, 12);
       r("#c58c6b", 40, 16, 16, 16); r(shirt, 44, 20, 4, 4); r("#c58c6b", 44, 24, 4, 8);

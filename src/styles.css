@@ -926,3 +926,37 @@ input[type="text"], input[type="number"], select, textarea { border-radius: 8px;
   .hero::before { background: linear-gradient(180deg, var(--hero-scrim) 0%, var(--hero-scrim) 45%, transparent 100%); }
   .play-dock .btn-primary, .play-dock .btn-danger { padding: 0 22px; }
 }
+
+/* ---------------------------------------------------------------- v3 fixes found in the screenshots */
+/* The v3 ".btn" rule above comes later than the colour variants and used to paint over them. */
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
+.btn-primary:disabled { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); color: color-mix(in srgb, var(--on-accent) 65%, var(--surface)); }
+.btn-danger { background: #c23b3b; color: #fff; border-color: transparent; }
+.btn-danger:hover:not(:disabled) { background: #d94a4a; }
+.btn-discord { background: #5865f2; color: #fff; border-color: transparent; }
+.btn-discord:hover:not(:disabled) { background: #6b77f5; }
+
+/* Title bar: never let the tabs run into the tools. */
+.topnav { min-width: 0; }
+.tabs { flex: 1 1 0; min-width: 0; overflow: hidden; justify-content: center; }
+.tabs ul { flex-wrap: nowrap; }
+.tab { flex: none; }
+@media (max-width: 1240px) {
+  .account-chip-text { display: none; }
+  .account-chip { padding: 3px; }
+  .tab { padding: 0 12px; }
+  .brand-name { letter-spacing: 0.1em; }
+}
+@media (max-width: 1040px) {
+  .tab-label { display: none; }
+  .tab { padding: 0 12px; }
+}
+
+/* Home hero: the checklist chips below already say the same as the three steps, so only they stay. */
+.hero .steps { display: none; }
+.hero-text { padding: 30px 36px 0; }
+.hero .play-panel { padding: 0 18px 14px; }
+.play-page .play-dock { width: 100%; }
+.play-page .play-panel { align-items: stretch; }
+.settings-switches, .switch-row { margin-top: 6px; }

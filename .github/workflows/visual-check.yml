@@ -43,6 +43,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git checkout --orphan visual-shots
           git rm -rf --quiet . || true
+          git clean -fdxq
           cp -r "$RUNNER_TEMP/shots/." .
           git add -A
           git commit -q -m "Screenshots for ${GITHUB_SHA}"
