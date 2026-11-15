@@ -1,4 +1,5 @@
 import {
+  ChatIcon,
   DiagnosticsIcon,
   HomeIcon,
   InfoIcon,
@@ -52,6 +53,8 @@ interface Props {
   accountOpen: boolean;
   /** The signed-in player, or null. */
   player: { name: string; id: string } | null;
+  /** Discord Presence switch. */
+  discord?: { enabled: boolean; onToggle: () => void };
 }
 
 /** "Play" alone would clash with the big Play button, so the page button says "Play page". */
@@ -63,7 +66,7 @@ function nameFor(id: PageId): string {
  * The bar across the top: brand, the pages you use to play, then settings and the account.
  * Below 900px wide the tab labels fold away and the icons stay (labels remain as tooltips and screen-reader names).
  */
-export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accountOpen, player }: Props) {
+export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accountOpen, player, discord }: Props) {
   return (
     <header className="topnav">
       <div className="brand">
@@ -114,6 +117,25 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
                 </button>
               </li>
             ))}
+            {discord && (
+              <li>
+                <button
+                  type="button"
+                  className={`tool tool-presence ${discord.enabled ? "tool-on" : ""}`}
+                  aria-label="Discord Presence"
+                  aria-pressed={discord.enabled}
+                  data-tip={discord.enabled ? "Discord status on" : "Discord status off"}
+                  title={
+                    discord.enabled
+                      ? "Your Discord status shows what you are doing. Click to turn off."
+                      : "Discord status is off. Click to turn on."
+                  }
+                  onClick={discord.onToggle}
+                >
+                  <ChatIcon />
+                </button>
+              </li>
+            )}
             <li>
               <button
                 type="button"

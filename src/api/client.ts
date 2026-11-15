@@ -5,6 +5,7 @@ import type {
   SkinModel,
   AppInfo,
   AuthStatus,
+  DiscordPresence,
   DeviceCodeInfo,
   GameExit,
   GameInstallResult,
@@ -125,6 +126,10 @@ export const api = {
     if (!insideTauri()) return () => {};
     return listen<GameExit>(GAME_EXITED_EVENT, (event) => handler(event.payload));
   },
+  /** Resolves to "shown", "notConfigured" or "discordClosed". */
+  discordSetPresence: (presence: DiscordPresence) => call<string>("discord_set_presence", { presence }),
+  discordClearPresence: () => call<void>("discord_clear_presence"),
+  discordAvailable: () => call<boolean>("discord_available"),
   loadSettings: () => call<SettingsState>("load_settings"),
   saveSettings: (settings: Settings) => call<SaveOutcome>("save_settings", { settings }),
   resetSettings: () => call<SettingsState>("reset_settings"),

@@ -703,3 +703,24 @@ kbd { display: inline-block; min-width: 24px; padding: 1px 7px; text-align: cent
 .skin-view-back { transform: rotateX(-6deg) rotateY(162deg); }
 @keyframes skin-turn { from { transform: rotateX(-8deg) rotateY(-25deg); } to { transform: rotateX(-8deg) rotateY(335deg); } }
 @media (max-width: 960px) { .skins-layout { grid-template-columns: 1fr; } }
+/* Discord Presence switch in the top bar */
+.tool-presence.tool-on { color: #aab3ff; border-color: rgba(88, 101, 242, 0.55); background: rgba(88, 101, 242, 0.14); }
+.popover { top: 66px; right: clamp(14px, 2.4vw, 28px); }
+
+/* Sign in with a code: big code, copy button, QR */
+.code-card { display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.code-title { margin: 0; font-size: 1.15rem; font-weight: 700; }
+.code-title::after { content: ""; display: block; width: 56%; height: 4px; margin: 10px auto 0; border-radius: 4px; background: var(--accent); }
+.code-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 18px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); }
+.code-row .device-code { margin: 0; font-size: 1.5rem; letter-spacing: 0.22em; font-weight: 800; }
+.code-qr { display: flex; align-items: center; gap: 12px; text-align: left; }
+.code-qr img { flex: none; padding: 4px; border-radius: 8px; background: #fff; }
+.code-qr small { display: block; color: var(--muted); }
+.code-wait { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin: 0; font-size: 0.82rem; color: var(--muted); }
+
+/* Sign-in window in the middle of the screen */
+.signin-modal { width: min(380px, 100%); padding: 28px 30px; border-radius: 16px; background: var(--bg); }
+.signin-modal .code-title::after { width: 64%; }
+.signin-modal .code-card .btn-block { padding: 14px; font-size: 0.95rem; background: color-mix(in srgb, var(--bg) 70%, #000); }
+.signin-spinner { width: 54px; height: 54px; margin: 10px auto 4px; border-radius: 50%; border: 6px solid var(--accent-soft); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+.signin-modal .code-wait { padding-top: 4px; }
