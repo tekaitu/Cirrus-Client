@@ -1162,11 +1162,12 @@ async fn search_mods(
     version: String,
     offset: u32,
     category: Option<String>,
+    sort: Option<String>,
 ) -> Result<mods::SearchResult, String> {
     check_version(&version)?;
     let provider = mods::Provider::parse(&provider).ok_or("Unknown mod site.")?;
     tauri::async_runtime::spawn_blocking(move || {
-        mods::search(provider, &query, &version, offset, category.as_deref(), curseforge_key())
+        mods::search(provider, &query, &version, offset, category.as_deref(), sort.as_deref(), curseforge_key())
     })
         .await
         .map_err(|e| format!("The search stopped unexpectedly: {e}"))?

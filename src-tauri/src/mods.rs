@@ -529,6 +529,37 @@ fn curseforge_files(c: &reqwest::blocking::Client, key: &str, project: &str, mc:
     get_json(c, url, Some(key))
 }
 
+/// How results are ordered. Only these names are passed on; anything else falls back to the default.
+pub const SORT_MODES: [&str; 4] = ["relevance", "downloads", "newest", "updated"];
+
+/// Modrinth's `index` value for a sort mode (popular mods first when nothing was typed).
+pub fn modrinth_index(sort: Option<&str>, no_query: bool) -> &'static str {
+    match sort {
+        Some("downloads") => "downloads",
+        Some("newest") => "newest",
+        Some("updated") => "updated",
+        Some("relevance") if !no_query => "relevance",
+        _ => {
+            if no_query {
+                "downloads"
+            } else {
+                "relevance"
+            }
+        }
+    }
+}
+
+/// CurseForge's `sortField` number for a sort mode (2 = popularity is the default).
+pub fn curseforge_sort_field(sort: Option<&str>) -> &'static str {
+    match sort {
+        Some("downloads") => "6",
+        Some("newest") => "11",
+        Some("updated") => "3",
+        Some("relevance") => "1",
+        _ => "2",
+    }
+}
+
 // ---------------------------------------------------------------- public
 
 /// Search a provider. Only Fabric mods are listed (the loader the launcher installs).
@@ -538,6 +569,7 @@ pub fn search(
     mc: &str,
     offset: u32,
     category: Option<&str>,
+    sort: Option<&str>,
     cf_key: Option<&str>,
 ) -> Result<SearchResult, String> {
     let c = client()?;
@@ -547,7 +579,7 @@ pub fn search(
             let facets = modrinth_facets_in(mc, "fabric", category);
             let limit = PAGE_SIZE.to_string();
             let off = offset.to_string();
-            let index = if query.is_empty() { "downloads" } else { "relevance" };
+            let index = modrinth_index(sort, query.is_empty());
             let url = Url::parse_with_params(
                 &format!("{MODRINTH_API}/search"),
                 &[
@@ -573,7 +605,7 @@ pub fn search(
                     ("searchFilter", query),
                     ("gameVersion", mc),
                     ("modLoaderType", CURSEFORGE_FABRIC),
-                    ("sortField", "2"),
+                    ("sortField", curseforge_sort_field(sort)),
                     ("sortOrder", "desc"),
                     ("pageSize", size.as_str()),
                     ("index", off.as_str()),
@@ -801,7 +833,7 @@ mod tests {
 
     #[test]
     fn curseforge_search_needs_a_key() {
-        let err = search(Provider::CurseForge, "sodium", "1.21.11", 0, None, None).unwrap_err();
+        let err = search(Provider::CurseForge, "sodium", "1.21.11", 0, None, None, None).unwrap_err();
         assert!(err.contains("API key"));
         assert!(Provider::parse("nope").is_none());
     }
@@ -889,5 +921,18 @@ mod tests {
         set_enabled(dir.path(), "sodium.jar", false).unwrap();
         remove(dir.path(), "sodium.jar.disabled").unwrap();
         assert!(list_installed(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn sort_modes_map_to_the_sites_own_values_and_unknown_ones_are_ignored() {
+        assert_eq!(modrinth_index(None, true), "downloads");
+        assert_eq!(modrinth_index(None, false), "relevance");
+        assert_eq!(modrinth_index(Some("newest"), false), "newest");
+        assert_eq!(modrinth_index(Some("updated"), true), "updated");
+        assert_eq!(modrinth_index(Some("nonsense; drop"), true), "downloads");
+        assert_eq!(curseforge_sort_field(None), "2");
+        assert_eq!(curseforge_sort_field(Some("downloads")), "6");
+        assert_eq!(curseforge_sort_field(Some("x")), "2");
+        assert!(SORT_MODES.contains(&"newest"));
     }
 }
