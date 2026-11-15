@@ -115,7 +115,7 @@ beforeEach(() => {
   mocked.openCommunity.mockResolvedValue(undefined);
   mocked.openGithub.mockResolvedValue(undefined);
   mocked.listSkins.mockResolvedValue([]);
-  mocked.discordSetPresence.mockResolvedValue(undefined);
+  mocked.discordSetPresence.mockResolvedValue("ok");
   mocked.discordClearPresence.mockResolvedValue(undefined);
   mocked.playerSkin.mockResolvedValue(null);
   mocked.searchMods.mockResolvedValue({ hits: [], total: 0 });
