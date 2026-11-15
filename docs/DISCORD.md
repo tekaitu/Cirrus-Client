@@ -6,14 +6,20 @@ desktop app through its local pipe: no login, no token, no extra network traffic
 nothing happens and the launcher works as usual. Players can switch it off with the **Presence** pill under the
 navigation bar (remembered on that PC).
 
-## One-time setup (the owner)
+## Application ID
 
-1. Open <https://discord.com/developers/applications> and create an application named **Cirrus Client**
-   (that name is what Discord shows as "Playing Cirrus Client").
+Cirrus Client has its own Discord application built in: **`1571269169968840854`** (the ID is public, not a
+secret). Nothing needs to be configured for the status to work. To test with a different application, set
+`CIRRUS_DISCORD_APP_ID` (a build variable or a process environment variable); that value wins over the built-in one.
+
+## What the owner still does in the Discord Developer Portal
+
+These two things live on Discord's side and cannot be done from the code:
+
+1. Open <https://discord.com/developers/applications>, choose the application with the ID above and make sure its
+   **name** is "Cirrus Client" (Discord shows it as "Playing Cirrus Client").
 2. Under **Rich Presence > Art Assets**, upload the logo (`public/brand/icon.png`) with the key `cirrus_logo`.
-3. Copy the **Application ID** (a 17 to 20 digit number; it is public, not a secret).
-4. In the GitHub repository open Settings > Secrets and variables > Actions > **Variables** and add
-   `CIRRUS_DISCORD_APP_ID` with that number. The next build embeds it.
-   For a local build: `$env:CIRRUS_DISCORD_APP_ID = "123456789012345678"; npx tauri build --no-bundle`.
+   Until that asset exists, Discord shows the status text without a picture.
 
-Without the variable the build still works; the status simply stays off.
+Not verified yet: the status has been tested with a fake Discord connection in unit tests, not against the real
+Discord app on a PC.

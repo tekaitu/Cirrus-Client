@@ -10,7 +10,7 @@
 
 ## Themes
 
-Default is the black-and-white **Cirrus** theme with the White accent. Other themes (Midnight, Graphite, Ocean, Forest, Sunset, Light) and six more accent colours are in Settings → Interface (`src/core/theme.ts`, colours in `src/styles.css`).
+Cirrus has two appearances, **Dark** (default) and **Light**, chosen in Settings → Appearance (`src/core/theme.ts`, colours in `src/styles.css`). The earlier extra themes and accent colours were removed.
 
 ## Launcher layout
 
