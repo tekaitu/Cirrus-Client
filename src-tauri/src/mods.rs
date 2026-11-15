@@ -801,7 +801,7 @@ mod tests {
 
     #[test]
     fn curseforge_search_needs_a_key() {
-        let err = search(Provider::CurseForge, "sodium", "1.21.11", 0, None).unwrap_err();
+        let err = search(Provider::CurseForge, "sodium", "1.21.11", 0, None, None).unwrap_err();
         assert!(err.contains("API key"));
         assert!(Provider::parse("nope").is_none());
     }
