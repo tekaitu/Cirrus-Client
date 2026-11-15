@@ -214,14 +214,14 @@ function SettingsForm({
 
   return (
     <form
-      className="page settings-page"
+      className="page settings-page settings-glass-page"
       onSubmit={(e) => {
         e.preventDefault();
         void save();
       }}
       noValidate
     >
-      <header className="page-head">
+      <header className="page-head settings-hero">
         <h1>Settings</h1>
         <p className="muted">Saved on this PC and used the next time you start the game.</p>
       </header>
@@ -231,8 +231,8 @@ function SettingsForm({
         </Banner>
       )}
 
-      <div className="settings-layout">
-        <nav className="settings-tabs" aria-label="Settings sections" role="tablist" aria-orientation="vertical">
+      <div className="settings-layout settings-glass-layout">
+        <nav className="settings-tabs settings-glass-nav" aria-label="Settings sections" role="tablist" aria-orientation="vertical">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -241,7 +241,7 @@ function SettingsForm({
               id={`tab-${t.id}`}
               aria-selected={tab === t.id}
               aria-controls="settings-panel"
-              className={`settings-tab ${tab === t.id ? "active" : ""}`}
+              className={`settings-tab settings-glass-tab ${tab === t.id ? "active" : ""}`}
               onClick={() => setTab(t.id)}
             >
               {t.icon}
@@ -249,7 +249,7 @@ function SettingsForm({
             </button>
           ))}
         </nav>
-        <div className="settings-panel" id="settings-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+        <div className="settings-panel settings-glass-panel" id="settings-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
           {tab === "general" && (
             <>
       <Card
@@ -675,7 +675,7 @@ function SettingsForm({
         />
       )}
 
-      <div className="actions action-bar">
+      <div className="actions action-bar settings-glass-actions">
         <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
           <CheckIcon />
           {saving ? "Saving…" : "Save settings"}
