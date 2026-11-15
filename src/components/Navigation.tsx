@@ -42,6 +42,7 @@ const TABS: Item[] = [
   { id: "skins", icon: <ShirtIcon /> },
   { id: "accounts", icon: <UserIcon /> },
 ];
+
 const TOOLS: Item[] = [
   { id: "settings", icon: <SettingsIcon /> },
   { id: "about", icon: <InfoIcon /> },
@@ -55,86 +56,100 @@ interface Props {
   onRescan: () => void;
   scanning: boolean;
   accountOpen: boolean;
-  /** The signed-in player, or null. */
   player: { name: string; id: string } | null;
-  /** Discord Presence switch. */
   discord?: { enabled: boolean; onToggle: () => void };
 }
 
-/** "Play" alone would clash with the big Play button, so the page button says "Play page". */
 function nameFor(id: PageId): string {
   return id === "play" ? "Play page" : PAGE_TITLES[id];
 }
 
-/**
- * The bar across the top: brand, the pages you use to play, then settings and the account.
- * Below 900px wide the tab labels fold away and the icons stay (labels remain as tooltips and screen-reader names).
- */
-export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accountOpen, player, discord }: Props) {
+/** Premium Cirrus navigation. Keeps the original navigation and Tauri actions intact. */
+export function TopNav({
+  page,
+  onNavigate,
+  onAccount,
+  onRescan,
+  scanning,
+  accountOpen,
+  player,
+  discord,
+}: Props) {
   const customFrame = useCustomFrame();
+
   return (
-    <header className="topnav" data-tauri-drag-region>
-      <div className="brand" data-tauri-drag-region>
-        <span className="brand-mark">
-          <LogoMark size={28} />
+    <header className="topnav cirrus-topnav" data-tauri-drag-region>
+      <button
+        type="button"
+        className="brand cirrus-brand"
+        data-tauri-drag-region
+        onClick={() => onNavigate("home")}
+        aria-label="Cirrus Client home"
+      >
+        <span className="brand-mark cirrus-brand-mark" aria-hidden="true">
+          <LogoMark size={31} />
         </span>
-        <span className="brand-name" aria-hidden="true">
-          CIRRUS <b>CLIENT</b>
+        <span className="cirrus-brand-copy" aria-hidden="true">
+          <span className="brand-name">CIRRUS <b>CLIENT</b></span>
+          <span className="cirrus-brand-caption">MINECRAFT, REIMAGINED</span>
         </span>
-      </div>
+      </button>
 
-      <nav aria-label="Main" className="tabs" data-tauri-drag-region>
+      <nav aria-label="Main" className="tabs cirrus-tabs" data-tauri-drag-region>
         <ul>
-          {TABS.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className={`tab ${page === item.id ? "active" : ""}`}
-                aria-label={nameFor(item.id)}
-                data-tip={PAGE_TITLES[item.id]}
-                aria-current={page === item.id ? "page" : undefined}
-                onClick={() => onNavigate(item.id)}
-              >
-                {item.icon}
-                <span className="tab-label" aria-hidden="true">
-                  {PAGE_TITLES[item.id]}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <div className="topnav-right" data-tauri-drag-region>
-        <nav aria-label="Tools" className="tools">
-          <ul>
-            {TOOLS.map((item) => (
+          {TABS.map((item) => {
+            const active = page === item.id;
+            return (
               <li key={item.id}>
                 <button
                   type="button"
-                  className={`tool ${page === item.id ? "active" : ""}`}
-                  aria-label={PAGE_TITLES[item.id]}
+                  className={`tab cirrus-tab ${active ? "active" : ""}`}
+                  aria-label={nameFor(item.id)}
                   data-tip={PAGE_TITLES[item.id]}
-                  aria-current={page === item.id ? "page" : undefined}
+                  aria-current={active ? "page" : undefined}
                   onClick={() => onNavigate(item.id)}
                 >
-                  {item.icon}
+                  <span className="cirrus-tab-icon" aria-hidden="true">{item.icon}</span>
+                  <span className="tab-label">{PAGE_TITLES[item.id]}</span>
+                  {active && <span className="cirrus-tab-indicator" aria-hidden="true" />}
                 </button>
               </li>
-            ))}
+            );
+          })}
+        </ul>
+      </nav>
+
+      <div className="topnav-right cirrus-nav-right" data-tauri-drag-region>
+        <nav aria-label="Tools" className="tools cirrus-tools">
+          <ul>
+            {TOOLS.map((item) => {
+              const active = page === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`tool cirrus-tool ${active ? "active" : ""}`}
+                    aria-label={PAGE_TITLES[item.id]}
+                    data-tip={PAGE_TITLES[item.id]}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => onNavigate(item.id)}
+                  >
+                    {item.icon}
+                  </button>
+                </li>
+              );
+            })}
             {discord && (
               <li>
                 <button
                   type="button"
-                  className={`tool tool-presence ${discord.enabled ? "tool-on" : ""}`}
+                  className={`tool tool-presence cirrus-tool ${discord.enabled ? "tool-on" : ""}`}
                   aria-label="Discord Presence"
                   aria-pressed={discord.enabled}
                   data-tip={discord.enabled ? "Discord status on" : "Discord status off"}
-                  title={
-                    discord.enabled
-                      ? "Your Discord status shows what you are doing. Click to turn off."
-                      : "Discord status is off. Click to turn on."
-                  }
+                  title={discord.enabled
+                    ? "Your Discord status shows what you are doing. Click to turn off."
+                    : "Discord status is off. Click to turn on."}
                   onClick={discord.onToggle}
                 >
                   <BrandIcon name="discord" />
@@ -144,9 +159,9 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
             <li>
               <button
                 type="button"
-                className="tool"
+                className="tool cirrus-tool cirrus-rescan"
                 aria-label="Re-scan Java"
-                data-tip="Re-scan Java"
+                data-tip={scanning ? "Scanning Java…" : "Re-scan Java"}
                 onClick={onRescan}
                 disabled={scanning}
               >
@@ -155,22 +170,27 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
             </li>
           </ul>
         </nav>
+
         <button
           type="button"
-          className="account-chip"
+          className="account-chip cirrus-account-chip"
           aria-label="Account"
           aria-expanded={accountOpen}
           aria-haspopup="dialog"
           onClick={onAccount}
         >
-          <SkinHead uuid={player?.id ?? null} name={player?.name ?? null} size={34} />
-          <span className="account-chip-text">
-            <small>Account</small>
-            <strong>{player ? player.name : "Guest"}</strong>
+          <span className="cirrus-account-avatar">
+            <SkinHead uuid={player?.id ?? null} name={player?.name ?? null} size={34} />
           </span>
+          <span className="account-chip-text">
+            <small>{player ? "SIGNED IN AS" : "YOUR PROFILE"}</small>
+            <strong>{player ? player.name : "Guest account"}</strong>
+          </span>
+          <span className="cirrus-account-chevron" aria-hidden="true">⌄</span>
         </button>
+
         {customFrame && (
-          <div className="winctl" role="group" aria-label="Window">
+          <div className="winctl cirrus-winctl" role="group" aria-label="Window">
             <button type="button" aria-label="Minimize window" onClick={windowActions.minimize}>
               <MinimizeIcon />
             </button>
