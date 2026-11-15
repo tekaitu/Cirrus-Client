@@ -192,10 +192,11 @@ export function ModsPage({ data }: { data: AppData }) {
   const versionLabel = `${version} · ${selection.loader === "fabric" ? "Fabric" : "Vanilla"}`;
 
   return (
-    <div className="page mods-page">
-      <header className="page-head page-head-row">
+    <div className="page mods-page mods-page-cirrus">
+      <header className="page-head page-head-row mods-hero">
         <div>
-          <h1>{view === "browse" ? "Browse mods" : "Mod manager"}</h1>
+          <div className="mods-eyebrow"><span className="mods-eyebrow-dot" /> CIRRUS LIBRARY</div>
+          <h1>{view === "browse" ? "Discover your next mods." : "Your Minecraft, your way."}</h1>
           <p className="muted">
             {view === "browse"
               ? `Fabric mods for Minecraft ${version}, from Modrinth and CurseForge.`
@@ -204,7 +205,7 @@ export function ModsPage({ data }: { data: AppData }) {
                 : `Installed for Minecraft ${version} with Fabric. Each version keeps its own mods.`}
           </p>
         </div>
-        <div className="page-actions">
+        <div className="page-actions mods-hero-actions">
           <span className="chip" title="Change the version on the Play page">
             {versionLabel}
           </span>
@@ -406,8 +407,8 @@ export function ModsPage({ data }: { data: AppData }) {
       )}
 
       {view === "browse" && (
-        <div className="browse">
-          <aside className="browse-filters" aria-label="Filters">
+        <div className="browse mods-browser-layout">
+          <aside className="browse-filters mods-glass-panel" aria-label="Filters">
             <div className="filter-block">
               <h2 className="filter-title">Site</h2>
               <div className="seg seg-stack" role="tablist" aria-label="Mod site">
@@ -459,14 +460,14 @@ export function ModsPage({ data }: { data: AppData }) {
             )}
           </aside>
 
-          <div className="browse-main">
+          <div className="browse-main mods-browser-main">
             {provider === "curseforge" && !curseforge && (
               <p className="muted small">
                 CurseForge search needs an API key from CurseForge, which this build does not include. Modrinth works
                 without one.
               </p>
             )}
-            <form className="search-row" onSubmit={onSubmit} role="search">
+            <form className="search-row mods-search" onSubmit={onSubmit} role="search">
               <input
                 type="text"
                 aria-label="Search mods"
