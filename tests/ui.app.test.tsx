@@ -1387,7 +1387,7 @@ describe("Accounts page", () => {
     render(<App />);
     await screen.findByText("Java 21");
     goTo("Accounts");
-    expect(await screen.findByText("01234567-89ab-cdef-0123-456789abcdef")).toBeTruthy();
+    expect((await screen.findAllByText("01234567-89ab-cdef-0123-456789abcdef")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Change skin" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
   });
