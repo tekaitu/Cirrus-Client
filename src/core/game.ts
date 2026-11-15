@@ -55,7 +55,9 @@ export function appendLog(log: string, more: string): string {
   const next = log + more;
   if (next.length <= MAX_LOG_CHARS) return next;
   const cut = next.slice(next.length - MAX_LOG_CHARS);
-  return cut.slice(cut.indexOf("\n") + 1);
+  const nl = cut.indexOf("\n");
+  // Start on a whole line when there is one close by; a log with no line breaks is just cut.
+  return nl >= 0 && nl < 4000 ? cut.slice(nl + 1) : cut;
 }
 
 /** What is copied from the crash or log screen: a header that says what was running, then the text. */

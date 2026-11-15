@@ -263,7 +263,7 @@ export function ModsPage({ data }: { data: AppData }) {
                 </p>
                 {fabricReady && (
                   <button type="button" className="btn btn-primary" onClick={() => setView("browse")}>
-                    Browse mods
+                    Browse for mods
                   </button>
                 )}
               </div>

@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import App from "../src/App";
+import { initTheme } from "../src/core/theme";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
 import type { AuthStatus, DeviceCodeInfo, GameExit, GameProgress, GameStatus, InstallProgress, InstallResult } from "../src/api/types";
@@ -38,6 +39,8 @@ vi.mock("../src/api/client", () => ({
     installGame: vi.fn(),
     cancelGameInstall: vi.fn(),
     launchGame: vi.fn(),
+    readGameLog: vi.fn(),
+    openGameFolder: vi.fn(),
     stopGame: vi.fn(),
     onGameProgress: vi.fn(),
     onGameExited: vi.fn(),
@@ -116,6 +119,8 @@ beforeEach(() => {
   mocked.openGithub.mockResolvedValue(undefined);
   mocked.listSkins.mockResolvedValue([]);
   mocked.discordSetPresence.mockResolvedValue("ok");
+  mocked.readGameLog.mockResolvedValue({ text: "", offset: 0 });
+  mocked.openGameFolder.mockResolvedValue(undefined);
   mocked.discordClearPresence.mockResolvedValue(undefined);
   mocked.playerSkin.mockResolvedValue(null);
   mocked.searchMods.mockResolvedValue({ hits: [], total: 0 });
@@ -197,7 +202,7 @@ describe("Home", () => {
   it("jumps between pages with Alt + a number", async () => {
     render(<App />);
     fireEvent.keyDown(window, { key: "3", altKey: true });
-    expect(await screen.findByRole("heading", { level: 1, name: "Mods" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "4", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "5", altKey: true });
@@ -1032,7 +1037,7 @@ describe("Play", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Stop Minecraft" }));
     expect(mocked.stopGame).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(gameExitHandler).not.toBeNull());
-    act(() => gameExitHandler?.({ code: 0, logPath: "C:\\log.txt" }));
+    act(() => gameExitHandler?.({ code: 0, logPath: "C:\\log.txt", stopped: false, crash: null }));
     expect(await screen.findByText(/closed normally/)).toBeTruthy();
   });
 
@@ -1143,15 +1148,25 @@ describe("Profiles", () => {
 });
 
 describe("Themes", () => {
-  it("switches theme and accent at once and remembers them", async () => {
+  it("offers only a dark and a light appearance, applies it at once and remembers it", async () => {
+    initTheme();
     render(<App />);
+    expect(document.documentElement.dataset.theme).toBe("dark");
     await goToSettings("Appearance");
-    fireEvent.click(await screen.findByRole("radio", { name: "Ocean theme" }));
-    expect(document.documentElement.dataset.theme).toBe("ocean");
-    expect(window.localStorage.getItem("unlimited.theme")).toBe("ocean");
-    fireEvent.click(screen.getByRole("radio", { name: "Pink accent" }));
-    expect(document.documentElement.dataset.accent).toBe("pink");
-    expect(screen.getByRole("radio", { name: "Ocean theme" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getAllByRole("radio", { name: /theme$/ })).toHaveLength(2);
+    fireEvent.click(await screen.findByRole("radio", { name: "Light theme" }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(window.localStorage.getItem("unlimited.theme")).toBe("light");
+    expect(screen.getByRole("radio", { name: "Light theme" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("radio", { name: "Dark theme" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+
+  it("falls back to dark when an old theme name is stored", async () => {
+    window.localStorage.setItem("unlimited.theme", "ocean");
+    initTheme();
+    render(<App />);
+    expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
   it("offers the Discord community from Settings", async () => {
@@ -1185,6 +1200,81 @@ describe("Installed versions", () => {
   });
 });
 
+describe("Launch log and crash details", () => {
+  const crash = {
+    hint: "Minecraft ran out of memory. Give it more in Settings > Memory and RAM.",
+    report: "---- Minecraft Crash Report ----\njava.lang.OutOfMemoryError: Java heap space\n",
+    reportPath: "C:\\game\\crash-reports\\crash-1.txt",
+    logTail: "[main/INFO]: Loading\n[main/ERROR]: Out of memory\n",
+  };
+  const start = async () => {
+    mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
+    mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: "C:\\game\\logs\\cirrus-launch.log" });
+    render(<App />);
+    await screen.findByText("Java 21");
+    await screen.findAllByText("Installed");
+    await screen.findAllByText("Steve");
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() => expect(mocked.launchGame).toHaveBeenCalled());
+    await waitFor(() => expect(gameExitHandler).not.toBeNull());
+  };
+
+  it("shows what Minecraft prints while it starts, and can copy it", async () => {
+    mocked.readGameLog.mockResolvedValue({ text: "[main/INFO]: Loading Minecraft 1.21.11\n", offset: 40 });
+    await start();
+    fireEvent.click(await screen.findByRole("button", { name: "View log" }));
+    const dialog = await screen.findByRole("dialog", { name: "Launch log" });
+    expect(await within(dialog).findByText(/Loading Minecraft 1.21.11/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Copy log" }));
+    expect(await within(dialog).findByRole("button", { name: /Copied/ })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open logs folder" }));
+    expect(mocked.openGameFolder).toHaveBeenCalledWith("logs");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Stop Minecraft" }));
+    expect(mocked.stopGame).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog", { name: "Launch log" })).toBeNull();
+  });
+
+  it("opens the crash details by itself when the game crashes", async () => {
+    await start();
+    act(() => gameExitHandler?.({ code: 1, logPath: "x", stopped: false, crash }));
+    const dialog = await screen.findByRole("dialog", { name: "Minecraft crashed" });
+    expect(within(dialog).getByText("Minecraft closed unexpectedly")).toBeTruthy();
+    expect(within(dialog).getByText(/ran out of memory/)).toBeTruthy();
+    expect(within(dialog).getByLabelText("Crash report text").textContent).toContain("OutOfMemoryError");
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Game log" }));
+    expect(within(dialog).getByLabelText("Game log text").textContent).toContain("Out of memory");
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Crash report" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open crash folder" }));
+    expect(mocked.openGameFolder).toHaveBeenCalledWith("crash-reports");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog", { name: "Minecraft crashed" })).toBeNull();
+    // The page keeps a way back to the details.
+    expect(screen.getByRole("button", { name: "Crash details" })).toBeTruthy();
+  });
+
+  it("does not call it a crash when the person pressed Stop", async () => {
+    await start();
+    act(() => gameExitHandler?.({ code: 1, logPath: "x", stopped: true, crash: null }));
+    expect(await screen.findByText("You stopped Minecraft.")).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Minecraft crashed" })).toBeNull();
+    expect(screen.getByRole("button", { name: "View log" })).toBeTruthy();
+  });
+});
+
+describe("Window frame", () => {
+  it("draws no window buttons outside the desktop app", async () => {
+    render(<App />);
+    await screen.findByText("Java 21");
+    expect(screen.queryByRole("button", { name: "Close window" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Minimize window" })).toBeNull();
+    await goToSettings("Appearance");
+    expect(screen.queryByText(/normal Windows title bar/)).toBeNull();
+  });
+});
+
 describe("Mods", () => {
   const sodium = {
     provider: "modrinth" as const,
@@ -1197,6 +1287,7 @@ describe("Mods", () => {
     pageUrl: null,
   };
   const withFabric = () => mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+  const browse = async () => fireEvent.click((await screen.findAllByRole("button", { name: "Browse mods" }))[0]);
 
   it("explains that Vanilla cannot load mods and can switch to Fabric", async () => {
     window.localStorage.setItem("unlimited.loader", "vanilla");
@@ -1236,6 +1327,7 @@ describe("Mods", () => {
     mocked.installMod.mockResolvedValue({ installed: ["sodium.jar", "fabric-api.jar"], present: [] });
     render(<App />);
     goTo("Mods");
+    await browse();
     expect(await screen.findByRole("heading", { name: "Sodium" })).toBeTruthy();
     expect(mocked.searchMods).toHaveBeenCalledWith("modrinth", "", "1.21.11", 0);
     expect(screen.getByText(/1.5M downloads/)).toBeTruthy();
@@ -1250,6 +1342,7 @@ describe("Mods", () => {
     fireEvent.click(install);
     await waitFor(() => expect(mocked.installMod).toHaveBeenCalledWith("modrinth", "AANobbMI", "1.21.11"));
     expect(await screen.findByText(/Sodium installed \(2 files/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back to my mods" }));
     expect(await screen.findByText("sodium.jar")).toBeTruthy();
     expect(screen.getByText("2.0 MB")).toBeTruthy();
   });
@@ -1313,6 +1406,7 @@ describe("Mods", () => {
     mocked.installMod.mockRejectedValue(new Error("No version of this mod is available."));
     render(<App />);
     goTo("Mods");
+    await browse();
     const install = await screen.findByRole("button", { name: "Install Sodium" });
     await waitFor(() => expect((install as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(install);
@@ -1322,8 +1416,36 @@ describe("Mods", () => {
   it("says CurseForge needs a key when this build has none", async () => {
     render(<App />);
     goTo("Mods");
+    await browse();
     fireEvent.click(await screen.findByRole("tab", { name: "CurseForge" }));
     expect(await screen.findByText(/needs an API key/)).toBeTruthy();
+  });
+
+  it("narrows the search by category and can clear the filter", async () => {
+    withFabric();
+    mocked.searchMods.mockResolvedValue({ hits: [sodium], total: 1 });
+    render(<App />);
+    goTo("Mods");
+    await browse();
+    await screen.findByRole("heading", { name: "Sodium" });
+    fireEvent.click(screen.getByRole("radio", { name: "Optimization" }));
+    await waitFor(() =>
+      expect(mocked.searchMods).toHaveBeenLastCalledWith("modrinth", "", "1.21.11", 0, "optimization"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    await waitFor(() => expect(mocked.searchMods).toHaveBeenLastCalledWith("modrinth", "", "1.21.11", 0));
+    expect(screen.getByRole("radio", { name: "All" }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("starts in the mod manager and lets you go back from browsing", async () => {
+    withFabric();
+    render(<App />);
+    goTo("Mods");
+    expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
+    await browse();
+    expect(await screen.findByRole("heading", { level: 1, name: "Browse mods" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back to my mods" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
   });
 
   it("shows a card with the name, version, author and description read from the mod itself", async () => {
