@@ -79,7 +79,7 @@ function LogView({ data }: { data: AppData }) {
               prints is shown here as it happens.
             </p>
           </div>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={game.closePanel}>
+          <button type="button" className="icon-btn" aria-label="Close dialog" onClick={game.closePanel}>
             <CloseIcon />
           </button>
         </header>
@@ -126,7 +126,7 @@ function CrashView({ data }: { data: AppData }) {
             <h2 className="modal-title">Minecraft closed unexpectedly</h2>
             <p className="muted small">It stopped with {code}. The details below show what happened.</p>
           </div>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={game.closePanel}>
+          <button type="button" className="icon-btn" aria-label="Close dialog" onClick={game.closePanel}>
             <CloseIcon />
           </button>
         </header>

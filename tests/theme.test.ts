@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_THEME, THEMES, getTheme, initTheme, setTheme } from "../src/core/theme";
 import { getNativeFrame, insideTauri, setNativeFrame } from "../src/core/windowFrame";
