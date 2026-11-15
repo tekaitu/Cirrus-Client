@@ -123,7 +123,9 @@ export function AccountsPage({
 
       <div className="accounts-grid">
         <div className="accounts-main">
-          {signedIn && <ProfileCard player={data.account.state.profile} onNavigate={onNavigate} />}
+          {data.account.state.phase === "signedIn" && (
+            <ProfileCard player={data.account.state.profile} onNavigate={onNavigate} />
+          )}
           <AccountPanel
             account={data.account}
             onNavigate={onNavigate}
