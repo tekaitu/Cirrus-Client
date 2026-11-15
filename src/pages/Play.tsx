@@ -65,6 +65,7 @@ function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: Page
 
   return (
     <Card
+      className="glass-panel play-section play-profiles"
       id="profiles"
       title="Profiles"
       tone="pink"
@@ -202,7 +203,7 @@ function LaunchConfig({ data, onNavigate }: { data: AppData; onNavigate: (page: 
   };
 
   return (
-    <Card id="launch-config" title="Launch configuration" icon={<CubeIcon />} description="What the game starts with.">
+    <Card className="glass-panel play-section play-config" id="launch-config" title="Launch configuration" icon={<CubeIcon />} description="What the game starts with.">
       {!settings ? (
         <Skeleton label="Loading launch settings" lines={3} />
       ) : (
@@ -278,7 +279,7 @@ function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page:
   };
 
   return (
-    <Card id="installations" title="Installed versions" icon={<CubeIcon />} description="Every Minecraft version on this PC, one card per version and loader.">
+    <Card className="glass-panel play-section play-installations" id="installations" title="Installed versions" icon={<CubeIcon />} description="Every Minecraft version on this PC, one card per version and loader.">
       {list.state.status === "loading" && <Skeleton label="Loading library" lines={3} />}
       {list.state.status === "error" && (
         <Banner
@@ -359,12 +360,20 @@ export function PlayPage({
 }) {
   return (
     <div className="page play-page">
-      <header className="page-head">
-        <h1>Play</h1>
-        <p className="muted">Choose a version, set up what it needs, and start the game.</p>
+      <header className="page-head play-hero">
+        <div className="play-hero-copy">
+          <span className="eyebrow">CIRRUS GAME CENTER</span>
+          <h1>Ready to play?</h1>
+          <p className="muted">Choose your Minecraft setup, fine-tune your installation, and jump into the game.</p>
+        </div>
+        <div className="play-hero-mark" aria-hidden="true">
+          <span className="play-hero-orbit play-hero-orbit-one" />
+          <span className="play-hero-orbit play-hero-orbit-two" />
+          <span className="play-hero-cube">✦</span>
+        </div>
       </header>
       <div className="play-grid">
-        <Card id="launch" title="Launch" icon={<PlayArrowIcon />} description="Version, loader, player and the Play button.">
+        <Card className="glass-panel play-section play-launch" id="launch" title="Launch" icon={<PlayArrowIcon />} description="Version, loader, player and the Play button.">
           <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="full" />
         </Card>
         <LaunchConfig data={data} onNavigate={onNavigate} />
