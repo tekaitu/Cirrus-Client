@@ -1038,7 +1038,7 @@ mod tests {
     fn unapproved_app_registration_and_missing_game_are_explained() {
         let (base, _) = happy_chain(|path, _| (path == "/mclogin").then(|| (403, "{}".to_string())));
         let err = sign_in(&endpoints(&base), ID, &MemoryStore::default(), &AtomicBool::new(false), &|_| {}).unwrap_err();
-        assert!(err.to_string().contains("approved by Mojang"));
+        assert!(err.to_string().contains("Invalid app registration"));
         let (base, _) = happy_chain(|path, _| (path == "/profile").then(|| (404, "{}".to_string())));
         let err = sign_in(&endpoints(&base), ID, &MemoryStore::default(), &AtomicBool::new(false), &|_| {}).unwrap_err();
         assert!(err.to_string().contains("does not own Minecraft"));
