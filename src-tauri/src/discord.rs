@@ -21,11 +21,15 @@ pub fn is_valid_app_id(id: &str) -> bool {
     (17..=20).contains(&id.len()) && id.bytes().all(|b| b.is_ascii_digit())
 }
 
-/// The application ID built into this copy of Cirrus Client, if the build had one.
+/// Cirrus Client's own Discord application. The ID is public (it is not a secret).
+pub const DEFAULT_APP_ID: &str = "1571269169968840854";
+
+/// The application ID to use: `CIRRUS_DISCORD_APP_ID` from the build when it is set and valid, else Cirrus Client's own.
 pub fn builtin_app_id() -> Option<&'static str> {
     option_env!("CIRRUS_DISCORD_APP_ID")
         .map(str::trim)
         .filter(|id| is_valid_app_id(id))
+        .or(Some(DEFAULT_APP_ID))
 }
 
 /// What the interface wants shown on the person's Discord profile.
@@ -117,6 +121,12 @@ mod tests {
         assert!(!is_valid_app_id("12345678901234567x"));
         assert!(!is_valid_app_id(""));
         assert!(!is_valid_app_id("123456789012345678901"));
+    }
+
+    #[test]
+    fn cirrus_has_its_own_application_id_built_in() {
+        assert!(is_valid_app_id(DEFAULT_APP_ID));
+        assert!(builtin_app_id().is_some());
     }
 
     #[test]

@@ -2,8 +2,7 @@ import { PlayPanel } from "../components/PlayPanel";
 import { JavaInstallPanel } from "../components/JavaInstallPanel";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import type { PageId } from "../components/Navigation";
-import { CardArt } from "../components/Art";
-import { CloudMark, Wordmark } from "../components/Logo";
+import { CardArt, SkyScene } from "../components/Art";
 import { ClockIcon, ModsIcon, PlayArrowIcon, SettingsIcon, UserIcon } from "../components/Icons";
 import { formatAgo, type RecentPlay } from "../core/recent";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
@@ -105,16 +104,15 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
 
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <span className="hero-watermark" aria-hidden="true">
-        <CloudMark size={300} />
-      </span>
-      <Wordmark height={46} />
-      <p className="pill eyebrow">Minecraft Java Edition {data.selection.version}</p>
-      <h1 id="hero-title">The sky is the limit.</h1>
-      <p className="hero-copy">
-        A lightweight Fabric launcher built around steady frame rates and low input delay. Early build: the
-        game download and launch are new and have not been tried on many PCs yet.
-      </p>
+      <SkyScene />
+      <div className="hero-text">
+        <p className="pill eyebrow">Minecraft Java Edition {data.selection.version}</p>
+        <h1 id="hero-title">The sky is the limit.</h1>
+        <p className="hero-copy">
+          A lightweight Fabric launcher built around steady frame rates and low input delay. Early build: the game
+          download and launch are new and have not been tried on many PCs yet.
+        </p>
+      </div>
       <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
       <ul className="chips" aria-label="What Play needs">
         {checks.map((c) => (

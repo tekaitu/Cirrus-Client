@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod crashlog;
 pub mod discord;
 pub mod game;
 pub mod java;
@@ -38,6 +39,10 @@ struct AuthState {
 struct GameState {
     install_cancel: Mutex<Option<Arc<AtomicBool>>>,
     child: Arc<Mutex<Option<std::process::Child>>>,
+    /// Set when the person pressed Stop, so that ending the game is not reported as a crash.
+    stopped: Arc<AtomicBool>,
+    /// The game folder of the last launch (where `crash-reports` lives).
+    instance: Mutex<Option<PathBuf>>,
 }
 
 /// Cancel flag of the installation that is running right now, if any.
@@ -665,6 +670,10 @@ struct LaunchResult {
 struct GameExit {
     code: Option<i32>,
     log_path: String,
+    /// The person pressed Stop.
+    stopped: bool,
+    /// Set when the game ended unexpectedly: the end of the log, the crash report and a likely cause.
+    crash: Option<crashlog::CrashInfo>,
 }
 
 fn game_root(app: &AppHandle) -> Result<(PathBuf, u32), String> {
@@ -973,11 +982,35 @@ async fn launch_game(
 
     let log_dir = root.join("logs");
     let _ = std::fs::create_dir_all(&log_dir);
-    let log_path = log_dir.join("unlimited-launch.log");
+    let log_path = log_dir.join(crashlog::LAUNCH_LOG);
     let (out, err) = match std::fs::File::create(&log_path).and_then(|f| f.try_clone().map(|g| (f, g))) {
         Ok(pair) => pair,
         Err(e) => return refuse(&format!("Could not create the log file: {e}")),
     };
+    {
+        // The first lines say what is being started. The access token is never written here.
+        use std::io::Write;
+        let mut head = &out;
+        let _ = writeln!(
+            head,
+            "[Cirrus Client {}] Starting Minecraft {} ({})",
+            env!("CARGO_PKG_VERSION"),
+            version,
+            if fabric { "Fabric" } else { "Vanilla" }
+        );
+        let _ = writeln!(head, "[Cirrus Client] Java: {}", java.display());
+        let _ = writeln!(head, "[Cirrus Client] Memory: {memory} MB");
+        let _ = writeln!(head, "[Cirrus Client] Player: {} ({})", player.name, mode);
+        let _ = writeln!(head, "[Cirrus Client] Game folder: {}", spec.cwd.display());
+        let _ = writeln!(head, "----------------------------------------");
+    }
+    let started_at = std::time::SystemTime::now();
+    let token = player.access_token.clone();
+    let instance_dir = spec.cwd.clone();
+    state.stopped.store(false, Ordering::SeqCst);
+    if let Ok(mut slot) = state.instance.lock() {
+        *slot = Some(instance_dir.clone());
+    }
 
     let mut command = std::process::Command::new(&spec.program);
     command
@@ -1002,6 +1035,7 @@ async fn launch_game(
     // Report when the game closes.
     let handle = app.clone();
     let slot = state.child.clone();
+    let stopped = state.stopped.clone();
     let log_text = log_path.display().to_string();
     std::thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_millis(700));
@@ -1020,7 +1054,14 @@ async fn launch_game(
             if let Ok(mut guard) = slot.lock() {
                 *guard = None;
             }
-            let _ = handle.emit(GAME_EXITED_EVENT, GameExit { code, log_path: log_text });
+            let was_stopped = stopped.load(Ordering::SeqCst);
+            let crash = (!was_stopped && code != Some(0)).then(|| {
+                crashlog::collect(&instance_dir, std::path::Path::new(&log_text), started_at, &[token.as_str()])
+            });
+            let _ = handle.emit(
+                GAME_EXITED_EVENT,
+                GameExit { code, log_path: log_text, stopped: was_stopped, crash },
+            );
             return;
         }
     });
@@ -1030,12 +1071,50 @@ async fn launch_game(
 
 #[tauri::command]
 fn stop_game(state: State<'_, GameState>) -> bool {
+    state.stopped.store(true, Ordering::SeqCst);
     match state.child.lock() {
         Ok(mut slot) => match slot.as_mut() {
             Some(child) => child.kill().is_ok(),
             None => false,
         },
         Err(_) => false,
+    }
+}
+
+/// New text of the game's launch log, from `offset` on (0 at the start). Access tokens are hidden.
+#[tauri::command]
+fn read_game_log(app: AppHandle, auth: State<'_, AuthState>, offset: u64) -> Result<crashlog::LogChunk, String> {
+    let (root, _) = game_root(&app)?;
+    let token = auth.session.lock().ok().and_then(|s| s.as_ref().map(|x| x.mc_token.clone()));
+    let secrets: Vec<&str> = token.iter().map(String::as_str).collect();
+    Ok(crashlog::read_chunk(&root.join("logs").join(crashlog::LAUNCH_LOG), offset, &secrets))
+}
+
+/// Opens one of the game's folders in the file explorer: "logs", "crash-reports" or "game".
+#[tauri::command]
+fn open_game_folder(app: AppHandle, state: State<'_, GameState>, kind: String) -> Result<(), String> {
+    let (root, _) = game_root(&app)?;
+    let instance = state.instance.lock().ok().and_then(|g| g.clone());
+    let path = match kind.as_str() {
+        "logs" => root.join("logs"),
+        "crash-reports" => instance.unwrap_or_else(|| root.clone()).join("crash-reports"),
+        "game" => instance.unwrap_or(root),
+        _ => return Err("Unknown folder.".to_string()),
+    };
+    std::fs::create_dir_all(&path).map_err(|e| format!("Could not create the folder: {e}"))?;
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("explorer.exe")
+            .arg(&path)
+            .creation_flags(0x0800_0000)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("Could not open the folder: {e}"))
+    }
+    #[cfg(not(windows))]
+    {
+        Err(format!("Opening folders is only supported on Windows ({}).", path.display()))
     }
 }
 
@@ -1082,10 +1161,13 @@ async fn search_mods(
     query: String,
     version: String,
     offset: u32,
+    category: Option<String>,
 ) -> Result<mods::SearchResult, String> {
     check_version(&version)?;
     let provider = mods::Provider::parse(&provider).ok_or("Unknown mod site.")?;
-    tauri::async_runtime::spawn_blocking(move || mods::search(provider, &query, &version, offset, curseforge_key()))
+    tauri::async_runtime::spawn_blocking(move || {
+        mods::search(provider, &query, &version, offset, category.as_deref(), curseforge_key())
+    })
         .await
         .map_err(|e| format!("The search stopped unexpectedly: {e}"))?
 }
@@ -1192,6 +1274,8 @@ pub fn run() {
             install_game,
             cancel_game_install,
             launch_game,
+            read_game_log,
+            open_game_folder,
             stop_game,
             quit_app,
             list_game_versions,

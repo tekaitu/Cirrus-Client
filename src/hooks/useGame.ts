@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { GameStatus } from "../api/types";
-import type { GameInstallerState, LoaderId, PlayMode, RunState } from "../core/game";
+import { appendLog, type GameInstallerState, type LoaderId, type PlayMode, type RunState } from "../core/game";
 
 export interface Game {
   status: GameStatus | null;
@@ -13,6 +13,13 @@ export interface Game {
   stop: () => void;
   dismissRun: () => void;
   refresh: () => void;
+  /** Everything the game printed during the latest launch. */
+  log: string;
+  /** Which window is open: nothing, the live launch log, or the crash details. */
+  panel: "none" | "log" | "crash";
+  openLog: () => void;
+  openCrash: () => void;
+  closePanel: () => void;
 }
 
 export function useGame(version: string, loader: LoaderId, profileId: string | null = null): Game {
@@ -21,6 +28,9 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
   const [run, setRun] = useState<RunState>({ phase: "idle" });
   const installing = useRef(false);
   const mounted = useRef(true);
+  const [log, setLog] = useState("");
+  const [panel, setPanel] = useState<"none" | "log" | "crash">("none");
+  const logOffset = useRef(0);
 
   useEffect(() => {
     mounted.current = true;
@@ -46,19 +56,46 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
     setStatus(null);
   }, [version, loader]);
 
+  /** Reads whatever the game has printed since the last read. */
+  const readLog = useCallback(async () => {
+    try {
+      const chunk = await api.readGameLog(logOffset.current);
+      if (!mounted.current) return;
+      if (chunk.offset < logOffset.current) setLog(chunk.text);
+      else if (chunk.text) setLog((prev) => appendLog(prev, chunk.text));
+      logOffset.current = chunk.offset;
+    } catch {
+      /* outside the desktop app there is no log */
+    }
+  }, []);
+
+  const polling = run.phase === "starting" || run.phase === "running";
+  useEffect(() => {
+    if (!polling) return;
+    void readLog();
+    const id = window.setInterval(() => void readLog(), 700);
+    return () => window.clearInterval(id);
+  }, [polling, readLog]);
+
   useEffect(() => {
     refresh();
     let unlisten: () => void = () => {};
     void api
       .onGameExited((e) => {
-        if (mounted.current) setRun({ phase: "ended", code: e.code, logPath: e.logPath });
+        if (!mounted.current) return;
+        // One last read so the log ends with the game's final lines.
+        void readLog().finally(() => {
+          if (!mounted.current) return;
+          setRun({ phase: "ended", code: e.code, logPath: e.logPath, stopped: e.stopped === true, crash: e.crash ?? null });
+          if (e.crash) setPanel("crash");
+        });
       })
       .then((u) => {
         unlisten = u;
         if (!mounted.current) u();
       });
     return () => unlisten();
-  }, [refresh]);
+  }, [refresh, readLog]);
 
   const install = useCallback(() => {
     if (installing.current) return;
@@ -103,6 +140,8 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
 
   const play = useCallback((javaPath: string, mode: PlayMode, username: string) => {
     setRun({ phase: "starting" });
+    setLog("");
+    logOffset.current = 0;
     const who = mode === "offline" ? username.trim() : null;
     (profileId
       ? api.launchGame(javaPath, mode, who, version, loader, profileId)
@@ -121,7 +160,13 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
     api.stopGame().catch(() => {});
   }, []);
 
-  const dismissRun = useCallback(() => setRun({ phase: "idle" }), []);
+  const dismissRun = useCallback(() => {
+    setRun({ phase: "idle" });
+    setPanel((p) => (p === "crash" ? "none" : p));
+  }, []);
+  const openLog = useCallback(() => setPanel("log"), []);
+  const openCrash = useCallback(() => setPanel("crash"), []);
+  const closePanel = useCallback(() => setPanel("none"), []);
 
-  return { status, installer, run, install, cancelInstall, play, stop, dismissRun, refresh };
+  return { status, installer, run, install, cancelInstall, play, stop, dismissRun, refresh, log, panel, openLog, openCrash, closePanel };
 }

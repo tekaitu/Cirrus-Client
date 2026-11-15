@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AccountPanel } from "./components/AccountPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { SignInDialog } from "./components/SignInDialog";
+import { GameDialog } from "./components/GameDialog";
 import { FooterBar } from "./components/FooterBar";
 import { CloseIcon } from "./components/Icons";
 import { TopNav, type PageId } from "./components/Navigation";
@@ -159,6 +160,7 @@ export default function App() {
         <LicenseDialog mode="gate" onAccept={accept} onDecline={() => void api.quitApp().catch(() => {})} />
       )}
       {accepted && <SignInDialog account={data.account} />}
+      {accepted && <GameDialog data={data} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}
       {accountOpen && (
         <div className="popover" role="dialog" aria-label="Account">

@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api, errorMessage } from "../api/client";
 import type { SettingsState } from "../api/types";
+import { BrandIcon } from "../components/BrandIcon";
 import {
-  ChatIcon,
   CheckIcon,
   CpuIcon,
   CubeIcon,
@@ -35,7 +35,8 @@ import {
   type Settings,
   type SettingsErrors,
 } from "../core/settings";
-import { ACCENTS, THEMES, getAccent, getTheme, setAccent, setTheme } from "../core/theme";
+import { THEMES, getTheme, setTheme } from "../core/theme";
+import { insideTauri, setNativeFrame, useNativeFrame } from "../core/windowFrame";
 import type { AppData } from "../hooks/useAppData";
 
 type JavaTest = { status: "idle" } | { status: "running" } | { status: "done"; result: JavaAnalysis } | { status: "error"; message: string };
@@ -140,7 +141,7 @@ function SettingsForm({
   const [notice, setNotice] = useState<{ tone: Tone; text: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [javaTest, setJavaTest] = useState<JavaTest>({ status: "idle" });
-  const [look, setLook] = useState(() => ({ theme: getTheme(), accent: getAccent() }));
+  const [look, setLook] = useState(() => ({ theme: getTheme() }));
 
   // After a successful save or reset the backend hands back a new settings object.
   useEffect(() => {
@@ -255,7 +256,7 @@ function SettingsForm({
         id="sec-about"
         title="Community"
         tone="blue"
-        icon={<ChatIcon />}
+        icon={<BrandIcon name="discord" />}
         description="Questions, bug reports and ideas are welcome."
       >
         <div className="row">
@@ -264,7 +265,7 @@ function SettingsForm({
             className="btn btn-discord"
             onClick={() => void api.openCommunity().catch((e: unknown) => setNotice({ tone: "bad", text: errorMessage(e) }))}
           >
-            <ChatIcon />
+            <BrandIcon name="discord" />
             Join the Discord community
           </button>
           <span className="muted small">
@@ -298,7 +299,7 @@ function SettingsForm({
           )}
           {tab === "appearance" && (
             <>
-      <Card id="sec-interface" title="Theme and colours" icon={<PaletteIcon />} description="Applied at once.">
+      <Card id="sec-interface" title="Appearance" icon={<PaletteIcon />} description="Applied at once.">
         <div className="field">
           <span id="theme-label" className="field-label">
             Theme
@@ -328,31 +329,7 @@ function SettingsForm({
             ))}
           </div>
         </div>
-        <div className="field">
-          <span id="accent-label" className="field-label">
-            Accent colour
-          </span>
-          <div className="accent-row" role="radiogroup" aria-labelledby="accent-label">
-            {ACCENTS.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                role="radio"
-                aria-checked={look.accent === a.id}
-                aria-label={`${a.label} accent`}
-                title={a.label}
-                className={`accent-dot ${look.accent === a.id ? "accent-on" : ""}`}
-                style={{ background: a.color, color: a.ink }}
-                onClick={() => {
-                  setAccent(a.id);
-                  setLook((l) => ({ ...l, accent: a.id }));
-                }}
-              >
-                {look.accent === a.id && <CheckIcon />}
-              </button>
-            ))}
-          </div>
-        </div>
+        {insideTauri() && <NativeFrameSwitch />}
         <label className="check switch">
           <input
             type="checkbox"
@@ -723,6 +700,17 @@ function SettingsForm({
       </div>
 
     </form>
+  );
+}
+
+/** Back to the normal Windows frame if the Cirrus title bar ever misbehaves. */
+function NativeFrameSwitch() {
+  const native = useNativeFrame();
+  return (
+    <label className="check switch">
+      <input type="checkbox" checked={native} onChange={(e) => setNativeFrame(e.target.checked)} />
+      <span>Use the normal Windows title bar instead of the Cirrus one</span>
+    </label>
   );
 }
 

@@ -164,10 +164,32 @@ export interface LaunchResult {
   logPath: string | null;
 }
 
+/** What the game left behind when it closed unexpectedly. */
+export interface CrashInfo {
+  /** A short, plain explanation of the most likely cause, when one is recognised. */
+  hint: string | null;
+  /** The newest crash report of that run (Minecraft's own, or Java's hs_err file). */
+  report: string | null;
+  reportPath: string | null;
+  /** The last lines of the launch log. */
+  logTail: string;
+}
+
 export interface GameExit {
   code: number | null;
   logPath: string;
+  /** The person pressed Stop, so this is not a crash. */
+  stopped: boolean;
+  crash: CrashInfo | null;
 }
+
+/** New text of the launch log and where to continue reading. */
+export interface GameLogChunk {
+  text: string;
+  offset: number;
+}
+
+export type GameFolder = "logs" | "crash-reports" | "game";
 
 export type ModProvider = "modrinth" | "curseforge";
 

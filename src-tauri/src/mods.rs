@@ -313,13 +313,44 @@ fn download_mod(c: &reqwest::blocking::Client, spec: &FileSpec, dest: &Path) -> 
 
 // ------------------------------------------------------------- Modrinth
 
+/// The categories Modrinth uses for mods; the only values accepted as a filter.
+pub const MODRINTH_CATEGORIES: &[&str] = &[
+    "adventure",
+    "cursed",
+    "decoration",
+    "economy",
+    "equipment",
+    "food",
+    "game-mechanics",
+    "library",
+    "magic",
+    "management",
+    "minigame",
+    "mobs",
+    "optimization",
+    "social",
+    "storage",
+    "technology",
+    "transportation",
+    "utility",
+    "worldgen",
+];
+
 pub fn modrinth_facets(mc: &str, loader: &str) -> String {
-    serde_json::json!([
-        ["project_type:mod"],
-        [format!("versions:{mc}")],
-        [format!("categories:{loader}")]
-    ])
-    .to_string()
+    modrinth_facets_in(mc, loader, None)
+}
+
+/// Facets for a search, optionally narrowed to one category (anything not in the list is ignored).
+pub fn modrinth_facets_in(mc: &str, loader: &str, category: Option<&str>) -> String {
+    let mut groups = vec![
+        serde_json::json!(["project_type:mod"]),
+        serde_json::json!([format!("versions:{mc}")]),
+        serde_json::json!([format!("categories:{loader}")]),
+    ];
+    if let Some(c) = category.filter(|c| MODRINTH_CATEGORIES.contains(c)) {
+        groups.push(serde_json::json!([format!("categories:{c}")]));
+    }
+    serde_json::Value::Array(groups).to_string()
 }
 
 pub fn parse_modrinth_hits(v: &Value) -> SearchResult {
@@ -506,13 +537,14 @@ pub fn search(
     query: &str,
     mc: &str,
     offset: u32,
+    category: Option<&str>,
     cf_key: Option<&str>,
 ) -> Result<SearchResult, String> {
     let c = client()?;
     let query = query.trim();
     match provider {
         Provider::Modrinth => {
-            let facets = modrinth_facets(mc, "fabric");
+            let facets = modrinth_facets_in(mc, "fabric", category);
             let limit = PAGE_SIZE.to_string();
             let off = offset.to_string();
             let index = if query.is_empty() { "downloads" } else { "relevance" };
@@ -698,6 +730,16 @@ mod tests {
         assert_eq!(facets[0][0], "project_type:mod");
         assert_eq!(facets[1][0], "versions:1.21.11");
         assert_eq!(facets[2][0], "categories:fabric");
+        assert_eq!(facets.as_array().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn a_category_narrows_the_search_and_unknown_ones_are_ignored() {
+        let with: Value = serde_json::from_str(&modrinth_facets_in("1.21.11", "fabric", Some("optimization"))).unwrap();
+        assert_eq!(with[3][0], "categories:optimization");
+        let without: Value =
+            serde_json::from_str(&modrinth_facets_in("1.21.11", "fabric", Some("x\"],[\"evil"))).unwrap();
+        assert_eq!(without.as_array().unwrap().len(), 3);
     }
 
     #[test]

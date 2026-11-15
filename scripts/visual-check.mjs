@@ -1,0 +1,206 @@
+// Takes screenshots of every page of the built app (dist/) in both appearances and several window sizes.
+// The desktop commands are answered by made-up data, so this checks LAYOUT only, not real behaviour.
+// Usage: node scripts/visual-check.mjs <outDir>
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { chromium } from "playwright";
+
+const out = process.argv[2] ?? "shots";
+fs.mkdirSync(out, { recursive: true });
+const dist = path.resolve("dist");
+const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json" };
+
+const server = http.createServer((req, res) => {
+  let p = decodeURIComponent((req.url ?? "/").split("?")[0]);
+  if (p === "/") p = "/index.html";
+  const file = path.join(dist, p);
+  if (!file.startsWith(dist) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    res.writeHead(404).end("not found");
+    return;
+  }
+  res.writeHead(200, { "content-type": types[path.extname(file)] ?? "application/octet-stream" });
+  fs.createReadStream(file).pipe(res);
+});
+await new Promise((r) => server.listen(4173, r));
+
+/** Runs in the page before the app starts: a stand-in for the desktop backend. */
+function installMock() {
+  const callbacks = {};
+  const listeners = {};
+  let next = 1;
+  const png = (draw) => {
+    const c = document.createElement("canvas");
+    c.width = 64; c.height = 64;
+    const g = c.getContext("2d");
+    draw(g);
+    return c.toDataURL("image/png");
+  };
+  const skin = (hair, shirt, pants) =>
+    png((g) => {
+      const r = (c, x, y, w, h) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+      r("#c58c6b", 8, 8, 8, 8); r(hair, 8, 0, 8, 8); r(hair, 0, 8, 32, 8);
+      r("#c58c6b", 0, 8, 8, 8); r("#c58c6b", 16, 8, 8, 8); r("#c58c6b", 24, 8, 8, 8);
+      r("#3a2a22", 10, 12, 2, 2); r("#3a2a22", 13, 12, 2, 2);
+      r(shirt, 16, 16, 24, 4); r(shirt, 20, 20, 8, 12); r(shirt, 16, 20, 4, 12); r(shirt, 28, 20, 4, 12); r(shirt, 32, 20, 8, 12);
+      r("#c58c6b", 40, 16, 16, 16); r(shirt, 44, 20, 4, 4); r("#c58c6b", 44, 24, 4, 8);
+      r(pants, 0, 16, 16, 4); r(pants, 4, 20, 4, 12); r(pants, 0, 20, 4, 12); r(pants, 8, 20, 4, 12); r(pants, 12, 20, 4, 12);
+      r("#c58c6b", 32, 48, 16, 16); r(shirt, 36, 52, 4, 4); r("#c58c6b", 36, 56, 4, 8); r(pants, 16, 48, 16, 16);
+      r(pants, 20, 52, 4, 12);
+    });
+  const icon = (a, b) =>
+    png((g) => {
+      const grd = g.createLinearGradient(0, 0, 64, 64); grd.addColorStop(0, a); grd.addColorStop(1, b);
+      g.fillStyle = grd; g.fillRect(0, 0, 64, 64); g.fillStyle = "rgba(255,255,255,.85)"; g.fillRect(18, 18, 28, 28);
+    });
+  const steve = skin("#3b2a1d", "#1f9fb5", "#3f3f9b");
+  const alex = skin("#c9742b", "#7a3fb5", "#2d2d2d");
+  const skins = [
+    { id: "steve", name: "Steve", model: "classic", source: "file", dataUrl: steve },
+    { id: "alex", name: "Alex", model: "slim", source: "player:Alex", dataUrl: alex },
+    { id: "night", name: "Night shift", model: "classic", source: "url", dataUrl: skin("#111", "#2b2b45", "#1b1b2b") },
+  ];
+  const mods = [
+    ["sodium-fabric-0.6.0.jar", "Sodium", "0.6.0", "A modern rendering engine that improves frame rates and fixes graphical issues.", ["JellySquid", "IMS"], true, icon("#1f9d55", "#0e5b32")],
+    ["lithium-fabric-0.14.jar", "Lithium", "0.14.3", "A general-purpose optimization mod for game logic and physics.", ["JellySquid"], true, icon("#3b82f6", "#1e3a8a")],
+    ["iris-1.8.jar", "Iris Shaders", "1.8.1", "Shader support that works with Sodium.", ["coderbot"], false, icon("#d946ef", "#701a75")],
+    ["fabric-api-0.119.jar", "Fabric API", "0.119.2", "Essential hooks for modding with Fabric.", ["modmuss50"], true, icon("#f59e0b", "#92400e")],
+    ["modmenu-13.0.jar", "Mod Menu", "13.0.0", "Adds a screen listing your mods.", ["Prospector"], true, null],
+    ["ferrite-core.jar", null, null, null, [], true, null],
+  ].map(([fileName, name, version, description, authors, enabled, ic]) => ({
+    fileName: enabled ? fileName : fileName + ".disabled", size: 2_097_152, enabled, name, version, description, authors, icon: ic,
+  }));
+  const hits = ["Sodium", "Lithium", "Iris Shaders", "Fabric API", "Mod Menu", "Ferrite Core"].map((t, i) => ({
+    provider: "modrinth", id: "p" + i, title: t, description: "A fast and lightweight mod that makes Minecraft run better on every kind of computer.",
+    author: ["JellySquid", "coderbot", "modmuss50", "Prospector"][i % 4], downloads: 12_345_678 - i * 1_234_567, iconUrl: null, pageUrl: null,
+  }));
+  const java = {
+    path: "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.4.7-hotspot\\bin\\java.exe", source: "Common install folder", ran: true,
+    output: 'openjdk version "21.0.4" 2024-07-16 LTS\nOpenJDK Runtime Environment Temurin-21.0.4+7 (build 21.0.4+7-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.4+7 (build 21.0.4+7-LTS, mixed mode, sharing)',
+    error: null,
+  };
+  const settings = {
+    settings: { version: 1, javaPath: null, memoryMb: 4096, gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\game", reduceMotion: false, msClientId: "00000000-0000-0000-0000-000000000000" },
+    status: "loaded", message: null, filePath: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\settings.json",
+    totalRamMb: 15800, minMemoryMb: 1024, maxMemoryMb: 13568,
+  };
+  const signedIn = { state: "signedIn", configured: true, savedLogin: true, profile: { id: "0123456789abcdef0123456789abcdef", name: "Brend4n" }, message: null };
+  const log = [
+    "[Cirrus Client 0.1.0] Starting Minecraft 1.21.11 (Fabric)",
+    "[Cirrus Client] Java: C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.4.7-hotspot\\bin\\java.exe",
+    "[Cirrus Client] Memory: 4096 MB", "[Cirrus Client] Player: Brend4n (microsoft)", "----------------------------------------",
+    "[12:01:02] [main/INFO]: Loading Minecraft 1.21.11 with Fabric Loader 0.17.2",
+    "[12:01:03] [main/INFO]: Loading 6 mods: fabric-api 0.119.2, iris 1.8.1, lithium 0.14.3, modmenu 13.0.0, sodium 0.6.0",
+    "[12:01:05] [Render thread/INFO]: Setting user: Brend4n", "[12:01:06] [Render thread/INFO]: Backend library: LWJGL version 3.3.3",
+    "[12:01:08] [Render thread/WARN]: Missing sound for event: minecraft:item.goat_horn.play",
+  ].join("\n") + "\n";
+  const crashReport = "---- Minecraft Crash Report ----\n// Don't be sad, have a hug! <3\n\nTime: 2026-11-15 12:03:11\nDescription: Exception in server tick loop\n\njava.lang.OutOfMemoryError: Java heap space\n\tat net.minecraft.class_2818.method_12206(class_2818.java:120)\n\tat net.minecraft.server.MinecraftServer.method_3813(MinecraftServer.java:864)\n\nA detailed walkthrough of the error, its code path and all known details is as follows:\n---------------------------------------------------------------------------------------\n-- System Details --\nDetails:\n\tMinecraft Version: 1.21.11\n\tOperating System: Windows 10 (amd64) version 10.0\n\tJava Version: 21.0.4, Eclipse Adoptium\n\tMemory: 12345678 bytes (11 MiB) / 4294967296 bytes (4096 MiB) up to 4294967296 bytes (4096 MiB)\n";
+  window.__crash = { hint: "Minecraft ran out of memory. Give it more in Settings > Memory and RAM, or switch off heavy mods.", report: crashReport, reportPath: "C:\\game\\crash-reports\\crash-2026-11-15.txt", logTail: log };
+  let logOffset = 0;
+  const handlers = {
+    get_app_info: () => ({ name: "Cirrus Client", version: "0.2.0", target_minecraft: "1.21.11", launcher_ready: true }),
+    get_system_info: () => ({ osName: "Windows", osVersion: "10 (19045)", osLongVersion: "Windows 10 Pro", kernelVersion: "19045", arch: "x86_64", cpuBrand: "AMD Ryzen 5 PRO 4650G with Radeon Graphics", cpuLogicalCores: 12, cpuPhysicalCores: 6, totalRamMb: 15800, availableRamMb: 9000 }),
+    detect_java: () => ({ installs: [java], candidatesChecked: 6, notes: ["Checked 6 places."] }),
+    load_settings: () => settings, save_settings: () => ({ ok: true, errors: [], state: settings }),
+    auth_status: () => ({ ...signedIn, state: "signedOut", profile: null }), auth_restore: () => signedIn,
+    list_game_versions: () => ["1.21.11", "1.21.10", "1.21.8", "1.20.6"],
+    game_status: () => ({ installed: true, minecraft: "1.21.11", loader: "0.17.2", gameDir: settings.settings.gameDir, running: false }),
+    list_instances: () => [{ minecraft: "1.21.11", loader: "0.17.2", modCount: 6 }, { minecraft: "1.20.6", loader: null, modCount: 0 }],
+    list_profiles: () => [{ id: "pvp", name: "PvP", minecraft: "1.21.11", fabric: true, color: 0 }],
+    list_mods: () => mods, search_mods: () => ({ hits, total: 6 }), curseforge_available: () => false,
+    list_skins: () => skins, player_skin: () => steve,
+    launch_game: () => { logOffset = 0; return { started: true, message: null, logPath: "C:\\game\\logs\\cirrus-launch.log" }; },
+    read_game_log: (a) => { const text = log.slice(a.offset ?? 0); return { text, offset: log.length }; },
+    open_game_folder: () => null, discord_available: () => true, discord_set_presence: () => "ok", discord_clear_presence: () => "ok",
+    stop_game: () => true,
+  };
+  window.__emit = (event, payload) => (listeners[event] ?? []).forEach((id) => callbacks[id]?.({ event, id, payload }));
+  window.__TAURI_INTERNALS__ = {
+    metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main", windowLabel: "main" } },
+    transformCallback: (cb) => { const id = next++; callbacks[id] = cb; return id; },
+    unregisterCallback: (id) => { delete callbacks[id]; },
+    convertFileSrc: (s) => s,
+    invoke: async (cmd, args) => {
+      if (cmd === "plugin:event|listen") { (listeners[args.event] ??= []).push(args.handler); return next++; }
+      if (cmd.startsWith("plugin:event|")) return null;
+      if (cmd.startsWith("plugin:window|")) return null;
+      const h = handlers[cmd];
+      if (!h) throw new Error("mock: no handler for " + cmd);
+      return h(args ?? {});
+    },
+  };
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+}
+
+const browser = await chromium.launch();
+
+async function session(theme, width, height) {
+  const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1 });
+  await ctx.addInitScript(installMock);
+  await ctx.addInitScript(([t]) => {
+    try {
+      localStorage.setItem("unlimited.license", "2");
+      localStorage.setItem("unlimited.theme", t);
+    } catch {}
+  }, [theme]);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+  await page.goto("http://localhost:4173/");
+  await page.waitForSelector(".topnav");
+  await page.waitForTimeout(700);
+  return { ctx, page, errors };
+}
+
+const nav = async (page, name) => { await page.getByRole("button", { name, exact: true }).first().click(); await page.waitForTimeout(650); };
+const snap = async (page, name) => { await page.screenshot({ path: path.join(out, name + ".png") }); };
+
+const report = [];
+async function run(theme, w, h, steps) {
+  const { ctx, page, errors } = await session(theme, w, h);
+  for (const [label, fn] of steps) {
+    try { await fn(page); await snap(page, `${theme}-${w}x${h}-${label}`); }
+    catch (e) { report.push(`FAILED ${theme} ${w}x${h} ${label}: ${String(e).split("\n")[0]}`); }
+  }
+  if (errors.length) report.push(`console errors (${theme} ${w}x${h}): ${[...new Set(errors)].slice(0, 5).join(" | ")}`);
+  await ctx.close();
+}
+
+const pages = [
+  ["home", async () => {}],
+  ["play", (p) => nav(p, "Play page")],
+  ["mods", (p) => nav(p, "Mods")],
+  ["mods-browse", async (p) => { await p.getByRole("button", { name: "Browse mods" }).first().click(); await p.waitForTimeout(700); }],
+  ["skins", (p) => nav(p, "Skins")],
+  ["accounts", (p) => nav(p, "Accounts")],
+  ["settings", (p) => nav(p, "Settings")],
+  ["settings-appearance", async (p) => { await p.getByRole("tab", { name: /Appearance/ }).click().catch(async () => { await p.getByText("Appearance", { exact: true }).first().click(); }); await p.waitForTimeout(400); }],
+  ["about", (p) => nav(p, "About")],
+  ["diagnostics", (p) => nav(p, "Diagnostics")],
+];
+await run("dark", 1100, 720, pages);
+await run("light", 1100, 720, pages);
+await run("dark", 900, 600, pages.filter(([n]) => ["home", "mods", "mods-browse", "skins", "settings"].includes(n)));
+await run("dark", 1440, 900, pages.filter(([n]) => ["home", "mods", "skins"].includes(n)));
+await run("light", 1440, 900, pages.filter(([n]) => ["home", "skins"].includes(n)));
+
+// Launch log and crash dialog
+for (const theme of ["dark", "light"]) {
+  await run(theme, 1100, 720, [
+    ["launch-log", async (p) => {
+      await p.getByRole("button", { name: "Play", exact: true }).first().click();
+      await p.waitForTimeout(900);
+      await p.getByRole("button", { name: "View log" }).first().click();
+      await p.waitForTimeout(900);
+    }],
+    ["crash", async (p) => {
+      await p.evaluate((c) => window.__emit("game-exited", { code: 1, logPath: "x", stopped: false, crash: window.__crash }), null);
+      await p.waitForTimeout(900);
+    }],
+  ]);
+}
+fs.writeFileSync(path.join(out, "report.txt"), report.join("\n") || "no problems found by the script\n");
+console.log(report.join("\n") || "ok");
+await browser.close();
+server.close();

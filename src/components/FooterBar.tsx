@@ -2,7 +2,8 @@ import { api } from "../api/client";
 import { progressView } from "../core/installer";
 import { REQUIRED_JAVA_MAJOR, TARGET_MINECRAFT_VERSION } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
-import { ChatIcon, HelpIcon } from "./Icons";
+import { BrandIcon } from "./BrandIcon";
+import { HelpIcon } from "./Icons";
 import type { PageId } from "./Navigation";
 
 function javaPill(data: AppData): { text: string; busy: boolean; tone: "good" | "warn" | "idle" } {
@@ -49,7 +50,7 @@ export function FooterBar({ data, onNavigate, onLicense }: { data: AppData; onNa
           title="Join the Cirrus Client community on Discord"
           onClick={() => void api.openCommunity().catch(() => {})}
         >
-          <ChatIcon />
+          <BrandIcon name="discord" />
           <span>Discord community</span>
         </button>
       </div>

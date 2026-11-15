@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api, errorMessage } from "../api/client";
-import { ChatIcon, CodeIcon, DownloadIcon, InfoIcon, SparkIcon } from "../components/Icons";
+import { BrandIcon } from "../components/BrandIcon";
+import { DownloadIcon, InfoIcon, SparkIcon } from "../components/Icons";
 import { CloudMark, Wordmark } from "../components/Logo";
 import { Banner, Card } from "../components/ui";
 import type { AppData } from "../hooks/useAppData";
@@ -66,7 +67,7 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
                 <p className="muted small">Questions, bug reports and ideas.</p>
               </div>
               <button type="button" className="btn" onClick={() => open(() => api.openCommunity())}>
-                <ChatIcon />
+                <BrandIcon name="discord" />
                 Open Discord
               </button>
             </div>
@@ -76,7 +77,7 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
                 <p className="muted small">Source code and builds.</p>
               </div>
               <button type="button" className="btn" onClick={() => open(() => api.openGithub())}>
-                <CodeIcon />
+                <BrandIcon name="github" />
                 Open GitHub
               </button>
             </div>

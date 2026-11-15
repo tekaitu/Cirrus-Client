@@ -58,3 +58,26 @@ export function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
+
+/** Modrinth's categories for mods, in the order they are listed in the filter. */
+export const MOD_CATEGORIES: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "optimization", label: "Optimization" },
+  { id: "utility", label: "Utility" },
+  { id: "game-mechanics", label: "Game mechanics" },
+  { id: "decoration", label: "Decoration" },
+  { id: "equipment", label: "Equipment" },
+  { id: "library", label: "Library" },
+  { id: "adventure", label: "Adventure" },
+  { id: "mobs", label: "Mobs" },
+  { id: "worldgen", label: "World generation" },
+  { id: "magic", label: "Magic" },
+  { id: "technology", label: "Technology" },
+  { id: "storage", label: "Storage" },
+  { id: "transportation", label: "Transportation" },
+  { id: "food", label: "Food" },
+  { id: "management", label: "Management" },
+  { id: "social", label: "Social" },
+  { id: "economy", label: "Economy" },
+  { id: "minigame", label: "Minigame" },
+  { id: "cursed", label: "Cursed" },
+];

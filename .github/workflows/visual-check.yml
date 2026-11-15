@@ -1,0 +1,36 @@
+name: Visual check (screenshots)
+
+# Builds the web part of the app and takes screenshots of every page in both appearances.
+# The desktop commands are replaced by made-up data, so this checks LAYOUT only.
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Build the frontend
+        run: npx vite build
+      - name: Install the screenshot tool
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Take screenshots
+        run: node scripts/visual-check.mjs shots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: shots

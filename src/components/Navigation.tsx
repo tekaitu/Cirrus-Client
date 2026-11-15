@@ -1,8 +1,10 @@
 import {
-  ChatIcon,
   DiagnosticsIcon,
   HomeIcon,
+  CloseIcon,
   InfoIcon,
+  MaximizeIcon,
+  MinimizeIcon,
   ModsIcon,
   PlayArrowIcon,
   RefreshIcon,
@@ -10,8 +12,10 @@ import {
   ShirtIcon,
   UserIcon,
 } from "./Icons";
+import { BrandIcon } from "./BrandIcon";
 import { LogoMark } from "./Logo";
 import { SkinHead } from "./SkinHead";
+import { useCustomFrame, windowActions } from "../core/windowFrame";
 
 export type PageId = "home" | "play" | "mods" | "skins" | "accounts" | "settings" | "about" | "diagnostics";
 
@@ -67,9 +71,10 @@ function nameFor(id: PageId): string {
  * Below 900px wide the tab labels fold away and the icons stay (labels remain as tooltips and screen-reader names).
  */
 export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accountOpen, player, discord }: Props) {
+  const customFrame = useCustomFrame();
   return (
-    <header className="topnav">
-      <div className="brand">
+    <header className="topnav" data-tauri-drag-region>
+      <div className="brand" data-tauri-drag-region>
         <span className="brand-mark">
           <LogoMark size={28} />
         </span>
@@ -78,7 +83,7 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
         </span>
       </div>
 
-      <nav aria-label="Main" className="tabs">
+      <nav aria-label="Main" className="tabs" data-tauri-drag-region>
         <ul>
           {TABS.map((item) => (
             <li key={item.id}>
@@ -100,7 +105,7 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
         </ul>
       </nav>
 
-      <div className="topnav-right">
+      <div className="topnav-right" data-tauri-drag-region>
         <nav aria-label="Tools" className="tools">
           <ul>
             {TOOLS.map((item) => (
@@ -132,7 +137,7 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
                   }
                   onClick={discord.onToggle}
                 >
-                  <ChatIcon />
+                  <BrandIcon name="discord" />
                 </button>
               </li>
             )}
@@ -164,6 +169,19 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
             <strong>{player ? player.name : "Guest"}</strong>
           </span>
         </button>
+        {customFrame && (
+          <div className="winctl" role="group" aria-label="Window">
+            <button type="button" aria-label="Minimize window" onClick={windowActions.minimize}>
+              <MinimizeIcon />
+            </button>
+            <button type="button" aria-label="Maximize or restore window" onClick={windowActions.toggleMaximize}>
+              <MaximizeIcon />
+            </button>
+            <button type="button" className="winctl-close" aria-label="Close window" onClick={windowActions.close}>
+              <CloseIcon />
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

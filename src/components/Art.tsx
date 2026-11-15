@@ -3,42 +3,62 @@
  * Minecraft artwork is used. Purely decorative.
  */
 
-export function HeroArt() {
-  const towers: Array<[number, number, number]> = [
-    [0, 70, 210], [70, 56, 180], [126, 84, 232], [210, 48, 196], [258, 92, 240],
-    [350, 60, 188], [410, 76, 218], [486, 52, 170], [538, 102, 226],
+/** One blocky cloud: three stacked rows of squares, so it feels like the game without copying any of its art. */
+function BlockCloud({ x, y, u = 28, rows }: { x: number; y: number; u?: number; rows: Array<[number, number]> }) {
+  return (
+    <g className="sky-cloud">
+      {rows.map(([start, len], i) => (
+        <rect key={i} x={x + start * u} y={y + i * u} width={len * u} height={u} />
+      ))}
+    </g>
+  );
+}
+
+/** The sky behind the Play button: an original, colour-themed scene with blocky clouds. Purely decorative. */
+export function SkyScene() {
+  const hills: Array<[number, number]> = [
+    [0, 70], [1, 96], [2, 84], [3, 120], [4, 104], [5, 88], [6, 130], [7, 112], [8, 92], [9, 124],
+    [10, 100], [11, 82], [12, 116], [13, 136], [14, 108], [15, 90], [16, 118], [17, 98], [18, 84], [19, 110],
+    [20, 126], [21, 102], [22, 88], [23, 114], [24, 96], [25, 80], [26, 106], [27, 122], [28, 94], [29, 86],
+    [30, 112], [31, 100], [32, 118], [33, 90], [34, 104], [35, 124], [36, 98], [37, 84], [38, 110], [39, 92],
+    [40, 76], [41, 102], [42, 116],
   ];
   return (
-    <svg className="scene" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <svg className="sky-scene" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="sSky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#333333" />
-          <stop offset="0.55" stopColor="#1a1a1a" />
-          <stop offset="1" stopColor="#090909" />
+        <linearGradient id="skyFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style={{ stopColor: "var(--sky-top)" }} />
+          <stop offset="0.7" style={{ stopColor: "var(--sky-mid)" }} />
+          <stop offset="1" style={{ stopColor: "var(--sky-bottom)" }} />
         </linearGradient>
-        <radialGradient id="sMoon" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#e4e4e4" stopOpacity="0.95" />
-          <stop offset="0.35" stopColor="#9f9f9f" stopOpacity="0.45" />
-          <stop offset="1" stopColor="#737373" stopOpacity="0" />
+        <radialGradient id="skyGlow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" style={{ stopColor: "var(--sky-glow)", stopOpacity: 0.55 }} />
+          <stop offset="1" style={{ stopColor: "var(--sky-glow)", stopOpacity: 0 }} />
         </radialGradient>
       </defs>
-      <rect width="640" height="360" fill="url(#sSky)" />
-      <circle className="scene-glow" cx="470" cy="110" r="120" fill="url(#sMoon)" />
-      <rect x="452" y="92" width="36" height="36" fill="#ececec" />
-      <g className="scene-stars" fill="#c1c1c1" opacity="0.5">
-        <rect x="60" y="40" width="3" height="3" /><rect x="150" y="70" width="3" height="3" />
-        <rect x="260" y="30" width="3" height="3" /><rect x="340" y="64" width="3" height="3" />
-        <rect x="580" y="50" width="3" height="3" /><rect x="610" y="120" width="3" height="3" />
+      <rect width="1200" height="420" fill="url(#skyFill)" />
+      <circle cx="930" cy="130" r="210" fill="url(#skyGlow)" />
+      <rect className="sky-sun" x="906" y="106" width="48" height="48" />
+      <g className="sky-stars">
+        {[[90, 54], [210, 120], [340, 40], [470, 98], [610, 52], [720, 140], [820, 60], [1090, 70], [1150, 170], [160, 190]].map(
+          ([x, y]) => (
+            <rect key={`${x}-${y}`} x={x} y={y} width="4" height="4" />
+          ),
+        )}
       </g>
-      <g className="scene-far" fill="#272727" opacity="0.8" transform="translate(0 -26)">
-        {towers.map(([x, w, h]) => <rect key={`b${x}`} x={x + 20} y={360 - h} width={w} height={h} />)}
+      <g className="sky-clouds-far">
+        <BlockCloud x={70} y={150} u={22} rows={[[1, 4], [0, 6], [2, 3]]} />
+        <BlockCloud x={600} y={110} u={22} rows={[[1, 3], [0, 5], [1, 4]]} />
+        <BlockCloud x={1020} y={210} u={22} rows={[[1, 3], [0, 5], [2, 2]]} />
       </g>
-      <g className="scene-near" fill="#131313">
-        {towers.map(([x, w, h]) => <rect key={x} x={x} y={360 - h + 40} width={w} height={h} />)}
+      <g className="sky-clouds-near">
+        <BlockCloud x={250} y={210} u={30} rows={[[2, 4], [0, 8], [1, 6]]} />
+        <BlockCloud x={760} y={190} u={30} rows={[[1, 3], [0, 6], [1, 5]]} />
       </g>
-      <g className="scene-beams" fill="#838383" opacity="0.35">
-        <polygon points="30,150 330,150 322,162 18,162" />
-        <polygon points="110,186 400,186 394,196 100,196" opacity="0.7" />
+      <g className="sky-hills">
+        {hills.map(([i, h]) => (
+          <rect key={i} x={i * 30} y={420 - h} width="30" height={h} />
+        ))}
       </g>
     </svg>
   );

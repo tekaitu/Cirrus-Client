@@ -1,7 +1,7 @@
-/** Look and feel choices. They are applied at once and remembered on this PC. */
+/** Look and feel: two appearances, Dark and Light. The choice is applied at once and remembered on this PC. */
 
 export interface ThemeInfo {
-  id: string;
+  id: "dark" | "light";
   label: string;
   blurb: string;
   /** Preview colours: page, card, raised card. */
@@ -9,39 +9,15 @@ export interface ThemeInfo {
 }
 
 export const THEMES: readonly ThemeInfo[] = [
-  { id: "cirrus", label: "Cirrus", blurb: "Dark with Cirrus blue", swatch: ["#111214", "#191b20", "#202329"] },
-  { id: "midnight", label: "Midnight", blurb: "Deep violet-black", swatch: ["#14121a", "#1b1923", "#2e2a3b"] },
-  { id: "graphite", label: "Graphite", blurb: "Neutral grey", swatch: ["#151618", "#1e2023", "#2f3236"] },
-  { id: "ocean", label: "Ocean", blurb: "Deep blue", swatch: ["#0c1422", "#121c2e", "#1f2d45"] },
-  { id: "forest", label: "Forest", blurb: "Dark green", swatch: ["#0e1612", "#14201a", "#22332a"] },
-  { id: "sunset", label: "Sunset", blurb: "Warm and dark", swatch: ["#1a1214", "#241a1c", "#38282b"] },
-  { id: "light", label: "Light", blurb: "Bright and clean", swatch: ["#f3f2f8", "#ffffff", "#e7e5f0"] },
+  { id: "dark", label: "Dark", blurb: "Near-black with Cirrus blue", swatch: ["#0d0e11", "#16181d", "#20232a"] },
+  { id: "light", label: "Light", blurb: "Bright and clean", swatch: ["#eef1f6", "#ffffff", "#e4e8f0"] },
 ];
 
-export interface AccentInfo {
-  id: string;
-  label: string;
-  color: string;
-  /** Colour of a check mark drawn on top of the swatch. */
-  ink: string;
-}
+export type ThemeId = ThemeInfo["id"];
 
-export const ACCENTS: readonly AccentInfo[] = [
-  { id: "cirrus", label: "Cirrus blue", color: "#246bfd", ink: "#fff" },
-  { id: "white", label: "White", color: "#f4f4f5", ink: "#0a0a0b" },
-  { id: "violet", label: "Violet", color: "#8b5cf6", ink: "#fff" },
-  { id: "blue", label: "Blue", color: "#3b82f6", ink: "#fff" },
-  { id: "cyan", label: "Cyan", color: "#06b6d4", ink: "#fff" },
-  { id: "green", label: "Green", color: "#22c55e", ink: "#fff" },
-  { id: "pink", label: "Pink", color: "#ec4899", ink: "#fff" },
-  { id: "orange", label: "Orange", color: "#f97316", ink: "#fff" },
-];
-
-export const DEFAULT_THEME = "cirrus";
-export const DEFAULT_ACCENT = "cirrus";
+export const DEFAULT_THEME: ThemeId = "dark";
 
 const THEME_KEY = "unlimited.theme";
-const ACCENT_KEY = "unlimited.accent";
 
 function read(key: string): string | null {
   try {
@@ -58,35 +34,25 @@ function write(key: string, value: string) {
   }
 }
 
-export function getTheme(): string {
-  const saved = read(THEME_KEY);
-  return THEMES.some((t) => t.id === saved) ? (saved as string) : DEFAULT_THEME;
+/** Anything saved by an older build (Ocean, Forest, …) becomes Dark. */
+export function getTheme(): ThemeId {
+  return read(THEME_KEY) === "light" ? "light" : DEFAULT_THEME;
 }
 
-export function getAccent(): string {
-  const saved = read(ACCENT_KEY);
-  return ACCENTS.some((a) => a.id === saved) ? (saved as string) : DEFAULT_ACCENT;
-}
-
-function apply(theme: string, accent: string) {
+function apply(theme: ThemeId) {
   const root = document.documentElement;
   root.dataset.theme = theme;
-  root.dataset.accent = accent;
+  delete root.dataset.accent;
+  root.style.colorScheme = theme;
 }
 
-export function setTheme(id: string) {
+export function setTheme(id: ThemeId) {
   if (!THEMES.some((t) => t.id === id)) return;
   write(THEME_KEY, id);
-  apply(id, getAccent());
-}
-
-export function setAccent(id: string) {
-  if (!ACCENTS.some((a) => a.id === id)) return;
-  write(ACCENT_KEY, id);
-  apply(getTheme(), id);
+  apply(id);
 }
 
 /** Call once before the first render so the window never flashes the wrong colours. */
 export function initTheme() {
-  apply(getTheme(), getAccent());
+  apply(getTheme());
 }

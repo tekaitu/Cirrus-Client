@@ -1,9 +1,9 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
-import { DownloadIcon, ModsIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
+import { DownloadIcon, GridIcon, ListIcon, ModsIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
 import { Banner, Card, Spinner } from "../components/ui";
-import { MOD_PACKS, formatDownloads, formatFileSize, type ModPack } from "../core/mods";
+import { MOD_CATEGORIES, MOD_PACKS, formatDownloads, formatFileSize, type ModPack } from "../core/mods";
 import type { AppData } from "../hooks/useAppData";
 
 const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
@@ -28,6 +28,9 @@ export function ModsPage({ data }: { data: AppData }) {
   const [done, setDone] = useState<string[]>([]);
   const [modFilter, setModFilter] = useState("");
   const [filter, setFilter] = useState<"all" | "on" | "off">("all");
+  const [view, setView] = useState<"manage" | "browse">("manage");
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [category, setCategory] = useState<string>("");
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -56,11 +59,13 @@ export function ModsPage({ data }: { data: AppData }) {
   }, [version, profileId]);
 
   const search = useCallback(
-    async (text: string, offset: number) => {
+    async (text: string, offset: number, cat: string = category) => {
       setSearching(true);
       setSearchError(null);
       try {
-        const result = await api.searchMods(provider, text, version, offset);
+        const result = await (cat && provider === "modrinth"
+          ? api.searchMods(provider, text, version, offset, cat)
+          : api.searchMods(provider, text, version, offset));
         if (!mounted.current) return;
         setHits((prev) => (offset > 0 && prev ? [...prev, ...result.hits] : result.hits));
         setTotal(result.total);
@@ -73,7 +78,7 @@ export function ModsPage({ data }: { data: AppData }) {
         if (mounted.current) setSearching(false);
       }
     },
-    [provider, version],
+    [provider, version, category],
   );
 
   // Popular mods for the chosen version and site.
@@ -82,7 +87,7 @@ export function ModsPage({ data }: { data: AppData }) {
     setNotice(null);
     void search(query, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider, version]);
+  }, [provider, version, category]);
 
   useEffect(() => {
     setDone([]);
@@ -178,16 +183,43 @@ export function ModsPage({ data }: { data: AppData }) {
     void search(query, 0);
   };
 
+  const clearFilters = () => {
+    setCategory("");
+    setQuery("");
+    void search("", 0, "");
+  };
+
+  const versionLabel = `${version} · ${selection.loader === "fabric" ? "Fabric" : "Vanilla"}`;
+
   return (
     <div className="page mods-page">
-      <header className="page-head">
-        <h1>Mods</h1>
-        <p className="muted">
-          Fabric mods for Minecraft {version}, from Modrinth and CurseForge.{" "}
-          {selection.profile
-            ? `They go into your “${selection.profile.name}” profile.`
-            : "Each Minecraft version keeps its own mods."}
-        </p>
+      <header className="page-head page-head-row">
+        <div>
+          <h1>{view === "browse" ? "Browse mods" : "Mod manager"}</h1>
+          <p className="muted">
+            {view === "browse"
+              ? `Fabric mods for Minecraft ${version}, from Modrinth and CurseForge.`
+              : selection.profile
+                ? `Installed in your “${selection.profile.name}” profile · Minecraft ${version}`
+                : `Installed for Minecraft ${version} with Fabric. Each version keeps its own mods.`}
+          </p>
+        </div>
+        <div className="page-actions">
+          <span className="chip" title="Change the version on the Play page">
+            {versionLabel}
+          </span>
+          {selection.profile && <span className="chip chip-accent">{selection.profile.name}</span>}
+          {view === "browse" ? (
+            <button type="button" className="btn" onClick={() => setView("manage")}>
+              Back to my mods
+            </button>
+          ) : (
+            <button type="button" className="btn btn-primary" onClick={() => setView("browse")}>
+              <SearchIcon />
+              Browse mods
+            </button>
+          )}
+        </div>
       </header>
 
       {selection.loader !== "fabric" && (
@@ -215,226 +247,289 @@ export function ModsPage({ data }: { data: AppData }) {
         </Banner>
       )}
 
-      <Card
-        id="mod-manager"
-        title="Mod manager"
-        icon={<ModsIcon />}
-        description={
-          selection.profile
-            ? `Installed in your “${selection.profile.name}” profile · Minecraft ${version}`
-            : `Installed for Minecraft ${version} with Fabric`
-        }
-      >
-          {installed.length === 0 ? (
-            <div className="empty empty-big">
-              <ModsIcon />
-              <p>
-                <strong>{fabricReady ? "No mods installed yet" : "Nothing to show yet"}</strong>
-              </p>
-              <p className="muted small">
-                {fabricReady
-                  ? "Install a pack or search for a mod. Installed mods appear here, where you can switch them off or remove them."
-                  : "Install Minecraft with Fabric first. Then your mods show up here."}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="mod-filter">
-                <input
-                  type="text"
-                  aria-label="Filter installed mods"
-                  placeholder="Filter installed mods…"
-                  value={modFilter}
-                  onChange={(e) => setModFilter(e.target.value)}
-                />
-                <div className="seg" role="radiogroup" aria-label="Show mods">
-                  {(
-                    [
-                      ["all", "All"],
-                      ["on", "On"],
-                      ["off", `Off${offCount ? ` (${offCount})` : ""}`],
-                    ] as const
-                  ).map(([id, label]) => (
+      {view === "manage" && (
+        <>
+          <Card id="mod-manager" title="Installed mods" icon={<ModsIcon />}>
+            {installed.length === 0 ? (
+              <div className="empty empty-big">
+                <ModsIcon />
+                <p>
+                  <strong>{fabricReady ? "No mods installed yet" : "Nothing to show yet"}</strong>
+                </p>
+                <p className="muted small">
+                  {fabricReady
+                    ? "Install a pack below or browse for a mod. Installed mods appear here, where you can switch them off or remove them."
+                    : "Install Minecraft with Fabric first. Then your mods show up here."}
+                </p>
+                {fabricReady && (
+                  <button type="button" className="btn btn-primary" onClick={() => setView("browse")}>
+                    Browse mods
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="mod-filter">
+                  <input
+                    type="text"
+                    aria-label="Filter installed mods"
+                    placeholder="Filter installed mods…"
+                    value={modFilter}
+                    onChange={(e) => setModFilter(e.target.value)}
+                  />
+                  <div className="seg" role="radiogroup" aria-label="Show mods">
+                    {(
+                      [
+                        ["all", "All"],
+                        ["on", "On"],
+                        ["off", `Off${offCount ? ` (${offCount})` : ""}`],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="radio"
+                        aria-checked={filter === id}
+                        className={filter === id ? "seg-on" : ""}
+                        onClick={() => setFilter(id)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="seg seg-icons" role="radiogroup" aria-label="Layout">
                     <button
-                      key={id}
                       type="button"
                       role="radio"
-                      aria-checked={filter === id}
-                      className={filter === id ? "seg-on" : ""}
-                      onClick={() => setFilter(id)}
+                      aria-checked={layout === "grid"}
+                      aria-label="Grid layout"
+                      className={layout === "grid" ? "seg-on" : ""}
+                      onClick={() => setLayout("grid")}
                     >
-                      {label}
+                      <GridIcon />
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={layout === "list"}
+                      aria-label="List layout"
+                      className={layout === "list" ? "seg-on" : ""}
+                      onClick={() => setLayout("list")}
+                    >
+                      <ListIcon />
+                    </button>
+                  </div>
+                </div>
+                {shownMods.length === 0 && <p className="muted small">No installed mod matches.</p>}
+                <ul className={`mod-grid ${layout === "list" ? "mod-grid-list" : ""}`}>
+                  {shownMods.map((m) => {
+                    const off = m.enabled === false;
+                    const label = m.fileName.replace(/\.disabled$/i, "");
+                    const title = m.name ?? label;
+                    return (
+                      <li key={m.fileName} className={`mod-tile ${off ? "mod-off" : ""}`}>
+                        <span className="mod-tile-icon" aria-hidden="true">
+                          {m.icon ? <img src={m.icon} alt="" /> : title.slice(0, 1).toUpperCase()}
+                        </span>
+                        <div className="mod-tile-body">
+                          <h3 title={title}>{title}</h3>
+                          <p className="mod-tile-meta muted small">
+                            {m.version ? `v${m.version} · ${formatFileSize(m.size)}` : formatFileSize(m.size)}
+                            {m.authors && m.authors.length > 0 ? ` · ${m.authors.join(", ")}` : ""}
+                          </p>
+                          <p className="mod-tile-desc muted small">
+                            {m.description ?? (m.name ? label : "No description in this mod.")}
+                          </p>
+                        </div>
+                        <div className="mod-tile-actions">
+                          <button
+                            type="button"
+                            className="icon-btn icon-btn-danger"
+                            disabled={busy !== null}
+                            aria-label={`Remove ${m.fileName}`}
+                            title="Remove"
+                            onClick={() => remove(m.fileName)}
+                          >
+                            <TrashIcon />
+                          </button>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={!off}
+                            aria-label={`${off ? "Enable" : "Disable"} ${label}`}
+                            className="toggle"
+                            disabled={busy !== null}
+                            onClick={() => void toggle(m)}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="muted small">
+                  Switched-off mods stay installed but are not loaded the next time the game starts.
+                </p>
+              </>
+            )}
+          </Card>
+
+          <section className="packs" aria-label="Quick packs">
+            {MOD_PACKS.map((pack) => (
+              <Card
+                key={pack.id}
+                title={pack.title}
+                tone={pack.id === "hud" ? "cyan" : undefined}
+                description={pack.description}
+                action={
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-pill"
+                    disabled={!fabricReady || busy !== null}
+                    onClick={() => void installPack(pack)}
+                  >
+                    <SparkIcon />
+                    {busy === `pack:${pack.id}` ? "Installing…" : `Install ${pack.id === "hud" ? "HUD pack" : "performance pack"}`}
+                  </button>
+                }
+              >
+                <ul className="pack-list">
+                  {pack.mods.map((m) => (
+                    <li key={m.slug}>
+                      <strong>{m.name}</strong> <span className="muted small">{m.why}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ))}
+          </section>
+        </>
+      )}
+
+      {view === "browse" && (
+        <div className="browse">
+          <aside className="browse-filters" aria-label="Filters">
+            <div className="filter-block">
+              <h2 className="filter-title">Site</h2>
+              <div className="seg seg-stack" role="tablist" aria-label="Mod site">
+                {PROVIDERS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={provider === p.id}
+                    className={provider === p.id ? "seg-on" : ""}
+                    onClick={() => setProvider(p.id)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="filter-block">
+              <h2 className="filter-title">Minecraft version</h2>
+              <p className="chip chip-wide">{version}</p>
+              <p className="muted small">Change it on the Play page.</p>
+            </div>
+            {provider === "modrinth" && (
+              <div className="filter-block">
+                <div className="filter-title-row">
+                  <h2 className="filter-title" id="cat-label">
+                    Categories
+                  </h2>
+                  <button type="button" className="link-inline" onClick={clearFilters}>
+                    Clear filters
+                  </button>
+                </div>
+                <div className="radio-list" role="radiogroup" aria-labelledby="cat-label">
+                  {[{ id: "", label: "All" }, ...MOD_CATEGORIES].map((c) => (
+                    <button
+                      key={c.id || "all"}
+                      type="button"
+                      role="radio"
+                      aria-checked={category === c.id}
+                      className={`radio-row ${category === c.id ? "radio-on" : ""}`}
+                      onClick={() => setCategory(c.id)}
+                    >
+                      <span className="radio-dot" aria-hidden="true" />
+                      {c.label}
                     </button>
                   ))}
                 </div>
               </div>
-              {shownMods.length === 0 && <p className="muted small">No installed mod matches.</p>}
-              <ul className="mod-grid">
-                {shownMods.map((m) => {
-                  const off = m.enabled === false;
-                  const label = m.fileName.replace(/\.disabled$/i, "");
-                  const title = m.name ?? label;
+            )}
+          </aside>
+
+          <div className="browse-main">
+            {provider === "curseforge" && !curseforge && (
+              <p className="muted small">
+                CurseForge search needs an API key from CurseForge, which this build does not include. Modrinth works
+                without one.
+              </p>
+            )}
+            <form className="search-row" onSubmit={onSubmit} role="search">
+              <input
+                type="text"
+                aria-label="Search mods"
+                placeholder="Search mods…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <button type="submit" className="btn btn-primary" disabled={searching}>
+                <SearchIcon />
+                Search
+              </button>
+            </form>
+
+            {searchError && <p className="error-text" role="alert">{searchError}</p>}
+            {searching && hits === null && <Spinner label="Searching" />}
+            {hits && hits.length === 0 && !searching && !searchError && (
+              <p className="muted">No Fabric mods found for Minecraft {version}.</p>
+            )}
+            {hits && hits.length > 0 && (
+              <ul className="mod-list">
+                {hits.map((h) => {
+                  const key = `${h.provider}:${h.id}`;
+                  const isDone = done.includes(key);
                   return (
-                    <li key={m.fileName} className={`mod-tile ${off ? "mod-off" : ""}`}>
-                      <span className="mod-tile-icon" aria-hidden="true">
-                        {m.icon ? <img src={m.icon} alt="" /> : title.slice(0, 1).toUpperCase()}
-                      </span>
-                      <div className="mod-tile-body">
-                        <h3 title={title}>{title}</h3>
-                        <p className="mod-tile-meta muted small">
-                          {m.version ? `v${m.version} · ${formatFileSize(m.size)}` : formatFileSize(m.size)}
-                          {m.authors && m.authors.length > 0 ? ` · ${m.authors.join(", ")}` : ""}
+                    <li key={key} className="mod-card">
+                      {h.iconUrl ? (
+                        <img className="mod-icon" src={h.iconUrl} alt="" loading="lazy" width={72} height={72} referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="mod-icon mod-icon-empty" aria-hidden="true">
+                          {h.title.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="mod-body">
+                        <h3>{h.title}</h3>
+                        <p className="muted small mod-desc">{h.description}</p>
+                        <p className="muted small">
+                          {h.author && <>by {h.author} · </>}
+                          {formatDownloads(h.downloads)} downloads
                         </p>
-                        <p className="mod-tile-desc muted small">{m.description ?? (m.name ? label : "No description in this mod.")}</p>
                       </div>
-                      <div className="mod-tile-actions">
-                        <button
-                          type="button"
-                          className="icon-btn icon-btn-danger"
-                          disabled={busy !== null}
-                          aria-label={`Remove ${m.fileName}`}
-                          title="Remove"
-                          onClick={() => remove(m.fileName)}
-                        >
-                          <TrashIcon />
-                        </button>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={!off}
-                          aria-label={`${off ? "Enable" : "Disable"} ${label}`}
-                          className="toggle"
-                          disabled={busy !== null}
-                          onClick={() => void toggle(m)}
-                        />
-                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={!fabricReady || busy !== null || isDone}
+                        aria-label={`Install ${h.title}`}
+                        onClick={() => install(h.provider, h.id, h.title)}
+                      >
+                        {!isDone && busy !== h.id && <DownloadIcon />}
+                        {isDone ? "Installed" : busy === h.id ? "Installing…" : "Install"}
+                      </button>
                     </li>
                   );
                 })}
               </ul>
-              <p className="muted small">Switched-off mods stay installed but are not loaded the next time the game starts.</p>
-            </>
-          )}
-      </Card>
-
-      <div className="mods-layout">
-        <div className="mods-main">
-        <Card title="Find mods">
-          <div className="seg" role="tablist" aria-label="Mod site">
-            {PROVIDERS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                role="tab"
-                aria-selected={provider === p.id}
-                className={provider === p.id ? "seg-on" : ""}
-                onClick={() => setProvider(p.id)}
-              >
-                {p.label}
+            )}
+            {hits && hits.length < total && !searching && (
+              <button type="button" className="btn btn-pill" onClick={() => search(query, hits.length)}>
+                Show more
               </button>
-            ))}
+            )}
           </div>
-          {provider === "curseforge" && !curseforge && (
-            <p className="muted small hero-note">
-              CurseForge search needs an API key from CurseForge, which this build does not include. Modrinth works
-              without one.
-            </p>
-          )}
-          <form className="search-row" onSubmit={onSubmit} role="search">
-            <input
-              type="text"
-              aria-label="Search mods"
-              placeholder="Search mods…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary btn-pill" disabled={searching}>
-              <SearchIcon />
-              Search
-            </button>
-          </form>
-
-          {searchError && <p className="error-text" role="alert">{searchError}</p>}
-          {searching && hits === null && <Spinner label="Searching" />}
-          {hits && hits.length === 0 && !searching && !searchError && (
-            <p className="muted">No Fabric mods found for Minecraft {version}.</p>
-          )}
-          {hits && hits.length > 0 && (
-            <ul className="mod-list">
-              {hits.map((h) => {
-                const key = `${h.provider}:${h.id}`;
-                const isDone = done.includes(key);
-                return (
-                  <li key={key} className="mod-card">
-                    {h.iconUrl ? (
-                      <img className="mod-icon" src={h.iconUrl} alt="" loading="lazy" width={56} height={56} referrerPolicy="no-referrer" />
-                    ) : (
-                      <span className="mod-icon mod-icon-empty" aria-hidden="true">
-                        {h.title.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    <div className="mod-body">
-                      <h3>{h.title}</h3>
-                      <p className="muted small">{h.description}</p>
-                      <p className="muted small">
-                        {h.author && <>by {h.author} · </>}
-                        {formatDownloads(h.downloads)} downloads
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-pill"
-                      disabled={!fabricReady || busy !== null || isDone}
-                      aria-label={`Install ${h.title}`}
-                      onClick={() => install(h.provider, h.id, h.title)}
-                    >
-                      {!isDone && busy !== h.id && <DownloadIcon />}
-                      {isDone ? "Installed" : busy === h.id ? "Installing…" : "Install"}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {hits && hits.length < total && !searching && (
-            <button type="button" className="btn btn-pill" onClick={() => search(query, hits.length)}>
-              Show more
-            </button>
-          )}
-        </Card>
         </div>
-        <aside className="mods-side" aria-label="Your mods">
-        {MOD_PACKS.map((pack) => (
-          <Card
-            key={pack.id}
-            title={pack.title}
-            tone={pack.id === "hud" ? "cyan" : undefined}
-            description={pack.description}
-            action={
-              <button
-                type="button"
-                className="btn btn-primary btn-pill"
-                disabled={!fabricReady || busy !== null}
-                onClick={() => void installPack(pack)}
-              >
-                <SparkIcon />
-                {busy === `pack:${pack.id}` ? "Installing…" : `Install ${pack.id === "hud" ? "HUD pack" : "performance pack"}`}
-              </button>
-            }
-          >
-            <ul className="pack-list">
-              {pack.mods.map((m) => (
-                <li key={m.slug}>
-                  <strong>{m.name}</strong> <span className="muted small">{m.why}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ))}
-
-
-        </aside>
-      </div>
+      )}
     </div>
   );
 }

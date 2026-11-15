@@ -352,3 +352,92 @@ export function UploadIcon() {
     </svg>
   );
 }
+
+export function WarningIcon() {
+  return (
+    <svg {...common}>
+      <path d="M12 4 2.8 19.5h18.4L12 4Z" />
+      <path d="M12 10v4.5M12 17.4v.1" />
+    </svg>
+  );
+}
+
+export function CopyIcon() {
+  return (
+    <svg {...common}>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2" />
+      <path d="M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2" />
+    </svg>
+  );
+}
+
+export function MinimizeIcon() {
+  return (
+    <svg {...common}>
+      <path d="M6 12.5h12" />
+    </svg>
+  );
+}
+
+export function MaximizeIcon() {
+  return (
+    <svg {...common}>
+      <rect x="6" y="6" width="12" height="12" rx="1.5" />
+    </svg>
+  );
+}
+
+export function GridIcon() {
+  return (
+    <svg {...common}>
+      <rect x="4.5" y="4.5" width="6" height="6" rx="1.2" />
+      <rect x="13.5" y="4.5" width="6" height="6" rx="1.2" />
+      <rect x="4.5" y="13.5" width="6" height="6" rx="1.2" />
+      <rect x="13.5" y="13.5" width="6" height="6" rx="1.2" />
+    </svg>
+  );
+}
+
+export function ListIcon() {
+  return (
+    <svg {...common}>
+      <path d="M8.5 7h11M8.5 12h11M8.5 17h11" />
+      <path d="M4.5 7h.1M4.5 12h.1M4.5 17h.1" />
+    </svg>
+  );
+}
+
+export function SunIcon() {
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="3.6" />
+      <path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18" />
+    </svg>
+  );
+}
+
+export function MoonIcon() {
+  return (
+    <svg {...common}>
+      <path d="M19.5 14.6A7.6 7.6 0 0 1 9.4 4.5a7.6 7.6 0 1 0 10.1 10.1Z" />
+    </svg>
+  );
+}
+
+export function ExternalIcon() {
+  return (
+    <svg {...common}>
+      <path d="M14 5h5v5M19 5l-8 8" />
+      <path d="M17 14v3.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 5 17.5v-9A1.5 1.5 0 0 1 6.5 7H10" />
+    </svg>
+  );
+}
+
+export function TerminalIcon() {
+  return (
+    <svg {...common}>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="m7.5 10 3 2.5-3 2.5M13 15h3.5" />
+    </svg>
+  );
+}

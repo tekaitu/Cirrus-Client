@@ -1,4 +1,4 @@
-import type { GameProgress } from "../api/types";
+import type { CrashInfo, GameProgress } from "../api/types";
 
 export type PlayMode = "microsoft" | "offline";
 export type LoaderId = "fabric" | "vanilla";
@@ -37,12 +37,28 @@ export type RunState =
   | { phase: "idle" }
   | { phase: "starting" }
   | { phase: "running" }
-  | { phase: "ended"; code: number | null; logPath: string }
+  | { phase: "ended"; code: number | null; logPath: string; stopped: boolean; crash: CrashInfo | null }
   | { phase: "error"; message: string };
 
-/** A non-zero exit is reported as a crash, except 1 after the person pressed Stop. */
-export function exitText(code: number | null): string {
+/** One line about how a game session ended. */
+export function exitText(code: number | null, stopped = false): string {
+  if (stopped) return "You stopped Minecraft.";
   if (code === 0) return "Minecraft closed normally.";
   if (code === null) return "Minecraft was stopped.";
-  return `Minecraft closed with an error (code ${code}). The launch log has details.`;
+  return `Minecraft closed unexpectedly (code ${code}).`;
+}
+
+/** The text shown on the log screen is capped so a long session cannot slow the app down. */
+export const MAX_LOG_CHARS = 400_000;
+
+export function appendLog(log: string, more: string): string {
+  const next = log + more;
+  if (next.length <= MAX_LOG_CHARS) return next;
+  const cut = next.slice(next.length - MAX_LOG_CHARS);
+  return cut.slice(cut.indexOf("\n") + 1);
+}
+
+/** What is copied from the crash or log screen: a header that says what was running, then the text. */
+export function reportText(header: string, body: string): string {
+  return `${header}\n${"-".repeat(40)}\n${body.trim()}\n`;
 }

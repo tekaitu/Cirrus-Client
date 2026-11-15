@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { exitText, gameProgressView, usernameError, type LoaderId, type PlayMode } from "../core/game";
 import { REQUIRED_JAVA_MAJOR } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
-import { PackageIcon, PlayArrowIcon, SettingsIcon, ShieldIcon, StopIcon } from "./Icons";
+import { PackageIcon, PlayArrowIcon, SettingsIcon, ShieldIcon, StopIcon, TerminalIcon } from "./Icons";
 import { Banner } from "./ui";
 import type { PageId } from "./Navigation";
 
@@ -162,26 +162,6 @@ export function PlayPanel({
           <span className={`steps-fill steps-fill-${doneCount}`} />
         </li>
       </ol>
-      {variant === "quick" && (
-        <p className="play-summary">
-          <span>
-            Minecraft <strong>{selection.version}</strong> · {selection.loader === "fabric" ? "Fabric" : "Vanilla"}
-            {selection.profile && <> · profile <strong>{selection.profile.name}</strong></>}
-          </span>
-          <span className="muted">
-            {mode === "offline" ? (
-              <>Offline as <strong>{name.trim() || "…"}</strong></>
-            ) : signedIn ? (
-              <>Playing as <strong>{acct.profile.name}</strong></>
-            ) : (
-              "Not signed in"
-            )}
-          </span>
-          <button type="button" className="link-inline" onClick={() => onNavigate("play")}>
-            Change
-          </button>
-        </p>
-      )}
       {variant === "full" && selection.profile && (
         <div className="profile-chip">
           <PackageIcon />
@@ -288,6 +268,27 @@ export function PlayPanel({
       )}
       </>)}
 
+      <div className="play-dock">
+      {variant === "quick" && (
+        <p className="play-summary">
+          <span>
+            Minecraft <strong>{selection.version}</strong> · {selection.loader === "fabric" ? "Fabric" : "Vanilla"}
+            {selection.profile && <> · profile <strong>{selection.profile.name}</strong></>}
+          </span>
+          <span className="muted">
+            {mode === "offline" ? (
+              <>Offline as <strong>{name.trim() || "…"}</strong></>
+            ) : signedIn ? (
+              <>Playing as <strong>{acct.profile.name}</strong></>
+            ) : (
+              "Not signed in"
+            )}
+          </span>
+          <button type="button" className="link-inline" onClick={() => onNavigate("play")}>
+            Change
+          </button>
+        </p>
+      )}
       {progress ? (
         <div className="install-inline" role="status" aria-live="polite">
           <p className="small">
@@ -313,12 +314,20 @@ export function PlayPanel({
             {action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <ShieldIcon /> : !action.disabled && <PlayArrowIcon />}
             {action.label}
           </button>
-          <button type="button" className="btn btn-pill" onClick={() => onNavigate(variant === "quick" ? "play" : "settings")}>
-            <SettingsIcon />
-            {variant === "quick" ? "Launch options" : "Settings"}
-          </button>
+          {game.run.phase === "starting" || running ? (
+            <button type="button" className="btn btn-pill" onClick={game.openLog}>
+              <TerminalIcon />
+              View log
+            </button>
+          ) : (
+            <button type="button" className="btn btn-pill" onClick={() => onNavigate(variant === "quick" ? "play" : "settings")}>
+              <SettingsIcon />
+              {variant === "quick" ? "Launch options" : "Settings"}
+            </button>
+          )}
         </div>
       )}
+      </div>
       {action.hint && !progress && <p className="muted small hero-note">{action.hint}</p>}
 
       {game.installer.phase === "error" && (
@@ -342,15 +351,27 @@ export function PlayPanel({
       )}
       {game.run.phase === "ended" && (
         <Banner
-          tone={game.run.code === 0 ? "good" : "warn"}
-          title="Minecraft closed"
+          tone={game.run.crash ? "bad" : game.run.code === 0 || game.run.stopped ? "good" : "warn"}
+          title={game.run.crash ? "Minecraft crashed" : "Minecraft closed"}
           actions={
-            <button type="button" className="btn btn-pill" onClick={game.dismissRun}>
-              Dismiss
-            </button>
+            <>
+              {game.run.crash && (
+                <button type="button" className="btn btn-pill" onClick={game.openCrash}>
+                  Crash details
+                </button>
+              )}
+              {!game.run.crash && (
+                <button type="button" className="btn btn-pill" onClick={game.openLog}>
+                  View log
+                </button>
+              )}
+              <button type="button" className="btn btn-pill" onClick={game.dismissRun}>
+                Dismiss
+              </button>
+            </>
           }
         >
-          {exitText(game.run.code)} <span className="path">{game.run.logPath}</span>
+          {exitText(game.run.code, game.run.stopped)}
         </Banner>
       )}
       {running && <p className="muted small hero-note">Minecraft is running.</p>}

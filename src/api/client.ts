@@ -8,6 +8,8 @@ import type {
   DiscordPresence,
   DeviceCodeInfo,
   GameExit,
+  GameFolder,
+  GameLogChunk,
   GameInstallResult,
   GameProgress,
   GameStatus, InstanceSummary, Profile,
@@ -108,8 +110,8 @@ export const api = {
   playerSkin: (player: string) => call<string | null>("player_skin", { player }),
   quitApp: () => call<void>("quit_app"),
   curseforgeAvailable: () => call<boolean>("curseforge_available"),
-  searchMods: (provider: ModProvider, query: string, version: string, offset: number) =>
-    call<ModSearchResult>("search_mods", { provider, query, version, offset }),
+  searchMods: (provider: ModProvider, query: string, version: string, offset: number, category?: string) =>
+    call<ModSearchResult>("search_mods", { provider, query, version, offset, category: category ?? null }),
   installMod: (provider: ModProvider, id: string, version: string, profile?: string) =>
     call<ModInstallReport>("install_mod", { provider, id, version, profile: profile ?? null }),
   listMods: (version: string, profile?: string) => call<InstalledMod[]>("list_mods", { version, profile: profile ?? null }),
@@ -118,6 +120,8 @@ export const api = {
   removeMod: (version: string, fileName: string, profile?: string) =>
     call<void>("remove_mod", { version, fileName, profile: profile ?? null }),
   stopGame: () => call<boolean>("stop_game"),
+  readGameLog: (offset: number) => call<GameLogChunk>("read_game_log", { offset }),
+  openGameFolder: (kind: GameFolder) => call<void>("open_game_folder", { kind }),
   onGameProgress: async (handler: (p: GameProgress) => void): Promise<() => void> => {
     if (!insideTauri()) return () => {};
     return listen<GameProgress>(GAME_PROGRESS_EVENT, (event) => handler(event.payload));

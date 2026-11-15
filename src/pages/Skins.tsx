@@ -47,6 +47,7 @@ export function SkinsPage({ data }: { data: AppData }) {
   const [input, setInput] = useState("");
   const [newModel, setNewModel] = useState<SkinModel>("classic");
   const [view, setView] = useState<"spin" | "front" | "back">("spin");
+  const [backdrop, setBackdrop] = useState<"sky" | "night" | "plain">("sky");
   const [busy, setBusy] = useState(false);
   const [applied, setApplied] = useState<string | null>(readApplied);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -306,7 +307,7 @@ export function SkinsPage({ data }: { data: AppData }) {
         <Card title="Preview" icon={<ShirtIcon />} description={selected ? selected.name : "Pick a skin to preview it."}>
           {selected ? (
             <>
-              <div className="skin-preview">
+              <div className={`skin-preview skin-bg-${backdrop}`}>
                 <SkinFigure
                   skin={selected.dataUrl}
                   model={selected.model}
@@ -352,6 +353,26 @@ export function SkinsPage({ data }: { data: AppData }) {
                         onClick={() => setView(v)}
                       >
                         {v === "spin" ? "Turn" : v === "front" ? "Front" : "Back"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="field">
+                  <span id="skin-bg-label" className="field-label">
+                    Background
+                  </span>
+                  <div className="seg" role="radiogroup" aria-labelledby="skin-bg-label">
+                    {(["sky", "night", "plain"] as const).map((b) => (
+                      <button
+                        key={b}
+                        type="button"
+                        role="radio"
+                        aria-checked={backdrop === b}
+                        aria-label={`${b === "sky" ? "Sky" : b === "night" ? "Night" : "Plain"} background`}
+                        className={backdrop === b ? "seg-on" : ""}
+                        onClick={() => setBackdrop(b)}
+                      >
+                        {b === "sky" ? "Sky" : b === "night" ? "Night" : "Plain"}
                       </button>
                     ))}
                   </div>
