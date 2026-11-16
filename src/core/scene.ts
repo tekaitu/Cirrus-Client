@@ -164,7 +164,7 @@ function clouds(ctx: Ctx, w: number, h: number, p: Palette, rand: () => number) 
     for (let r = 0; r < rows; r++) {
       const len = 3 + Math.floor(rand() * 5) - (r === rows - 1 ? 1 : 0);
       const off = Math.floor(rand() * 2) * u;
-      ctx.fillStyle = css(p.cloud, p.cloudAlpha * (r === rows - 1 ? 0.8 : 1));
+      ctx.fillStyle = css(p.cloud, p.cloudAlpha * 0.5 * (r === rows - 1 ? 0.8 : 1));
       ctx.fillRect(x + off, y + r * u, len * u, u);
     }
   }

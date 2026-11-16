@@ -268,3 +268,6 @@ button.vc-main { cursor: pointer; }
 .play-config .config-list dt { text-transform: none; letter-spacing: 0; font-size: 0.8rem; color: var(--muted); }
 .play-config .config-list dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
 .play-config .presets { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.mod-results .mod-card-art .mod-icon-empty { background: linear-gradient(135deg, var(--accent), var(--violet)); color: #fff; }
+.page-head .account-connection-pill { align-self: flex-start; margin-top: 10px; width: fit-content; }
+.settings-layout > :last-child, .settings-main { min-width: 0; }

@@ -137,7 +137,7 @@ function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page:
               ["vanilla", "Vanilla"],
             ] as const
           ).map(([id, label]) => (
-            <button key={id} type="button" role="radio" aria-checked={only === id} className={only === id ? "seg-on" : ""} onClick={() => setOnly(id)}>
+            <button key={id} type="button" role="radio" aria-label={`Show ${label.toLowerCase()} versions`} aria-checked={only === id} className={only === id ? "seg-on" : ""} onClick={() => setOnly(id)}>
               {label}
             </button>
           ))}
