@@ -81,7 +81,7 @@ export default function App() {
   // The Accounts page already shows the account, so the account button does not also open a menu there.
   const toggleAccount = () => (page === "accounts" ? undefined : setAccountOpen((v) => !v));
 
-  // Alt + 1..7 jumps between pages (listed under Settings > Keybinds).
+  // Alt + 1..9 jumps between pages (listed under Settings > Keybinds).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = pageForShortcut(e);

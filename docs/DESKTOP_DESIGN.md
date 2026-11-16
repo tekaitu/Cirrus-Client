@@ -19,7 +19,15 @@ The desktop app comes first. The in-game Fabric client (HUD mods, in-game menus)
 | About | Version, update information, credits, Discord, GitHub, license |
 | Diagnostics | Real system and Java results, copyable report (unchanged) |
 
-Title bar: Cirrus draws its own (brand, tabs, tools, account chip, minimise / maximise / close). Settings > Appearance can switch back to the normal Windows title bar. Empty areas drag the window. Top bar: brand on the left, page tabs in the middle (Home, Play, Mods, Skins, Accounts), Settings / About / Diagnostics / Re-scan Java and the account chip on the right. Tab labels fold to icons below 900px wide (names stay as tooltips and screen-reader labels). Status pills (Minecraft, Java) live in the footer. Alt + 1..7 jumps to Home, Play, Mods, Skins, Accounts, Settings, About.
+Title bar: Cirrus draws its own (brand, tabs, tools, account chip, minimise / maximise / close). Settings > Appearance can switch back to the normal Windows title bar. Empty areas drag the window. Top bar: brand on the left, page tabs in the middle (Home, Versions, Browse, Mods, Modpacks, Skins, Accounts), Settings / About / Diagnostics / Discord status / Re-scan Java and the account chip on the right. Tab names fold to icons below 1480px wide (names stay as tooltips and screen-reader labels). Status pills (Minecraft, Java) live in the footer. Alt + 1..9 jumps to Home, Versions, Browse, Mods, Modpacks, Skins, Accounts, Settings, About.
+
+## UI v4 (Home, Versions, Browse, Mods, Modpacks)
+
+- **Pages:** Home (big "version + loader" title, Play, version cards along the bottom, status / recent / shortcuts and the launcher news below), Versions (every installed version as a card plus the full launch panel and launch configuration), Browse (Modrinth / CurseForge with categories, grid or list, sort, pagination), Mods (the mod manager for the selected version), Modpacks (your profiles).
+- **Not built, on purpose:** Servers and Stats. There is no backend for either, so there is no page and no fake data.
+- **Backgrounds:** drawn in code (see `src/core/scene.ts`), never Minecraft artwork. To use your own pictures, drop `home`, `library`, `browse`, `night` or `default` images into `src/assets/backgrounds/` (see the README there).
+- **Styles:** `src/styles/tokens.css` (colours, glass, both themes), `base.css` (type, buttons, fields, dialogs), `shell.css` (window, top bar, backgrounds), `pages.css` (pages). `legacy.css` still carries the styles of Settings, Skins, About, Diagnostics and the dialogs.
+- **Motion:** short hover / fade animations only; they stop with the OS "reduce motion" setting or Settings > Appearance > Reduce motion.
 
 ## Design system (v3)
 - Only two appearances: **Dark** (near-black with Cirrus blue) and **Light**. Older theme names saved by earlier builds fall back to Dark. Colours are CSS variables in `src/styles.css`; the choice is stored under `unlimited.theme`.
