@@ -10,10 +10,14 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.resources.Identifier;
+import dev.cirrus.client.mod.LocalStatusMod;
+import dev.cirrus.client.mod.ModRegistry;
 
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        ModRegistry.register(new LocalStatusMod());
+        dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find("local_status").orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,
             Identifier.fromNamespaceAndPath("cirrus_fabric", "status"),

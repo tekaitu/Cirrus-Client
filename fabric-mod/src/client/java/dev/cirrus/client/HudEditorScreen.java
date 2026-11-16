@@ -1,66 +1,27 @@
 package dev.cirrus.client;
 
+import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.client.mod.HudElement;
+import dev.cirrus.client.mod.HudElementRegistry;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+/** Stage 1 HUD registry browser; Stage 2 adds canvas manipulation for every registered element. */
 public final class HudEditorScreen extends Screen {
-    private static final int PANEL_WIDTH = 360;
-    private final Screen parent;
-
-    public HudEditorScreen(Screen parent) {
-        super(Component.literal("Cirrus HUD Editor"));
-        this.parent = parent;
-    }
-
-    @Override
-    protected void init() {
-        int buttonWidth = 220;
-        int buttonX = this.width / 2 - buttonWidth / 2;
-
-        this.addRenderableWidget(Button.builder(enabledLabel(), button -> {
-                CirrusHudSettings.toggleEnabled();
-                button.setMessage(enabledLabel());
-            })
-            .bounds(buttonX, this.height / 2 + 8, buttonWidth, 20)
-            .build());
-        this.addRenderableWidget(Button.builder(alignmentLabel(), button -> {
-                CirrusHudSettings.toggleAlignment();
-                button.setMessage(alignmentLabel());
-            })
-            .bounds(buttonX, this.height / 2 + 34, buttonWidth, 20)
-            .build());
-        this.addRenderableWidget(Button.builder(Component.literal("Back"), button -> this.minecraft.setScreen(this.parent))
-            .bounds(buttonX, this.height / 2 + 66, buttonWidth, 20)
-            .build());
-    }
-
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        this.renderBackground(graphics, mouseX, mouseY, delta);
-
-        int left = (this.width - PANEL_WIDTH) / 2;
-        int top = this.height / 2 - 82;
-        graphics.fill(left, top, left + PANEL_WIDTH, top + 178, 0xE6101724);
-        graphics.renderOutline(left, top, PANEL_WIDTH, 178, 0x805B98DE);
-        graphics.drawCenteredString(this.font, this.title, this.width / 2, top + 18, 0xFFF2F6FC);
-        graphics.drawCenteredString(this.font, "Local to this Minecraft installation", this.width / 2, top + 48, 0xFF9CAABD);
-        graphics.drawCenteredString(this.font, "Settings save automatically and do not change your account.", this.width / 2, top + 64, 0xFFD2DBE8);
-
-        super.render(graphics, mouseX, mouseY, delta);
-    }
-
-    @Override
-    public void onClose() {
-        this.minecraft.setScreen(this.parent);
-    }
-
-    private static Component enabledLabel() {
-        return Component.literal("Companion status: " + (CirrusHudSettings.isEnabled() ? "ON" : "OFF"));
-    }
-
-    private static Component alignmentLabel() {
-        return Component.literal("Position: " + (CirrusHudSettings.isRightAligned() ? "Top-right" : "Top-left"));
-    }
+ private final Screen parent;
+ public HudEditorScreen(Screen parent){super(Component.literal("Cirrus HUD Editor"));this.parent=parent;}
+ protected void init(){int x=Math.max(12,width/8),y=48,w=Math.min(240,width-24);var cfg=config();
+  for(HudElement element:HudElementRegistry.all()){
+   int row=y;
+   addRenderableWidget(Button.builder(Component.literal(element.label()+": "+(element.enabled(cfg)?"ON":"OFF")),b->{element.setEnabled(cfg,!element.enabled(cfg));rebuildWidgets();}).bounds(x,row,w,22).build());
+   y+=28;
+  }
+  addRenderableWidget(Button.builder(Component.literal("Back"),b->minecraft.setScreen(parent)).bounds(Math.max(12,width/2-60),height-34,120,22).build());
+ }
+ public void render(GuiGraphics g,int mx,int my,float d){renderBackground(g,mx,my,d);g.fill(0,0,width,height,0xBB080D18);g.fill(12,12,width-12,38,0xD8101724);g.drawString(font,"HUD ELEMENTS",22,22,0xFF42C8F5);super.render(g,mx,my,d);}
+ private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
+ public void onClose(){minecraft.setScreen(parent);}
 }
