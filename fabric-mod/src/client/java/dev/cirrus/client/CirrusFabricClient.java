@@ -17,6 +17,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.client.ui.CirrusUi;
 
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
@@ -40,7 +41,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
                 buttons.clear();
                 int buttonWidth=Math.min(220,Math.max(150,scaledWidth/3));
                 int x=(scaledWidth-buttonWidth)/2;
-                int y=Math.max(76,scaledHeight/2-28);
+                int y=Math.max(116,scaledHeight/2-8);
                 buttons.add(CirrusButton.of(x,y,buttonWidth,22,Component.literal("Singleplayer"),b->client.setScreen(new SelectWorldScreen(screen))));
                 buttons.add(CirrusButton.of(x,y+29,buttonWidth,22,Component.literal("Multiplayer"),b->client.setScreen(new JoinMultiplayerScreen(screen))));
                 buttons.add(CirrusButton.of(x,y+58,buttonWidth,22,Component.literal("Cirrus Client  ·  Right Shift"),b->client.setScreen(new CirrusDashboardScreen(screen))));
@@ -48,9 +49,13 @@ public final class CirrusFabricClient implements ClientModInitializer {
                 buttons.add(CirrusButton.of(x+buttonWidth/2+3,y+87,buttonWidth/2-3,22,Component.literal("Quit"),b->client.stop()));
                 ScreenEvents.afterRender(screen).register((s,graphics,mouseX,mouseY,tickDelta)->{
                     var t=CirrusTheme.current(CirrusConfig.get(client.gameDirectory.toPath()));
-                    CirrusWelcomeScreen.brand(graphics,scaledWidth/2,Math.max(36,scaledHeight/2-106),t);
-                    graphics.drawCenteredString(client.font,"C I R R U S",scaledWidth/2,Math.max(58,scaledHeight/2-80),t.text);
-                    graphics.drawCenteredString(client.font,"MINECRAFT CLIENT",scaledWidth/2,Math.max(72,scaledHeight/2-64),t.cyan);
+                    CirrusUi.backdrop(graphics,scaledWidth,scaledHeight,t);
+                    int panelW=Math.min(buttonWidth+34,scaledWidth-28),panelX=(scaledWidth-panelW)/2;
+                    CirrusUi.panel(graphics,panelX,Math.max(12,y-92),panelW,Math.min(scaledHeight-24,204),20,t);
+                    CirrusUi.brand(graphics,scaledWidth/2-70,Math.max(24,y-78),42,t);
+                    graphics.drawCenteredString(client.font,"YOUR NEXT SESSION STARTS HERE",scaledWidth/2,Math.max(77,y-20),t.text);
+                    graphics.drawCenteredString(client.font,"MINECRAFT CLIENT  ·  FABRIC 1.21.11",scaledWidth/2,Math.max(91,y-5),t.cyan);
+                    for(var button:buttons)button.render(graphics,mouseX,mouseY,tickDelta);
                 });
                 return;
             }

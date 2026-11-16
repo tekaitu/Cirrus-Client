@@ -4,6 +4,7 @@ import dev.cirrus.client.config.CirrusConfig;
 import dev.cirrus.client.mod.HudElement;
 import dev.cirrus.client.mod.HudElementRegistry;
 import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.client.ui.CirrusUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import dev.cirrus.client.ui.CirrusButton;
@@ -24,9 +25,9 @@ public final class HudEditorScreen extends Screen {
   }
   addRenderableWidget(CirrusButton.of(10,height-34,w,22,Component.literal("Back"),b->minecraft.setScreen(parent)));
  }
- public void render(GuiGraphics g,int mx,int my,float d){renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());g.fill(0,0,width,height,t.overlay);int rail=Math.min(176,Math.max(126,width/3));g.fill(0,0,rail,height,t.surface);g.fill(rail,0,rail+1,height,t.border);g.drawString(font,"HUD EDITOR",18,22,t.cyan);g.drawString(font,"Drag elements to position them",rail+18,18,t.text);g.drawString(font,"Positions save automatically per instance",rail+18,32,t.muted);
+ public void render(GuiGraphics g,int mx,int my,float d){renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);int rail=Math.min(176,Math.max(126,width/3));CirrusUi.panel(g,8,8,width-16,height-16,18,t);CirrusUi.panel(g,14,14,rail-20,height-28,16,t);CirrusUi.brand(g,20,20,22,t);g.drawString(font,"HUD ELEMENTS",18,53,t.cyan,true);g.drawString(font,"Drag elements to position them",rail+18,18,t.text,true);g.drawString(font,"Positions save automatically per instance",rail+18,32,t.muted);
   int sw=minecraft.getWindow().getGuiScaledWidth(),sh=minecraft.getWindow().getGuiScaledHeight();
-  for(HudElement e:HudElementRegistry.all())if(e.enabled(config())){int x=e.x(config(),sw),y=e.y(config(),sh);e.render(g,x,y,0,config());g.renderOutline(x-2,y-2,e.width()+4,e.height()+4,e.id().equals(selected)?t.cyan:t.border);if(e.id().equals(selected)){g.fill(rail+8,56,rail+168,88,t.panel);g.renderOutline(rail+8,56,160,32,t.accent);g.drawString(font,e.label(),rail+16,68,t.text);g.drawString(font,"X "+x+"   Y "+y,rail+178,68,t.muted);}}
+  for(HudElement e:HudElementRegistry.all())if(e.enabled(config())){int x=e.x(config(),sw),y=e.y(config(),sh);e.render(g,x,y,0,config());CirrusUi.outline(g,x-3,y-3,e.width()+6,e.height()+6,6,e.id().equals(selected)?t.cyan:t.border);if(e.id().equals(selected)){CirrusUi.panel(g,rail+8,56,Math.min(160,width-rail-24),34,9,t);g.drawString(font,e.label(),rail+16,63,t.text,true);g.drawString(font,"X "+x+"   Y "+y,rail+16,76,t.muted);}}
   super.render(g,mx,my,d);
  }
  public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){
