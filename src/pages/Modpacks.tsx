@@ -124,7 +124,7 @@ function Profiles({ data, onNavigate }: { data: AppData; onNavigate: (page: Page
                 badge={selection.profile?.id === p.id ? <Badge tone="info">Selected</Badge> : undefined}
                 actions={
                   <>
-                    <button type="button" className="btn btn-primary btn-small" aria-label={`Play profile ${p.name}`} onClick={() => open(p, null)}>
+                    <button type="button" className="btn btn-primary btn-small" aria-label={`Play profile ${p.name}`} onClick={() => open(p, "versions")}>
                       <PlayArrowIcon />
                       Play
                     </button>

@@ -67,9 +67,8 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
-function goTo(name: "Home" | "Play" | "Mods" | "Skins" | "Accounts" | "Settings" | "About" | "Diagnostics") {
-  // The Play page button is named "Play page" so it never clashes with the big Play button.
-  fireEvent.click(screen.getByRole("button", { name: name === "Play" ? "Play page" : name }));
+function goTo(name: "Home" | "Versions" | "Browse" | "Modpacks" | "Mods" | "Skins" | "Accounts" | "Settings" | "About" | "Diagnostics") {
+  fireEvent.click(screen.getByRole("button", { name }));
 }
 
 async function goToSettings(tab?: string) {
@@ -165,8 +164,8 @@ afterEach(() => {
 describe("Home", () => {
   it("shows the branding, the target version and the detected Java", async () => {
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1, name: /sky is the limit/ })).toBeTruthy();
-    expect(screen.getByText("Minecraft Java Edition 1.21.11")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: /1\.21\.11\s+Fabric/ })).toBeTruthy();
+    expect(screen.getByText("Minecraft Java Edition")).toBeTruthy();
     expect(await screen.findByText("Java 21")).toBeTruthy();
     expect((await screen.findAllByText("Not installed")).length).toBeGreaterThanOrEqual(2); // game files and Fabric
   });
@@ -176,7 +175,7 @@ describe("Home", () => {
     const main = screen.getByRole("navigation", { name: "Main" });
     const tools = screen.getByRole("navigation", { name: "Tools" });
     for (const [nav, names] of [
-      [main, ["Home", "Play page", "Mods", "Skins", "Accounts"]],
+      [main, ["Home", "Versions", "Browse", "Mods", "Modpacks", "Skins", "Accounts"]],
       [tools, ["Settings", "About", "Diagnostics", "Re-scan Java"]],
     ] as const) {
       for (const name of names) {
@@ -201,11 +200,11 @@ describe("Home", () => {
 
   it("jumps between pages with Alt + a number", async () => {
     render(<App />);
-    fireEvent.keyDown(window, { key: "3", altKey: true });
-    expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "4", altKey: true });
+    expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
+    fireEvent.keyDown(window, { key: "6", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
-    fireEvent.keyDown(window, { key: "5", altKey: true });
+    fireEvent.keyDown(window, { key: "7", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "3", altKey: true, ctrlKey: true }); // not ours
     expect(screen.getByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
@@ -315,7 +314,7 @@ describe("Microsoft account", () => {
   it("explains that sign-in needs an Azure app ID and links to Settings", async () => {
     render(<App />);
     openAccount();
-    expect(await screen.findByText("Not signed in")).toBeTruthy();
+    expect((await screen.findAllByText("Not signed in")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Sign in with Microsoft" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Set up sign-in (owner)" }));
     expect(await screen.findByLabelText("Azure application (client) ID")).toBeTruthy();
@@ -970,7 +969,7 @@ describe("Play", () => {
     ready();
     render(<App />);
     await waitReady();
-    goTo("Play");
+    goTo("Versions");
     const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
     expect(Array.from(select.options).map((o) => o.value)).toEqual(["1.21.11", "1.21.1", "1.20.6"]);
     fireEvent.change(select, { target: { value: "1.20.6" } });
@@ -996,7 +995,7 @@ describe("Play", () => {
     render(<App />);
     await screen.findByText("Java 21");
     await screen.findAllByText("Installed");
-    goTo("Play");
+    goTo("Versions");
     chooseOffline();
     fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Alex" } });
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
@@ -1009,7 +1008,7 @@ describe("Play", () => {
     ready();
     render(<App />);
     await waitReady();
-    goTo("Play");
+    goTo("Versions");
     chooseOffline();
     const play = screen.getByRole("button", { name: "Play" }) as HTMLButtonElement;
     expect(play.disabled).toBe(true);
@@ -1027,7 +1026,7 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: "C:\\log.txt" });
     render(<App />);
     await waitReady();
-    goTo("Play");
+    goTo("Versions");
     chooseOffline();
     fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve_01" } });
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
@@ -1057,7 +1056,7 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: false, message: "A game file is missing.", logPath: null });
     render(<App />);
     await waitReady();
-    goTo("Play");
+    goTo("Versions");
     chooseOffline();
     fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve" } });
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
@@ -1098,7 +1097,7 @@ describe("License", () => {
   });
 });
 
-describe("Profiles", () => {
+describe("Modpacks", () => {
   const pvp = { id: "p-pvp", name: "PvP", minecraft: "1.21.11", fabric: true, color: 0 };
   const ready = () => mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
   const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
@@ -1106,7 +1105,7 @@ describe("Profiles", () => {
   it("creates a profile from a name, version and loader", async () => {
     mocked.createProfile.mockResolvedValue(pvp);
     render(<App />);
-    goTo("Play");
+    goTo("Modpacks");
     fireEvent.click(await screen.findByRole("button", { name: "Create profile" }));
     expect(await screen.findByText("Give the profile a name.")).toBeTruthy();
     expect(mocked.createProfile).not.toHaveBeenCalled();
@@ -1122,8 +1121,8 @@ describe("Profiles", () => {
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
     await screen.findByText("Java 21");
-    goTo("Play");
-    expect(await screen.findByText("Minecraft 1.21.11 · Fabric")).toBeTruthy();
+    goTo("Modpacks");
+    expect(await screen.findByText("1.21.11 Fabric")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Play profile PvP" }));
     expect(await screen.findByText("Profile:")).toBeTruthy();
     chooseOffline();
@@ -1139,7 +1138,7 @@ describe("Profiles", () => {
     mocked.listProfiles.mockResolvedValue([pvp]);
     mocked.deleteProfile.mockResolvedValue(undefined);
     render(<App />);
-    goTo("Play");
+    goTo("Modpacks");
     fireEvent.click(await screen.findByRole("button", { name: "Delete profile PvP" }));
     expect(mocked.deleteProfile).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete PvP" }));
@@ -1180,7 +1179,7 @@ describe("Themes", () => {
 describe("Installed versions", () => {
   it("says when nothing is installed yet", async () => {
     render(<App />);
-    goTo("Play");
+    goTo("Versions");
     expect(await screen.findByText("Nothing installed yet")).toBeTruthy();
   });
 
@@ -1190,9 +1189,9 @@ describe("Installed versions", () => {
       { minecraft: "1.20.6", loader: null, modCount: 0 },
     ]);
     render(<App />);
-    goTo("Play");
-    expect(await screen.findByText("Fabric 0.17.0 · 3 mods")).toBeTruthy();
-    expect(screen.getByText("Vanilla", { selector: "p" })).toBeTruthy();
+    goTo("Versions");
+    expect(await screen.findByText("Loader 0.17.0 · 3 mods")).toBeTruthy();
+    expect(screen.getAllByText("Vanilla").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Play Minecraft 1.20.6 vanilla" }));
     expect(await screen.findByLabelText("Minecraft version")).toBeTruthy(); // stays on Play, with the choice applied
     expect((screen.getByLabelText("Minecraft version") as HTMLSelectElement).value).toBe("1.20.6");
@@ -1330,7 +1329,7 @@ describe("Mods", () => {
     await browse();
     expect(await screen.findByRole("heading", { name: "Sodium" })).toBeTruthy();
     expect(mocked.searchMods).toHaveBeenCalledWith("modrinth", "", "1.21.11", 0);
-    expect(screen.getByText(/1.5M downloads/)).toBeTruthy();
+    expect(screen.getByText("1.5M")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Search mods"), { target: { value: "sod" } });
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
@@ -1658,21 +1657,20 @@ describe("About page", () => {
   });
 });
 
-describe("Play page", () => {
+describe("Versions page", () => {
   it("shows the launch panel, launch configuration, profiles and installed versions", async () => {
     render(<App />);
-    goTo("Play");
-    expect(await screen.findByRole("heading", { level: 1, name: "Play" })).toBeTruthy();
+    goTo("Versions");
+    expect(await screen.findByRole("heading", { level: 1, name: "Versions" })).toBeTruthy();
     expect(screen.getByLabelText("Minecraft version")).toBeTruthy();
     expect(await screen.findByText("Launch configuration")).toBeTruthy();
-    expect(screen.getByText("Profiles")).toBeTruthy();
     expect(await screen.findByText("Nothing installed yet")).toBeTruthy();
   });
 
   it("changes the game memory from the launch configuration and saves it", async () => {
     mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ memoryMb: 6144 }) });
     render(<App />);
-    goTo("Play");
+    goTo("Versions");
     fireEvent.click(await screen.findByRole("button", { name: "6 GB" }));
     await waitFor(() =>
       expect(mocked.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ memoryMb: 6144 })),
@@ -1682,7 +1680,7 @@ describe("Play page", () => {
 
   it("links to the matching Settings section for Java and the game folder", async () => {
     render(<App />);
-    goTo("Play");
+    goTo("Versions");
     await screen.findByText("Launch configuration");
     const changes = await screen.findAllByRole("button", { name: "Change" });
     fireEvent.click(changes[changes.length - 1]);
