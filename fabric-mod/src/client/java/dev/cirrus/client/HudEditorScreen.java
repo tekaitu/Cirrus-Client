@@ -18,7 +18,9 @@ public final class HudEditorScreen extends Screen {
  protected void init(){int panel=Math.min(176,Math.max(126,width/3));int y=52,w=panel-22;var cfg=config();
   for(HudElement e:HudElementRegistry.all()){
    int row=y;
-   addRenderableWidget(Button.builder(Component.literal((e.id().equals(selected)?"◆  ":"   ")+e.label()+"  ·  "+(e.enabled(cfg)?"ON":"OFF")),b->{selected=e.id();e.setEnabled(cfg,!e.enabled(cfg));rebuildWidgets();}).bounds(10,row,w,22).build());y+=27;
+   int toggleW=44;
+   addRenderableWidget(Button.builder(Component.literal((e.id().equals(selected)?"◆  ":"   ")+e.label()),b->{selected=e.id();rebuildWidgets();}).bounds(10,row,Math.max(64,w-toggleW-4),22).build());
+   addRenderableWidget(Button.builder(Component.literal(e.enabled(cfg)?"ON":"OFF"),b->{e.setEnabled(cfg,!e.enabled(cfg));b.setMessage(Component.literal(e.enabled(cfg)?"ON":"OFF"));}).bounds(10+Math.max(64,w-toggleW-4)+4,row,toggleW,22).build());y+=27;
   }
   addRenderableWidget(Button.builder(Component.literal("Back"),b->minecraft.setScreen(parent)).bounds(10,height-34,w,22).build());
  }
@@ -31,6 +33,8 @@ public final class HudEditorScreen extends Screen {
   if(super.mouseClicked(event,doubleClick))return true;
   if(event.button()!=0)return false;
   int sw=minecraft.getWindow().getGuiScaledWidth(),sh=minecraft.getWindow().getGuiScaledHeight();
+  int rail=Math.min(176,Math.max(126,width/3));
+  if(!selected.isEmpty()&&event.x()>=rail){var chosen=HudElementRegistry.find(selected);if(chosen.isPresent()){HudElement e=chosen.get();dragging=true;dragDx=e.width()/2;dragDy=e.height()/2;e.setPosition(config(),(int)event.x()-dragDx,(int)event.y()-dragDy,sw,sh);setDragging(true);return true;}}
   for(HudElement e:HudElementRegistry.all())if(e.enabled(config())){int x=e.x(config(),sw),y=e.y(config(),sh);if(event.x()>=x-3&&event.x()<=x+e.width()+3&&event.y()>=y-3&&event.y()<=y+e.height()+3){selected=e.id();dragging=true;dragDx=(int)event.x()-x;dragDy=(int)event.y()-y;setDragging(true);return true;}}
   return false;
  }
