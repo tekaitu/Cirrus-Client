@@ -43,7 +43,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
                 int y=Math.max(76,scaledHeight/2-28);
                 buttons.add(CirrusButton.of(x,y,buttonWidth,22,Component.literal("Singleplayer"),b->client.setScreen(new SelectWorldScreen(screen))));
                 buttons.add(CirrusButton.of(x,y+29,buttonWidth,22,Component.literal("Multiplayer"),b->client.setScreen(new JoinMultiplayerScreen(screen))));
-                buttons.add(CirrusButton.of(x,y+58,buttonWidth,22,Component.literal("Cirrus Client  ·  Right Shift"),b->client.setScreen(new CirrusMenuScreen(screen))));
+                buttons.add(CirrusButton.of(x,y+58,buttonWidth,22,Component.literal("Cirrus Client  ·  Right Shift"),b->client.setScreen(new CirrusDashboardScreen(screen))));
                 buttons.add(CirrusButton.of(x,y+87,buttonWidth/2-3,22,Component.literal("Options"),b->client.setScreen(new net.minecraft.client.gui.screens.options.OptionsScreen(screen,client.options))));
                 buttons.add(CirrusButton.of(x+buttonWidth/2+3,y+87,buttonWidth/2-3,22,Component.literal("Quit"),b->client.stop()));
                 ScreenEvents.afterRender(screen).register((s,graphics,mouseX,mouseY,tickDelta)->{
@@ -62,7 +62,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
             int x = Math.max(8, screen.width - buttonWidth - 8);
             int y = Math.max(8, screen.height - 30);
             Component label = Component.literal("Cirrus  ·  Right Shift");
-            Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusMenuScreen(screen))));
+            Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusDashboardScreen(screen))));
         });
     }
 }
