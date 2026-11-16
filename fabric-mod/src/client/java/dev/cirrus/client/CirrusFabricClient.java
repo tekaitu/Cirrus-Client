@@ -18,12 +18,16 @@ import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import dev.cirrus.client.ui.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
+import dev.cirrus.client.asset.AssetManager;
+import dev.cirrus.client.asset.CirrusInitializationScreen;
 
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ModRegistry.register(new LocalStatusMod());
         ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
+        AssetManager assets = AssetManager.get(Minecraft.getInstance().gameDirectory.toPath());
+        assets.initialize();
         CirrusKeyBindings.register();
         dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find("local_status").orElseThrow());
         HudElementRegistry.attachElementAfter(
@@ -32,6 +36,11 @@ public final class CirrusFabricClient implements ClientModInitializer {
             (graphics, tickCounter) -> CirrusHudSettings.render(graphics));
 
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+            if (assets.snapshot().finished()) dev.cirrus.client.asset.CirrusAssetTextures.load(assets);
+            if (screen instanceof TitleScreen && !assets.snapshot().finished()) {
+                client.setScreen(new CirrusInitializationScreen(screen, assets));
+                return;
+            }
             if (screen instanceof TitleScreen && !CirrusConfig.get(client.gameDirectory.toPath()).getBoolean("onboarding.complete", false)) {
                 client.setScreen(new CirrusWelcomeScreen(screen));
                 return;
@@ -71,3 +80,4 @@ public final class CirrusFabricClient implements ClientModInitializer {
         });
     }
 }
+

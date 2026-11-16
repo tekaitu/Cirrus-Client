@@ -71,7 +71,8 @@ public final class CirrusUi {
     }
     public static void brand(GuiGraphics g,int x,int y,int markSize,CirrusTheme t){
         int markWidth=Math.max(1,(markSize*640+236)/473);
-        g.blit(MARK,x,y,markWidth,markSize,0f,0f,1f,1f);
+        Identifier brandMark=dev.cirrus.client.asset.CirrusAssetTextures.mark();
+        g.blit(brandMark,x,y,markWidth,markSize,0f,0f,1f,1f);
         headingText(g,net.minecraft.client.Minecraft.getInstance().font,"Cirrus Client",x+markWidth+9,y+(markSize-10)/2,t.text);
     }
     public static void rounded(GuiGraphics g,int x,int y,int w,int h,int radius,int color){
@@ -104,3 +105,4 @@ public final class CirrusUi {
         return aa<<24|r<<16|gg<<8|bb;
     }
 }
+
