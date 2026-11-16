@@ -11,7 +11,7 @@ Only what is listed under "Implemented" exists. Everything after it is a plan.
 - **Tauri commands**: `get_app_info`, `get_system_info`, `detect_java`, `inspect_java`, `load_settings`, `save_settings`, `reset_settings`.
 - **Diagnostics report**: plain text built in `src/core/report.ts` from the same live data.
 - Windows CI that tests, builds and verifies the executable.
-- **`fabric-mod/`**: first client-only Fabric companion slice for Minecraft 1.21.11. It adds a Cirrus entry to the title and pause screens, opens the actual Minecraft Options screen, and returns to the caller. Account sync, cosmetics, and launcher installation are not connected.
+- **`fabric-mod/`**: first client-only Fabric companion slice for Minecraft 1.21.11. It adds a Cirrus entry to the title and pause screens, opens the actual Minecraft Options screen, and provides a local HUD status toggle and position setting. Account sync, cosmetics, and launcher installation are not connected.
 
 Settings for memory, Java path and game folder are saved and validated now, but nothing reads them to launch Minecraft yet. The Java path does change what detection checks.
 

@@ -6,9 +6,10 @@ This is the first in-game slice of Cirrus Client, targeting Minecraft Java 1.21.
 
 - A Cirrus button on the Minecraft title and pause screens.
 - A Cirrus panel that opens Minecraft's real Options screen and returns to the screen that opened it.
+- A local HUD editor that toggles a small Cirrus status panel and moves it between the top corners. These settings are saved in `config/cirrus-client.properties` for this installation.
 - The panel explicitly reports that account sync and cosmetics are not connected yet.
 
-It does not claim or grant ownership, change the player profile, or contact a backend. The existing launcher mod browser remains a separate desktop feature.
+It does not claim or grant ownership, change the player profile, or contact a backend. The overlay is a local status indicator, not a cosmetics renderer or full HUD layout editor. The existing launcher mod browser remains a separate desktop feature.
 
 ## Build
 

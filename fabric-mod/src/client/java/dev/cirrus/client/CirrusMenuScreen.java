@@ -26,8 +26,12 @@ public final class CirrusMenuScreen extends Screen {
             .bounds(buttonX, this.height / 2 + 18, buttonWidth, 20)
             .build());
         this.addRenderableWidget(Button.builder(
-                Component.literal("Back"), button -> this.minecraft.setScreen(this.parent))
+                Component.literal("HUD Editor"), button -> this.minecraft.setScreen(new HudEditorScreen(this)))
             .bounds(buttonX, this.height / 2 + 44, buttonWidth, 20)
+            .build());
+        this.addRenderableWidget(Button.builder(
+                Component.literal("Back"), button -> this.minecraft.setScreen(this.parent))
+            .bounds(buttonX, this.height / 2 + 70, buttonWidth, 20)
             .build());
     }
 
@@ -36,14 +40,13 @@ public final class CirrusMenuScreen extends Screen {
         this.renderBackground(graphics, mouseX, mouseY, delta);
 
         int left = (this.width - PANEL_WIDTH) / 2;
-        int top = this.height / 2 - 86;
-        graphics.fill(left, top, left + PANEL_WIDTH, top + 174, 0xE6101724);
-        graphics.renderOutline(left, top, PANEL_WIDTH, 174, 0x804F83C2);
+        int top = this.height / 2 - 100;
+        graphics.fill(left, top, left + PANEL_WIDTH, top + 202, 0xE6101724);
+        graphics.renderOutline(left, top, PANEL_WIDTH, 202, 0x804F83C2);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, top + 18, 0xFFF2F6FC);
         graphics.drawCenteredString(this.font, "IN-GAME COMPANION", this.width / 2, top + 43, 0xFF8FB8E8);
-        graphics.drawCenteredString(this.font, "This first build keeps your existing Minecraft profile", this.width / 2, top + 72, 0xFFD2DBE8);
-        graphics.drawCenteredString(this.font, "and worlds unchanged.", this.width / 2, top + 86, 0xFFD2DBE8);
-        graphics.drawCenteredString(this.font, "Account sync and cosmetics are not connected yet.", this.width / 2, top + 112, 0xFF9CAABD);
+        graphics.drawCenteredString(this.font, "This build keeps your Minecraft profile and worlds unchanged.", this.width / 2, top + 72, 0xFFD2DBE8);
+        graphics.drawCenteredString(this.font, "Account sync and cosmetics are not connected yet.", this.width / 2, top + 88, 0xFF9CAABD);
 
         super.render(graphics, mouseX, mouseY, delta);
     }
