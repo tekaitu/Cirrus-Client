@@ -12,11 +12,14 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.resources.Identifier;
 import dev.cirrus.client.mod.LocalStatusMod;
 import dev.cirrus.client.mod.ModRegistry;
+import dev.cirrus.client.config.CirrusConfig;
+import net.minecraft.client.Minecraft;
 
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ModRegistry.register(new LocalStatusMod());
+        ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
         dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find("local_status").orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,
