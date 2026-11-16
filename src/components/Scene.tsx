@@ -54,7 +54,7 @@ export function AppBackground({ id }: { id: BackdropId }) {
   const own = ownPicture(id) ?? ownPicture("default");
   const b = BACKDROP[id];
   return (
-    <div className="app-bg" aria-hidden="true">
+    <div className="app-bg" data-backdrop={id} aria-hidden="true">
       <div key={id} className="app-bg-layer">
         {own ? (
           <img className="app-bg-img" src={own} alt="" />

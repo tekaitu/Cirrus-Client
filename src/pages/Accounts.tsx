@@ -96,7 +96,7 @@ export function AccountsPage({
     <div className="page accounts-page">
       <header className="page-head accounts-page-head">
         <div>
-          <span className="account-kicker">CIRRUS IDENTITY</span>
+          <p className="eyebrow">Cirrus identity</p>
           <h1>Accounts</h1>
           <p className="muted">
             Manage your Minecraft identity, Microsoft connection and offline profile.
@@ -107,21 +107,6 @@ export function AccountsPage({
           {signedIn ? "Microsoft connected" : "No Microsoft account"}
         </div>
       </header>
-
-      <section className="accounts-overview" aria-label="Account overview">
-        <div className="accounts-overview-copy">
-          <span className="account-kicker">YOUR PLAYER IDENTITY</span>
-          <h2>{signedIn ? "You're ready for your next adventure." : "Your Minecraft journey starts here."}</h2>
-          <p className="muted">
-            {signedIn
-              ? "Your Microsoft account is connected. Your profile and game access are managed securely by Cirrus."
-              : "Connect a Microsoft account for online play, or use an offline player name for supported worlds and servers."}
-          </p>
-        </div>
-        <div className="accounts-overview-mark" aria-hidden="true">
-          <UserIcon />
-        </div>
-      </section>
 
       <div className="accounts-grid">
         <div className="accounts-main">
@@ -150,7 +135,7 @@ export function AccountsPage({
           <Card title="Switching accounts" icon={<KeyIcon />} description="One Microsoft account at a time.">
             <p className="muted small">
               Cirrus Client keeps one signed-in Microsoft account. To use another account, sign out here
-              and sign in again. Switching between Microsoft and offline play is done on the Play page.
+              and sign in again. Switching between Microsoft and offline play is done on the Versions page.
             </p>
           </Card>
 

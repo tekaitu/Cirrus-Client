@@ -200,3 +200,71 @@ button.vc-main { cursor: pointer; }
   .home-title { font-size: 2.6rem; }
 }
 @media (max-height: 640px) { .home-screen { min-height: 0; } .home-hero { padding-top: 6px; } }
+
+/* ==========================================================================
+   Fixes against the old stylesheet + Accounts
+   ========================================================================== */
+
+/* Home: the Play area is plain content on the picture, not a card. */
+.play-panel.lp { max-width: none; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; gap: 10px; align-items: flex-start; }
+.play-panel.lp-quick .play-dock { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 0; border: 0; background: none; box-shadow: none; width: auto; }
+.play-panel.lp-quick .play-summary { flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px 14px; width: auto; font-size: 0.92rem; color: var(--text-soft); text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }
+:root[data-theme="light"] .play-panel.lp-quick .play-summary { text-shadow: none; color: #243049; }
+.play-panel.lp-quick .play-summary > span { font-size: inherit; display: inline; }
+.play-panel.lp-quick .play-summary > span:first-child { display: none; }
+.play-panel.lp-quick .play-summary .link-inline { padding: 0; }
+.play-panel.lp-quick .hero-actions { flex: none; }
+.play-panel.lp-quick .btn-primary, .play-panel.lp-quick .btn-danger { height: 54px; padding: 0 36px; border-radius: 14px; font-size: 1.12rem; }
+.play-panel.lp-quick .btn:not(.btn-primary):not(.btn-danger) { height: 54px; border-radius: 14px; }
+.play-panel.lp-full .play-dock { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 0; border: 0; background: none; box-shadow: none; }
+.play-panel.lp-full .play-dock .play-summary { display: none; }
+.play-panel.lp-full .hero-actions { width: 100%; }
+.play-panel.lp-full .btn-primary, .play-panel.lp-full .btn-danger { flex: 1; height: 48px; }
+.play-panel.lp-full .btn:not(.btn-primary):not(.btn-danger) { height: 48px; border-radius: 12px; }
+.home-screen { min-height: calc(100vh - 64px - 38px - 60px); }
+.chips { max-width: 760px; }
+
+/* Only the home screen shows the picture in full; other pages get a calmer veil for readability. */
+.app-bg:not([data-backdrop="home"]) .app-bg-veil { background: linear-gradient(180deg, rgba(8, 13, 24, 0.74) 0%, rgba(8, 13, 24, 0.66) 50%, rgba(8, 13, 24, 0.9) 100%); }
+:root[data-theme="light"] .app-bg:not([data-backdrop="home"]) .app-bg-veil { background: linear-gradient(180deg, rgba(240, 245, 255, 0.78) 0%, rgba(240, 245, 255, 0.7) 50%, rgba(236, 242, 253, 0.92) 100%); }
+
+/* The tab names are always visible, so no tooltip on them. */
+.hdr-tab[data-tip]::after { display: none; }
+
+/* Browse cards (the old .mod-card rules are for the old list). */
+.mod-results .mod-card { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px; box-shadow: var(--shadow); }
+.mod-results .mod-card:hover { transform: translateY(-3px); border-color: var(--border-strong); }
+.mod-results .mod-card-art .mod-icon { width: 60px; height: 60px; border-radius: 14px; background: var(--raised-solid, #131d2d); }
+.mod-results .mod-icon-empty { background: linear-gradient(135deg, var(--accent), var(--violet, #8874ff)); color: #fff; }
+.mod-results .mod-body { align-items: flex-start; text-align: left; }
+.mod-results .mod-foot { width: 100%; }
+.mod-results-list .mod-card { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; align-items: center; }
+
+/* ------------------------------------------------------------ Accounts */
+.accounts-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 20px; align-items: start; }
+.accounts-main, .accounts-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.account-connection-pill { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass); backdrop-filter: blur(var(--blur)); font-size: 0.82rem; font-weight: 650; }
+.account-connection-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.account-connection-pill.is-connected .account-connection-indicator { background: var(--good, #3ddc97); box-shadow: 0 0 0 3px rgb(61 220 151 / 0.25); }
+.account-profile-card { position: relative; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+.account-profile-art { position: absolute; inset: -30px -30px auto auto; width: 260px; height: 160px; pointer-events: none; opacity: 0.8; }
+.account-profile-orbit { position: absolute; border-radius: 50%; filter: blur(34px); }
+.account-profile-orbit-one { width: 140px; height: 140px; right: 10px; top: 0; background: rgb(var(--accent-rgb) / 0.4); }
+.account-profile-orbit-two { width: 100px; height: 100px; right: 90px; top: 40px; background: rgb(136 116 255 / 0.35); }
+.account-profile-content { position: relative; display: flex; align-items: center; gap: 18px; }
+.account-profile-avatar { flex: none; width: 84px; height: 84px; display: grid; place-items: center; border-radius: 18px; background: var(--raised); border: 1px solid var(--glass-border); box-shadow: var(--shadow); }
+.account-profile-identity { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.account-profile-identity h2 { font-size: 1.6rem; letter-spacing: -0.02em; }
+.account-kicker { font-size: 0.7rem; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-2, #42c8f5); }
+.account-online-status { display: inline-flex; align-items: center; gap: 8px; color: var(--text-soft); font-size: 0.86rem; font-weight: 600; }
+.account-profile-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 0; }
+.account-profile-details > div { padding: 10px 12px; border-radius: 10px; background: rgb(255 255 255 / 0.04); border: 1px solid var(--border); }
+.account-profile-details dt { font-size: 0.68rem; font-weight: 750; letter-spacing: 0.1em; color: var(--muted); }
+.account-profile-details dd { margin: 3px 0 0; font-weight: 650; overflow-wrap: anywhere; }
+.account-profile-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.plain-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 1000px) { .accounts-grid { grid-template-columns: 1fr; } }
+.play-config .config-list > div { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.play-config .config-list dt { text-transform: none; letter-spacing: 0; font-size: 0.8rem; color: var(--muted); }
+.play-config .config-list dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.play-config .presets { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
