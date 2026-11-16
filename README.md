@@ -9,8 +9,9 @@ A Windows launcher for **Minecraft Java Edition 1.21.11** (Fabric), aimed at com
 > - **Java installer**: when no compatible Java is found, "Install Java 21" downloads Eclipse Temurin 21 from Adoptium, verifies its SHA-256 checksum, and installs it into Cirrus Client's own folder (no administrator rights; PATH, registry and Windows settings are untouched). See [docs/SECURITY.md](docs/SECURITY.md). **Not yet tested on a real PC.**
 > - **Microsoft sign-in** (official device-code flow, refresh token in Windows Credential Manager) is implemented but **not verified against the real services**: it needs your own Azure app ID in Settings and Mojang's approval. See [docs/AUTH.md](docs/AUTH.md).
 > - **Diagnostics** shows real OS, CPU and RAM information and every Java installation found (JAVA_HOME, PATH, common install folders, the Minecraft launcher's runtimes), with a copyable report.
+> - **Fabric companion (first slice)**: a separate Minecraft 1.21.11 Fabric mod adds a Cirrus entry to the title and pause screens and provides a working route to Minecraft Options. It is not yet installed by the launcher; account sync, cosmetics, friends, store and HUD editing are not connected.
 >
-> **Not implemented yet:** the Play button is disabled on purpose. There is no Microsoft sign-in, no game download, no Fabric installation and no launching. Fabric and the game show as "Not installed" because nothing can install them yet.
+> **Not implemented yet:** the Play button is disabled on purpose. The launcher does not yet download or install Minecraft/Fabric or launch the game. The companion mod is built separately and is not yet installed by the launcher.
 >
 > A green CI build shows that the code compiles and the automated tests pass on a Windows runner. It does not prove Minecraft launches, and it says nothing about FPS or input latency. No performance numbers exist, and none are promised.
 
@@ -33,6 +34,8 @@ cd src-tauri; cargo test --lib; cd ..   # Rust unit tests
 npx tauri dev            # run the app
 npx tauri build --no-bundle   # produces src-tauri/target/release/cirrus-client.exe
 ```
+
+The Fabric companion requires JDK 21 or newer. From `fabric-mod`, build it with `./gradlew.bat build`; see [fabric-mod/README.md](fabric-mod/README.md).
 
 ## Continuous integration
 
