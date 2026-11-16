@@ -53,8 +53,8 @@ public final class CirrusFabricClient implements ClientModInitializer {
                     int panelW=Math.min(buttonWidth+34,scaledWidth-28),panelX=(scaledWidth-panelW)/2;
                     CirrusUi.panel(graphics,panelX,Math.max(12,y-92),panelW,Math.min(scaledHeight-24,204),20,t);
                     CirrusUi.brand(graphics,scaledWidth/2-70,Math.max(24,y-78),42,t);
-                    graphics.drawCenteredString(client.font,"YOUR NEXT SESSION STARTS HERE",scaledWidth/2,Math.max(77,y-20),t.text);
-                    graphics.drawCenteredString(client.font,"MINECRAFT CLIENT  ·  FABRIC 1.21.11",scaledWidth/2,Math.max(91,y-5),t.cyan);
+                    CirrusUi.centeredHeading(graphics,client.font,"YOUR NEXT SESSION STARTS HERE",scaledWidth/2,Math.max(77,y-20),t.text);
+                    CirrusUi.centeredSmall(graphics,client.font,"MINECRAFT CLIENT  ·  FABRIC 1.21.11",scaledWidth/2,Math.max(94,y-5),t.cyan);
                     for(var button:buttons)button.render(graphics,mouseX,mouseY,tickDelta);
                 });
                 return;
