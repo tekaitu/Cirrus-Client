@@ -148,7 +148,7 @@ async function session(theme, width, height) {
   page.on("pageerror", (e) => errors.push(String(e)));
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
   await page.goto("http://localhost:4173/");
-  await page.waitForSelector(".topnav");
+  await page.waitForSelector(".hdr");
   await page.waitForTimeout(700);
   return { ctx, page, errors };
 }
@@ -169,25 +169,29 @@ async function run(theme, w, h, steps) {
 
 const pages = [
   ["home", async () => {}],
-  ["play", (p) => nav(p, "Play page")],
+  ["versions", (p) => nav(p, "Versions")],
+  ["browse", (p) => nav(p, "Browse")],
+  ["browse-list", async (p) => { await nav(p, "Browse"); await p.getByRole("radio", { name: "List results" }).click().catch(() => {}); await p.waitForTimeout(400); }],
   ["mods", (p) => nav(p, "Mods")],
-  ["mods-browse", async (p) => { await p.getByRole("button", { name: "Browse mods" }).first().click(); await p.waitForTimeout(700); }],
+  ["modpacks", (p) => nav(p, "Modpacks")],
   ["skins", (p) => nav(p, "Skins")],
   ["accounts", (p) => nav(p, "Accounts")],
   ["settings", (p) => nav(p, "Settings")],
-  ["settings-appearance", async (p) => { await p.getByRole("tab", { name: /Appearance/ }).click().catch(async () => { await p.getByText("Appearance", { exact: true }).first().click(); }); await p.waitForTimeout(400); }],
+  ["settings-appearance", async (p) => { await nav(p, "Settings"); await p.getByRole("tab", { name: /Appearance/ }).click().catch(async () => { await p.getByText("Appearance", { exact: true }).first().click(); }); await p.waitForTimeout(400); }],
   ["about", (p) => nav(p, "About")],
   ["diagnostics", (p) => nav(p, "Diagnostics")],
 ];
-await run("dark", 1100, 720, pages);
-await run("light", 1100, 720, pages);
-await run("dark", 900, 600, pages.filter(([n]) => ["home", "mods", "mods-browse", "skins", "settings"].includes(n)));
-await run("dark", 1440, 900, pages.filter(([n]) => ["home", "mods", "skins"].includes(n)));
-await run("light", 1440, 900, pages.filter(([n]) => ["home", "skins"].includes(n)));
+const core = ["home", "versions", "browse", "mods", "modpacks", "skins", "accounts", "settings"];
+await run("dark", 1920, 1080, pages.filter(([n]) => ["home", "versions", "browse", "mods"].includes(n)));
+await run("dark", 1600, 900, pages);
+await run("light", 1600, 900, pages.filter(([n]) => core.includes(n)));
+await run("dark", 1366, 768, pages.filter(([n]) => core.includes(n)));
+await run("light", 1366, 768, pages.filter(([n]) => ["home", "browse", "settings"].includes(n)));
+await run("dark", 1000, 640, pages.filter(([n]) => ["home", "versions", "browse", "mods", "settings"].includes(n)));
 
 // Launch log and crash dialog
 for (const theme of ["dark", "light"]) {
-  await run(theme, 1100, 720, [
+  await run(theme, 1366, 768, [
     ["launch-log", async (p) => {
       await p.getByRole("button", { name: "Play", exact: true }).first().click();
       await p.waitForTimeout(900);

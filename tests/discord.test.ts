@@ -8,11 +8,11 @@ describe("Discord presence text", () => {
       state: "Fabric",
       startedAt: 100,
     });
-    expect(presenceFor({ page: "play", running: true, version: "1.21.11", loader: "vanilla", startedAt: 5 }).state).toBe("Vanilla");
+    expect(presenceFor({ page: "versions", running: true, version: "1.21.11", loader: "vanilla", startedAt: 5 }).state).toBe("Vanilla");
   });
 
   it("describes the page when the game is not running", () => {
-    expect(presenceFor({ page: "mods", running: false, version: "1.21.11", loader: "fabric", startedAt: 7 })).toEqual({
+    expect(presenceFor({ page: "browse", running: false, version: "1.21.11", loader: "fabric", startedAt: 7 })).toEqual({
       details: "Browsing mods",
       state: "Cirrus Client launcher",
       startedAt: 7,
