@@ -14,12 +14,16 @@ import dev.cirrus.client.mod.LocalStatusMod;
 import dev.cirrus.client.mod.ModRegistry;
 import dev.cirrus.client.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import dev.cirrus.client.ui.CirrusTheme;
 
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ModRegistry.register(new LocalStatusMod());
         ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
+        CirrusKeyBindings.register();
         dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find("local_status").orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,
@@ -27,14 +31,37 @@ public final class CirrusFabricClient implements ClientModInitializer {
             (graphics, tickCounter) -> CirrusHudSettings.render(graphics));
 
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (!(screen instanceof TitleScreen) && !(screen instanceof PauseScreen)) {
+            if (screen instanceof TitleScreen && !CirrusConfig.get(client.gameDirectory.toPath()).getBoolean("onboarding.complete", false)) {
+                client.setScreen(new CirrusWelcomeScreen(screen));
+                return;
+            }
+            if (screen instanceof TitleScreen) {
+                var buttons=Screens.getButtons(screen);
+                buttons.clear();
+                int buttonWidth=Math.min(220,Math.max(150,scaledWidth/3));
+                int x=(scaledWidth-buttonWidth)/2;
+                int y=Math.max(76,scaledHeight/2-28);
+                buttons.add(Button.builder(Component.literal("Singleplayer"),b->client.setScreen(new SelectWorldScreen(screen))).bounds(x,y,buttonWidth,22).build());
+                buttons.add(Button.builder(Component.literal("Multiplayer"),b->client.setScreen(new JoinMultiplayerScreen(screen))).bounds(x,y+29,buttonWidth,22).build());
+                buttons.add(Button.builder(Component.literal("Cirrus Client  ·  Right Shift"),b->client.setScreen(new CirrusMenuScreen(screen))).bounds(x,y+58,buttonWidth,22).build());
+                buttons.add(Button.builder(Component.literal("Options"),b->client.setScreen(new net.minecraft.client.gui.screens.options.OptionsScreen(screen,client.options))).bounds(x,y+87,buttonWidth/2-3,22).build());
+                buttons.add(Button.builder(Component.literal("Quit"),b->client.stop()).bounds(x+buttonWidth/2+3,y+87,buttonWidth/2-3,22).build());
+                ScreenEvents.afterRender(screen).register((s,graphics,mouseX,mouseY,tickDelta)->{
+                    var t=CirrusTheme.current(CirrusConfig.get(client.gameDirectory.toPath()));
+                    CirrusWelcomeScreen.brand(graphics,scaledWidth/2,Math.max(36,scaledHeight/2-106),t);
+                    graphics.drawCenteredString(client.font,"C I R R U S",scaledWidth/2,Math.max(58,scaledHeight/2-80),t.text);
+                    graphics.drawCenteredString(client.font,"MINECRAFT CLIENT",scaledWidth/2,Math.max(72,scaledHeight/2-64),t.cyan);
+                });
+                return;
+            }
+            if (!(screen instanceof PauseScreen)) {
                 return;
             }
 
-            int buttonWidth = 100;
+            int buttonWidth = Math.min(150,Math.max(112,screen.width/5));
             int x = Math.max(8, screen.width - buttonWidth - 8);
-            int y = screen instanceof TitleScreen ? 8 : Math.max(8, screen.height - 28);
-            Component label = Component.literal("Cirrus");
+            int y = Math.max(8, screen.height - 30);
+            Component label = Component.literal("Cirrus  ·  Right Shift");
             Screens.getButtons(screen).add(Button.builder(label, button ->
                     client.setScreen(new CirrusMenuScreen(screen)))
                 .bounds(x, y, buttonWidth, 20)
