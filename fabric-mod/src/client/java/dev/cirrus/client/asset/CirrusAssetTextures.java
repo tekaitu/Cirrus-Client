@@ -26,7 +26,6 @@ public final class CirrusAssetTextures {
         Map.entry("empty-library", "external/illustrations/empty-library.png")
     );
     private static final Map<String, Identifier> TEXTURES = new LinkedHashMap<>();
-    private static final Identifier ICONS = Identifier.fromNamespaceAndPath(NS, "dynamic-assets/cirrus-icons");
     private CirrusAssetTextures() { }
 
     public static void load(AssetManager assets) {
@@ -58,16 +57,11 @@ public final class CirrusAssetTextures {
     public static Identifier mark() { return texture("cirrus-mark"); }
 
     public static void drawBackdrop(GuiGraphics g, int width, int height) {
-        if (width <= 0 || height <= 0) return;
-        float imageAspect = 2048f / 1152f, viewAspect = (float) width / height;
-        float u0=0f,v0=0f,u1=1f,v1=1f;
-        if (viewAspect > imageAspect) { float visible = imageAspect / viewAspect; v0=(1f-visible)/2f; v1=v0+visible; }
-        else { float visible = viewAspect / imageAspect; u0=(1f-visible)/2f; u1=u0+visible; }
-        g.blit(texture("main-menu-ambient"),0,0,width,height,u0,v0,u1,v1);
+        drawCover(g,texture("main-menu-ambient"),width,height,2048,1152);
     }
 
     public static void drawDashboardAmbient(GuiGraphics g, int width, int height) {
-        g.blit(texture("dashboard-ambient"),0,0,width,height,0f,0f,1f,1f);
+        drawCover(g,texture("dashboard-ambient"),width,height,1600,900);
     }
 
     public static void drawPanelFrame(GuiGraphics g,int x,int y,int width,int height,int radius) {
@@ -99,9 +93,18 @@ public final class CirrusAssetTextures {
     private static int colorRow(int color) {
         int r=(color>>>16)&255,g=(color>>>8)&255,b=color&255;
         if(r>190&&g>120&&b<130)return 3;
-        if(Math.max(r,Math.max(g,b))<100)return 2;
+        if(Math.max(r,Math.max(g,b))<150)return 2;
         if(b>r*1.2&&g>r*1.15)return 1;
         return 0;
+    }
+
+    private static void drawCover(GuiGraphics g,Identifier texture,int width,int height,int textureWidth,int textureHeight) {
+        if(width<=0||height<=0)return;
+        float imageAspect=(float)textureWidth/textureHeight,viewAspect=(float)width/height;
+        float u0=0f,v0=0f,u1=1f,v1=1f;
+        if(viewAspect>imageAspect){float visible=imageAspect/viewAspect;v0=(1f-visible)/2f;v1=v0+visible;}
+        else{float visible=viewAspect/imageAspect;u0=(1f-visible)/2f;u1=u0+visible;}
+        g.blit(texture,0,0,width,height,u0,v0,u1,v1);
     }
 
     private static void nineSlice(GuiGraphics g,Identifier texture,int x,int y,int width,int height,int sourceSize,
