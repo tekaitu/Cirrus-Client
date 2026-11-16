@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 64" fill="none" stroke="#49caff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(0)"><rect x="13" y="13" width="15" height="15" rx="5"/><rect x="36" y="13" width="15" height="15" rx="5"/><rect x="13" y="36" width="15" height="15" rx="5"/><rect x="36" y="36" width="15" height="15" rx="5"/></g>
+  <g transform="translate(64)"><rect x="14" y="15" width="36" height="34" rx="9"/><path d="M22 24h20M22 32h20M22 40h13"/></g>
+  <g transform="translate(128)"><rect x="14" y="13" width="36" height="38" rx="8"/><path d="M22 23h20M22 31h20M22 39h14"/></g>
+  <g transform="translate(192)"><path d="M32 12v20h16M22 22a20 20 0 1 0 20-10"/></g>
+  <g transform="translate(256)"><circle cx="29" cy="29" r="15"/><path d="m40 40 12 12"/></g>
+  <g transform="translate(320)"><path d="m32 10 6 14 15 1-11 10 3 15-13-8-13 8 3-15-11-10 15-1z"/></g>
+  <g transform="translate(384)"><rect x="13" y="13" width="38" height="38" rx="10"/><path d="M32 5v16M32 43v16M5 32h16M43 32h16"/></g>
+  <g transform="translate(448)"><circle cx="32" cy="32" r="21"/><circle cx="32" cy="32" r="11"/><circle cx="32" cy="32" r="4"/></g>
+  <g transform="translate(512)"><path d="M8 33a24 24 0 0 1 48 0M8 33c12 14 36 14 48 0"/><circle cx="32" cy="32" r="5"/></g>
+  <g transform="translate(576)"><path d="M12 51V14M12 51h41M16 43c7-19 14 5 20-13s11 1 16-16"/></g>
+  <g transform="translate(640)"><rect x="14" y="14" width="36" height="36" rx="8"/><path d="m23 23 18 18M41 23 23 41"/><circle cx="32" cy="32" r="5"/></g>
+  <g transform="translate(704)"><rect x="11" y="13" width="42" height="38" rx="8"/><path d="M11 24h42"/><circle cx="23" cy="35" r="3"/><circle cx="40" cy="35" r="3"/></g>
+  <g transform="translate(768)"><rect x="11" y="15" width="42" height="34" rx="9"/><path d="M24 20v-5M40 20v-5M21 39h22"/></g>
+  <g transform="translate(832)"><rect x="10" y="14" width="44" height="34" rx="8"/><path d="M32 14V5M28 5h8M18 48v7M46 48v7"/></g>
+  <g transform="translate(896)"><path d="M47 32H17m0 0 13-13m-13 13 13 13"/></g>
+  <g transform="translate(960)"><path d="m18 18 28 28m0-28L18 46"/></g>
+</svg>
+

@@ -15,16 +15,16 @@ public final class CirrusDashboardScreen extends Screen {
  private final Screen parent;
  public CirrusDashboardScreen(Screen parent){super(Component.literal("Cirrus Dashboard"));this.parent=parent;}
  protected void init(){int x=Math.max(140,width/4),w=Math.min(230,width-x-24),y=height/2-12;
-  addRenderableWidget(CirrusButton.nav(18,45,112,22,Component.literal("Mods"),2,b->minecraft.setScreen(new CirrusMenuScreen(this))));
-  addRenderableWidget(CirrusButton.nav(18,73,112,22,Component.literal("HUD Editor"),0,b->minecraft.setScreen(new HudEditorScreen(this))));
-  addRenderableWidget(CirrusButton.nav(18,101,112,22,Component.literal("Themes"),3,b->minecraft.setScreen(new CirrusThemesScreen(this))));
-  addRenderableWidget(CirrusButton.nav(18,129,112,22,Component.literal("Settings"),1,b->minecraft.setScreen(new OptionsScreen(this,minecraft.options))));
+  addRenderableWidget(CirrusButton.nav(18,45,112,22,Component.literal("Mods"),CirrusUi.ICON_MODS,b->minecraft.setScreen(new CirrusMenuScreen(this))));
+  addRenderableWidget(CirrusButton.nav(18,73,112,22,Component.literal("HUD Editor"),CirrusUi.ICON_HUD,b->minecraft.setScreen(new HudEditorScreen(this))));
+  addRenderableWidget(CirrusButton.nav(18,101,112,22,Component.literal("Themes"),CirrusUi.ICON_THEMES,b->minecraft.setScreen(new CirrusThemesScreen(this))));
+  addRenderableWidget(CirrusButton.nav(18,129,112,22,Component.literal("Settings"),CirrusUi.ICON_SETTINGS,b->minecraft.setScreen(new OptionsScreen(this,minecraft.options))));
   addRenderableWidget(CirrusButton.of(18,height-34,112,22,Component.literal("Close"),b->minecraft.setScreen(parent)));
-  addRenderableWidget(CirrusButton.of(x,y,w,24,Component.literal("Open Mods Library  ›"),b->minecraft.setScreen(new CirrusMenuScreen(this))));
-  addRenderableWidget(CirrusButton.of(x,y+34,w,24,Component.literal("Edit HUD  ›"),b->minecraft.setScreen(new HudEditorScreen(this))));
+  addRenderableWidget(CirrusButton.nav(x,y,w,24,Component.literal("Open Mods Library  ›"),CirrusUi.ICON_MODS,b->minecraft.setScreen(new CirrusMenuScreen(this))));
+  addRenderableWidget(CirrusButton.nav(x,y+34,w,24,Component.literal("Edit HUD  ›"),CirrusUi.ICON_HUD,b->minecraft.setScreen(new HudEditorScreen(this))));
  }
  public void render(GuiGraphics g,int mx,int my,float d){
-  renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);
+  renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.dashboardBackdrop(g,width,height,t);
   CirrusUi.panel(g,8,8,width-16,height-16,18,t);CirrusUi.panel(g,14,14,134,height-28,16,t);CirrusUi.brand(g,25,21,28,t);
   int headerX=Math.max(158,width/4);CirrusUi.panel(g,headerX,16,Math.max(120,width-headerX-20),36,12,t);CirrusUi.headingText(g,font,"DASHBOARD",headerX+16,27,t.cyan);
   int x=Math.max(174,width/4+12);CirrusUi.panel(g,x-12,height/2-82,Math.max(140,width-x-24),166,16,t);
@@ -37,3 +37,4 @@ public final class CirrusDashboardScreen extends Screen {
  private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
  public void onClose(){minecraft.setScreen(parent);}
 }
+

@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
 public final class CirrusThemesScreen extends Screen {
  private final Screen parent;
  public CirrusThemesScreen(Screen parent){super(Component.literal("Cirrus Themes"));this.parent=parent;}
- protected void init(){int x=width/2-170,y=height/2-34;addRenderableWidget(CirrusButton.nav(x,y,150,28,Component.literal("Dark  ·  Midnight"),2,b->CirrusTheme.set(config(),CirrusTheme.DARK)));addRenderableWidget(CirrusButton.nav(x+190,y,150,28,Component.literal("Light  ·  Frost"),1,b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));addRenderableWidget(CirrusButton.of(width/2-70,y+58,140,22,Component.literal("Back"),b->minecraft.setScreen(parent)));}
+ protected void init(){int x=width/2-170,y=height/2-34;addRenderableWidget(CirrusButton.nav(x,y,150,28,Component.literal("Dark  ·  Midnight"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.DARK)));addRenderableWidget(CirrusButton.nav(x+190,y,150,28,Component.literal("Light  ·  Frost"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));addRenderableWidget(CirrusButton.nav(width/2-70,y+58,140,22,Component.literal("Back"),CirrusUi.ICON_BACK,b->minecraft.setScreen(parent)));}
  public void render(GuiGraphics g,int mx,int my,float d){
   renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);
   int shellW=Math.min(500,width-24),shellX=(width-shellW)/2;CirrusUi.panel(g,shellX,Math.max(20,height/2-126),shellW,Math.min(250,height-40),20,t);
@@ -26,3 +26,4 @@ public final class CirrusThemesScreen extends Screen {
  private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
  public void onClose(){minecraft.setScreen(parent);}
 }
+

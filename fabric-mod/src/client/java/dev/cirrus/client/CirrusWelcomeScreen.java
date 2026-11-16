@@ -14,8 +14,8 @@ public final class CirrusWelcomeScreen extends Screen {
     private final Screen parent;
     public CirrusWelcomeScreen(Screen parent){super(Component.literal("Welcome to Cirrus"));this.parent=parent;}
     protected void init(){int x=width/2-92,y=height/2+4;
-        addRenderableWidget(CirrusButton.of(x,y,180,22,Component.literal("Dark theme"),b->CirrusTheme.set(config(),CirrusTheme.DARK)));
-        addRenderableWidget(CirrusButton.of(x,y+29,180,22,Component.literal("Light theme"),b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));
+        addRenderableWidget(CirrusButton.nav(x,y,180,22,Component.literal("Dark theme"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.DARK)));
+        addRenderableWidget(CirrusButton.nav(x,y+29,180,22,Component.literal("Light theme"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));
         addRenderableWidget(CirrusButton.of(x,y+66,86,22,Component.literal("Continue"),b->finish()));
         addRenderableWidget(CirrusButton.of(x+94,y+66,86,22,Component.literal("Skip"),b->finish()));
     }
@@ -32,3 +32,4 @@ public final class CirrusWelcomeScreen extends Screen {
     private void finish(){config().put("onboarding.complete","true");minecraft.setScreen(parent);}
     public void onClose(){finish();}
 }
+

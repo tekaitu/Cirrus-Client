@@ -20,8 +20,8 @@ public final class HudEditorScreen extends Screen {
   for(HudElement e:HudElementRegistry.all()){
    int row=y;
    int toggleW=44;
-   addRenderableWidget(CirrusButton.of(10,row,Math.max(64,w-toggleW-4),22,Component.literal((e.id().equals(selected)?"◆  ":"   ")+e.label()),b->{selected=e.id();rebuildWidgets();}));
-   addRenderableWidget(CirrusButton.of(10+Math.max(64,w-toggleW-4)+4,row,toggleW,22,Component.literal(e.enabled(cfg)?"ON":"OFF"),b->{e.setEnabled(cfg,!e.enabled(cfg));b.setMessage(Component.literal(e.enabled(cfg)?"ON":"OFF"));}));y+=27;
+   addRenderableWidget(CirrusButton.nav(10,row,Math.max(64,w-toggleW-4),22,Component.literal((e.id().equals(selected)?"◆  ":"   ")+e.label()),CirrusUi.ICON_HUD,b->{selected=e.id();rebuildWidgets();}));
+   addRenderableWidget(CirrusButton.nav(10+Math.max(64,w-toggleW-4)+4,row,toggleW,22,Component.literal(e.enabled(cfg)?"ON":"OFF"),CirrusUi.ICON_SETTINGS,b->{e.setEnabled(cfg,!e.enabled(cfg));b.setMessage(Component.literal(e.enabled(cfg)?"ON":"OFF"));}));y+=27;
   }
   addRenderableWidget(CirrusButton.of(10,height-34,w,22,Component.literal("Back"),b->minecraft.setScreen(parent)));
  }
@@ -47,3 +47,4 @@ public final class HudEditorScreen extends Screen {
  private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
  public void onClose(){minecraft.setScreen(parent);}
 }
+
