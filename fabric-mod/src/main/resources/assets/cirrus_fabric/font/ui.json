@@ -2,7 +2,7 @@
   "providers": [
     {
       "type": "ttf",
-      "file": "cirrus_fabric:font/Inter-Regular.ttf",
+      "file": "cirrus_fabric:font/inter-regular.ttf",
       "shift": [0.0, 0.0],
       "size": 10.0,
       "oversample": 2.0
