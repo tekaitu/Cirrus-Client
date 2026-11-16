@@ -4,7 +4,7 @@ import dev.cirrus.client.config.CirrusConfig;
 import dev.cirrus.client.mod.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
+import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
@@ -20,15 +20,15 @@ public final class CirrusMenuScreen extends Screen {
  public CirrusMenuScreen(Screen parent){super(Component.literal("Cirrus Client"));this.parent=parent;}
  protected void init(){
   int rail=Math.min(104,Math.max(74,width/5)); int left=12+rail+10; int content=Math.max(120,width-left-14);
-  addRenderableWidget(Button.builder(Component.literal("‹"),b->minecraft.setScreen(parent)).bounds(10,10,32,20).build());
+  addRenderableWidget(CirrusButton.of(10,10,32,20,Component.literal("‹"),b->minecraft.setScreen(parent)));
   search=new EditBox(font,left,34,content,20,Component.literal("Search mods"));search.setValue(query);search.setResponder(v->query=v);addRenderableWidget(search);
   int y=64; for(ModCategory c:ModCategory.values()){final ModCategory choice=c; if(c==ModCategory.ALL||ModRegistry.all().stream().anyMatch(m->m.category()==c)){
-   addRenderableWidget(Button.builder(Component.literal((category==c?"◆  ":"   ")+c.label),b->{category=choice;scroll=0;rebuildWidgets();}).bounds(10,y,rail,22).build());y+=25;}}
-  addRenderableWidget(Button.builder(Component.literal(favoritesOnly?"★ Favorites":"☆ Favorites"),b->{favoritesOnly=!favoritesOnly;rebuildWidgets();}).bounds(left,10,Math.min(110,content),20).build());
-  addRenderableWidget(Button.builder(Component.literal("Minecraft settings"),b->minecraft.setScreen(new OptionsScreen(this,minecraft.options))).bounds(Math.max(left,width-150),10,140,20).build());
-  addRenderableWidget(Button.builder(Component.literal("HUD Editor"),b->minecraft.setScreen(new HudEditorScreen(this))).bounds(left,Math.max(86,height-34),Math.min(120,content),22).build());
-  addRenderableWidget(Button.builder(Component.literal("Theme: "+CirrusTheme.current(config()).name()),b->{CirrusTheme.set(config(),CirrusTheme.current(config())==CirrusTheme.DARK?CirrusTheme.LIGHT:CirrusTheme.DARK);b.setMessage(Component.literal("Theme: "+CirrusTheme.current(config()).name()));}).bounds(10,Math.max(92,height-64),rail,22).build());
-  addRenderableWidget(Button.builder(Component.literal("Done"),b->minecraft.setScreen(parent)).bounds(Math.max(left+content-70,left),Math.max(86,height-34),70,22).build());
+   addRenderableWidget(CirrusButton.of(10,y,rail,22,Component.literal((category==c?"◆  ":"   ")+c.label),b->{category=choice;scroll=0;rebuildWidgets();}));y+=25;}}
+  addRenderableWidget(CirrusButton.of(left,10,Math.min(110,content),20,Component.literal(favoritesOnly?"★ Favorites":"☆ Favorites"),b->{favoritesOnly=!favoritesOnly;rebuildWidgets();}));
+  addRenderableWidget(CirrusButton.of(Math.max(left,width-150),10,140,20,Component.literal("Minecraft settings"),b->minecraft.setScreen(new OptionsScreen(this,minecraft.options))));
+  addRenderableWidget(CirrusButton.of(left,Math.max(86,height-34),Math.min(120,content),22,Component.literal("HUD Editor"),b->minecraft.setScreen(new HudEditorScreen(this))));
+  addRenderableWidget(CirrusButton.of(10,Math.max(92,height-64),rail,22,Component.literal("Theme: "+CirrusTheme.current(config()).name()),b->{CirrusTheme.set(config(),CirrusTheme.current(config())==CirrusTheme.DARK?CirrusTheme.LIGHT:CirrusTheme.DARK);b.setMessage(Component.literal("Theme: "+CirrusTheme.current(config()).name()));}));
+  addRenderableWidget(CirrusButton.of(Math.max(left+content-70,left),Math.max(86,height-34),70,22,Component.literal("Done"),b->minecraft.setScreen(parent)));
  }
  public void render(GuiGraphics g,int mx,int my,float d){
   renderBackground(g,mx,my,d);var theme=CirrusTheme.current(config());g.fill(0,0,width,height,theme.overlay);g.fill(0,0,width,30,theme.panel);g.fill(0,30,Math.min(width/5,116),height,theme.surface);g.fill(0,29,width,30,theme.border);

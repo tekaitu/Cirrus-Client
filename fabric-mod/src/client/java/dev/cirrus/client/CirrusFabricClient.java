@@ -8,7 +8,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.client.gui.components.Button;
+import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.resources.Identifier;
 import dev.cirrus.client.mod.LocalStatusMod;
 import dev.cirrus.client.mod.ModRegistry;
@@ -41,11 +41,11 @@ public final class CirrusFabricClient implements ClientModInitializer {
                 int buttonWidth=Math.min(220,Math.max(150,scaledWidth/3));
                 int x=(scaledWidth-buttonWidth)/2;
                 int y=Math.max(76,scaledHeight/2-28);
-                buttons.add(Button.builder(Component.literal("Singleplayer"),b->client.setScreen(new SelectWorldScreen(screen))).bounds(x,y,buttonWidth,22).build());
-                buttons.add(Button.builder(Component.literal("Multiplayer"),b->client.setScreen(new JoinMultiplayerScreen(screen))).bounds(x,y+29,buttonWidth,22).build());
-                buttons.add(Button.builder(Component.literal("Cirrus Client  ·  Right Shift"),b->client.setScreen(new CirrusMenuScreen(screen))).bounds(x,y+58,buttonWidth,22).build());
-                buttons.add(Button.builder(Component.literal("Options"),b->client.setScreen(new net.minecraft.client.gui.screens.options.OptionsScreen(screen,client.options))).bounds(x,y+87,buttonWidth/2-3,22).build());
-                buttons.add(Button.builder(Component.literal("Quit"),b->client.stop()).bounds(x+buttonWidth/2+3,y+87,buttonWidth/2-3,22).build());
+                buttons.add(CirrusButton.of(x,y,buttonWidth,22,Component.literal("Singleplayer"),b->client.setScreen(new SelectWorldScreen(screen))));
+                buttons.add(CirrusButton.of(x,y+29,buttonWidth,22,Component.literal("Multiplayer"),b->client.setScreen(new JoinMultiplayerScreen(screen))));
+                buttons.add(CirrusButton.of(x,y+58,buttonWidth,22,Component.literal("Cirrus Client  ·  Right Shift"),b->client.setScreen(new CirrusMenuScreen(screen))));
+                buttons.add(CirrusButton.of(x,y+87,buttonWidth/2-3,22,Component.literal("Options"),b->client.setScreen(new net.minecraft.client.gui.screens.options.OptionsScreen(screen,client.options))));
+                buttons.add(CirrusButton.of(x+buttonWidth/2+3,y+87,buttonWidth/2-3,22,Component.literal("Quit"),b->client.stop()));
                 ScreenEvents.afterRender(screen).register((s,graphics,mouseX,mouseY,tickDelta)->{
                     var t=CirrusTheme.current(CirrusConfig.get(client.gameDirectory.toPath()));
                     CirrusWelcomeScreen.brand(graphics,scaledWidth/2,Math.max(36,scaledHeight/2-106),t);
@@ -62,10 +62,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
             int x = Math.max(8, screen.width - buttonWidth - 8);
             int y = Math.max(8, screen.height - 30);
             Component label = Component.literal("Cirrus  ·  Right Shift");
-            Screens.getButtons(screen).add(Button.builder(label, button ->
-                    client.setScreen(new CirrusMenuScreen(screen)))
-                .bounds(x, y, buttonWidth, 20)
-                .build());
+            Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusMenuScreen(screen))));
         });
     }
 }

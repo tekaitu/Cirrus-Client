@@ -6,7 +6,7 @@ import dev.cirrus.client.mod.HudElementRegistry;
 import dev.cirrus.client.ui.CirrusTheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
+import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -19,10 +19,10 @@ public final class HudEditorScreen extends Screen {
   for(HudElement e:HudElementRegistry.all()){
    int row=y;
    int toggleW=44;
-   addRenderableWidget(Button.builder(Component.literal((e.id().equals(selected)?"◆  ":"   ")+e.label()),b->{selected=e.id();rebuildWidgets();}).bounds(10,row,Math.max(64,w-toggleW-4),22).build());
-   addRenderableWidget(Button.builder(Component.literal(e.enabled(cfg)?"ON":"OFF"),b->{e.setEnabled(cfg,!e.enabled(cfg));b.setMessage(Component.literal(e.enabled(cfg)?"ON":"OFF"));}).bounds(10+Math.max(64,w-toggleW-4)+4,row,toggleW,22).build());y+=27;
+   addRenderableWidget(CirrusButton.of(10,row,Math.max(64,w-toggleW-4),22,Component.literal((e.id().equals(selected)?"◆  ":"   ")+e.label()),b->{selected=e.id();rebuildWidgets();}));
+   addRenderableWidget(CirrusButton.of(10+Math.max(64,w-toggleW-4)+4,row,toggleW,22,Component.literal(e.enabled(cfg)?"ON":"OFF"),b->{e.setEnabled(cfg,!e.enabled(cfg));b.setMessage(Component.literal(e.enabled(cfg)?"ON":"OFF"));}));y+=27;
   }
-  addRenderableWidget(Button.builder(Component.literal("Back"),b->minecraft.setScreen(parent)).bounds(10,height-34,w,22).build());
+  addRenderableWidget(CirrusButton.of(10,height-34,w,22,Component.literal("Back"),b->minecraft.setScreen(parent)));
  }
  public void render(GuiGraphics g,int mx,int my,float d){renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());g.fill(0,0,width,height,t.overlay);int rail=Math.min(176,Math.max(126,width/3));g.fill(0,0,rail,height,t.surface);g.fill(rail,0,rail+1,height,t.border);g.drawString(font,"HUD EDITOR",18,22,t.cyan);g.drawString(font,"Drag elements to position them",rail+18,18,t.text);g.drawString(font,"Positions save automatically per instance",rail+18,32,t.muted);
   int sw=minecraft.getWindow().getGuiScaledWidth(),sh=minecraft.getWindow().getGuiScaledHeight();
