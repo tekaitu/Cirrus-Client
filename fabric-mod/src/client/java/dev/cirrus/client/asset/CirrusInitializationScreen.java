@@ -33,10 +33,10 @@ public final class CirrusInitializationScreen extends Screen {
     }
 
     @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        renderBackground(graphics, mouseX, mouseY, delta);
+        
         CirrusConfig config = CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());
         CirrusTheme theme = CirrusTheme.current(config);
-        CirrusUi.backdrop(graphics, width, height, theme);
+        
         int cardWidth = Math.min(450, width - 28), cardHeight = Math.min(250, height - 28);
         int left = (width - cardWidth) / 2, top = (height - cardHeight) / 2;
         CirrusUi.panel(graphics, left, top, cardWidth, cardHeight, 20, theme);
@@ -58,5 +58,7 @@ public final class CirrusInitializationScreen extends Screen {
     }
 
     @Override public boolean shouldCloseOnEsc() { return false; }
+
+ @Override public void renderBackground(GuiGraphics bg,int bmx,int bmy,float bd){CirrusUi.backdrop(bg,width,height,CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())));}
 }
 

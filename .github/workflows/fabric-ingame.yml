@@ -40,6 +40,8 @@ jobs:
           wc -l "$RUNNER_TEMP/game.log"
           echo "---- game output (errors and Cirrus lines)"
           grep -nE "ERROR|FATAL|Exception|Caused by|cirrus|Cirrus|GLFW|OpenGL|Renderer|gametest|Screenshot|screenshot" "$RUNNER_TEMP/game.log" | grep -v "^\S*\s*at " | cut -c1-260 | head -120
+          echo "---- first exception with stack"
+          grep -n -m1 -A22 "Reported exception thrown" "$RUNNER_TEMP/game.log" | cut -c1-200
           echo "---- last 40 lines"
           tail -40 "$RUNNER_TEMP/game.log" | cut -c1-260
           find . -name '*.png' -path '*screenshots*' | head -80

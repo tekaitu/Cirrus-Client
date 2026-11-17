@@ -33,7 +33,7 @@ public final class CirrusMenuScreen extends Screen {
   addRenderableWidget(CirrusButton.of(Math.max(left+content-70,left),Math.max(86,height-34),70,22,Component.literal("Done"),b->minecraft.setScreen(parent)));
  }
  public void render(GuiGraphics g,int mx,int my,float d){
-  renderBackground(g,mx,my,d);var theme=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,theme);
+  var theme=CirrusTheme.current(config());
   int rail=Math.min(104,Math.max(74,width/5)),left=22+rail, right=width-12, y=61;
   CirrusUi.panel(g,6,6,width-12,height-12,18,theme);CirrusUi.panel(g,12,12,rail+8,height-24,16,theme);CirrusUi.panel(g,left-8,12,right-left+8,38,13,theme);
   CirrusUi.brand(g,20,17,22,theme);CirrusUi.headingText(g,font,"MOD LIBRARY",left,25,theme.cyan);
@@ -67,5 +67,7 @@ public final class CirrusMenuScreen extends Screen {
  private List<CirrusMod> filtered(){return ModRegistry.all().stream().filter(m->category==ModCategory.ALL||m.category()==category).filter(m->!favoritesOnly||m.favorite(config())).filter(m->(m.name()+" "+m.description()).toLowerCase(Locale.ROOT).contains(query.toLowerCase(Locale.ROOT))).toList();}
  private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
  public void onClose(){minecraft.setScreen(parent);}
+
+ @Override public void renderBackground(GuiGraphics bg,int bmx,int bmy,float bd){CirrusUi.backdrop(bg,width,height,CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())));}
 }
 

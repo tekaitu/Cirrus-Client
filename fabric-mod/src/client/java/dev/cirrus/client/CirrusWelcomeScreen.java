@@ -20,7 +20,7 @@ public final class CirrusWelcomeScreen extends Screen {
         addRenderableWidget(CirrusButton.of(x+94,y+66,86,22,Component.literal("Skip"),b->finish()));
     }
     public void render(GuiGraphics g,int mx,int my,float d){
-        renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);
+        var t=CirrusTheme.current(config());
         int cardW=Math.min(420,width-28),cardH=Math.min(260,height-28),left=(width-cardW)/2,top=(height-cardH)/2;
         CirrusUi.panel(g,left,top,cardW,cardH,20,t);CirrusUi.brand(g,width/2-63,top+30,32,t);
         CirrusUi.centeredHeading(g,font,"WELCOME TO CIRRUS",width/2,top+84,t.text);
@@ -31,5 +31,7 @@ public final class CirrusWelcomeScreen extends Screen {
     private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
     private void finish(){config().put("onboarding.complete","true");minecraft.setScreen(parent);}
     public void onClose(){finish();}
+
+ @Override public void renderBackground(GuiGraphics bg,int bmx,int bmy,float bd){CirrusUi.backdrop(bg,width,height,CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())));}
 }
 

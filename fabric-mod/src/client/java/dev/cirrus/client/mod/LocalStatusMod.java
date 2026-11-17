@@ -40,12 +40,13 @@ public final class LocalStatusMod implements CirrusMod, HudElement {
                 addRenderableWidget(CirrusButton.of((width-backWidth)/2,height/2+30,backWidth,22,Component.literal("Back"), b -> Minecraft.getInstance().setScreen(parent)));
             }
             public void render(GuiGraphics g,int x,int y,float d) {
-                renderBackground(g,x,y,d);var theme=CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
+                var theme=CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
                 int cardW=Math.min(420,width-28),cardH=Math.min(260,height-28),left=(width-cardW)/2,top=(height-cardH)/2;
-                CirrusUi.backdrop(g,width,height,theme);CirrusUi.panel(g,left,top,cardW,cardH,18,theme);
+                CirrusUi.panel(g,left,top,cardW,cardH,18,theme);
                 CirrusUi.brand(g,width/2-63,top+18,28,theme);CirrusUi.centeredHeading(g,font,"STATUS HUD",width/2,top+66,theme.cyan);
                 CirrusUi.centeredSmall(g,font,"Choose which side of the screen anchors this element.",width/2,top+86,theme.muted);super.render(g,x,y,d);
             }
+            @Override public void renderBackground(GuiGraphics bg,int bmx,int bmy,float bd){CirrusUi.backdrop(bg,width,height,CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())));}
             public void onClose() { Minecraft.getInstance().setScreen(parent); }
         });
     }
