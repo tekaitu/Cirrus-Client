@@ -272,12 +272,6 @@ export function PlayPanel({
       </>)}
 
       <div className="play-dock">
-          </span>
-          <button type="button" className="link-inline" onClick={() => onNavigate("versions")}>
-            Change
-          </button>
-        </p>
-      )}
       {progress ? (
         <div className="install-inline" role="status" aria-live="polite">
           <p className="small">
