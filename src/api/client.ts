@@ -27,6 +27,7 @@ import type {
   Settings,
   SettingsState,
   SystemInfo,
+  VersionEntry,
 } from "./types";
 
 export function errorMessage(e: unknown): string {
@@ -87,6 +88,8 @@ export const api = {
   listInstances: () => call<InstanceSummary[]>("list_instances"),
   gameStatus: (version: string, loader: string) => call<GameStatus>("game_status", { version, loader }),
   listGameVersions: () => call<string[]>("list_game_versions"),
+  /** Mojang's full list, including snapshots and releases this build cannot install. */
+  listVersionCatalog: () => call<VersionEntry[]>("list_game_version_catalog"),
   installGame: (version: string, loader: string) => call<GameInstallResult>("install_game", { version, loader }),
   cancelGameInstall: () => call<boolean>("cancel_game_install"),
   launchGame: (

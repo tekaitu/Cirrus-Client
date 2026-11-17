@@ -1,13 +1,15 @@
 import type { PageId } from "../components/Navigation";
 import { AccountPanel } from "../components/AccountPanel";
-import { PlayArrowIcon, ShieldIcon, UserIcon } from "../components/Icons";
+import { CharacterPreview } from "../components/CharacterPreview";
+import { PlayArrowIcon, PlusIcon, ShieldIcon, UserIcon, WarningIcon } from "../components/Icons";
+import { ShaderButton } from "../components/ShaderButton";
 import { SkinHead } from "../components/SkinHead";
-import { Card } from "../components/ui";
-import type { Account } from "../hooks/useAuth";
+import { Badge, Card } from "../components/ui";
 import type { AppData } from "../hooks/useAppData";
+import { useState } from "react";
 
 /**
- * Name, skin and identity of one signed-in Minecraft account. The UUID is
+ * Name, character and identity of one signed-in Minecraft account. The UUID is
  * internal account data and is deliberately not shown anywhere in the UI.
  */
 function ProfileCard({
@@ -18,38 +20,42 @@ function ProfileCard({
   onNavigate: (page: PageId) => void;
 }) {
   return (
-    <Card title="Minecraft profile" icon={<UserIcon />} description="Your signed-in Minecraft account.">
+    <Card
+      title="Minecraft profile"
+      icon={<UserIcon />}
+      description="The account Cirrus will start Minecraft with."
+      action={<Badge tone="good">Active account</Badge>}
+    >
       <div className="account-profile-card">
-        <div className="account-profile-art" aria-hidden="true">
-          <span className="account-profile-orbit account-profile-orbit-one" />
-          <span className="account-profile-orbit account-profile-orbit-two" />
+        <div className="account-profile-figure">
+          <CharacterPreview player={player} scale={7} />
         </div>
         <div className="account-profile-content">
-          <div className="account-profile-avatar">
-            <SkinHead uuid={player.id} name={player.name} size={76} />
+          <span className="account-kicker">MINECRAFT: JAVA EDITION</span>
+          <h2>{player.name}</h2>
+          <span className="account-online-status">
+            <span className="dot dot-live" aria-hidden="true" /> Connected and ready to play
+          </span>
+          <dl className="account-profile-details">
+            <div>
+              <dt>PLAYER NAME</dt>
+              <dd>{player.name}</dd>
+            </div>
+            <div>
+              <dt>ACCOUNT</dt>
+              <dd>Microsoft</dd>
+            </div>
+          </dl>
+          <div className="row account-profile-actions">
+            <ShaderButton
+              variant="primary"
+              size="md"
+              onClick={() => onNavigate("skins")}
+              icon={<UserIcon />}
+            >
+              Change skin
+            </ShaderButton>
           </div>
-          <div className="account-profile-identity">
-            <span className="account-kicker">MINECRAFT: JAVA EDITION</span>
-            <h2>{player.name}</h2>
-            <span className="account-online-status">
-              <span className="dot dot-live" aria-hidden="true" /> Connected and ready to play
-            </span>
-          </div>
-        </div>
-        <dl className="account-profile-details">
-          <div>
-            <dt>PLAYER NAME</dt>
-            <dd>{player.name}</dd>
-          </div>
-          <div>
-            <dt>ACCOUNT</dt>
-            <dd>Microsoft</dd>
-          </div>
-        </dl>
-        <div className="row account-profile-actions">
-          <button type="button" className="btn btn-primary" onClick={() => onNavigate("skins")}>
-            Change skin
-          </button>
         </div>
       </div>
     </Card>
@@ -57,42 +63,78 @@ function ProfileCard({
 }
 
 /** Every account saved on this PC, with a way to switch or forget each one. */
-function SavedAccounts({ account }: { account: Account }) {
+function SavedAccounts({ data }: { data: AppData }) {
+  const account = data.account;
+  const [confirm, setConfirm] = useState<string | null>(null);
   if (account.accounts.length === 0) return null;
   return (
-    <Card title="Accounts on this PC" icon={<UserIcon />} description="Switch without signing in again.">
+    <Card
+      title="Accounts on this PC"
+      icon={<UserIcon />}
+      description="Switch without signing in again."
+      action={
+        <ShaderButton variant="secondary" size="sm" icon={<PlusIcon />} onClick={() => account.signIn()}>
+          Add account
+        </ShaderButton>
+      }
+    >
       <ul className="account-list">
         {account.accounts.map((entry) => {
           const active = entry.id === account.activeId;
+          const asking = confirm === entry.id;
           return (
             <li key={entry.id} className={active ? "on" : ""}>
-              <SkinHead uuid={entry.id} name={entry.name} size={34} />
+              <SkinHead uuid={entry.id} name={entry.name} size={38} />
               <div className="account-list-text">
                 <strong>{entry.name}</strong>
-                <span className="muted small">{active ? "In use" : "Saved account"}</span>
+                <span className="muted small">{active ? "Active account" : "Saved account"}</span>
               </div>
-              {!active && (
+              {active ? (
+                <Badge tone="good">In use</Badge>
+              ) : (
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn-small"
                   aria-label={`Switch to ${entry.name}`}
                   onClick={() => account.switchAccount(entry.id)}
                 >
                   Use
                 </button>
               )}
-              <button
-                type="button"
-                className="btn btn-quiet"
-                aria-label={`Remove ${entry.name}`}
-                onClick={() => account.signOut(entry.id)}
-              >
-                Remove
-              </button>
+              {asking ? (
+                <span className="account-confirm" role="group" aria-label={`Remove ${entry.name}?`}>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-small"
+                    aria-label={`Confirm removing ${entry.name}`}
+                    onClick={() => {
+                      setConfirm(null);
+                      account.signOut(entry.id);
+                    }}
+                  >
+                    Remove
+                  </button>
+                  <button type="button" className="btn btn-quiet btn-small" onClick={() => setConfirm(null)}>
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-quiet btn-small"
+                  aria-label={`Remove ${entry.name}`}
+                  onClick={() => setConfirm(entry.id)}
+                >
+                  Remove
+                </button>
+              )}
             </li>
           );
         })}
       </ul>
+      <p className="muted small">
+        Removing an account only forgets its sign-in on this PC. Your Minecraft account and worlds are untouched.
+      </p>
     </Card>
   );
 }
@@ -113,11 +155,20 @@ export function AccountsPage({
     <div className="page accounts-page">
       <header className="page-head accounts-page-head">
         <div>
+          <p className="eyebrow">Identity</p>
           <h1>Accounts</h1>
+          <p>Your Microsoft account is what Minecraft uses for skins, capes and online servers.</p>
         </div>
-        <div className={`account-connection-pill ${signedIn ? "is-connected" : "is-disconnected"}`}>
-          <span className="account-connection-indicator" />
-          {signedIn ? "Microsoft connected" : "No Microsoft account"}
+        <div className="page-actions">
+          <div className={`account-connection-pill ${signedIn ? "is-connected" : "is-disconnected"}`}>
+            <span className="account-connection-indicator" />
+            {signedIn ? "Microsoft connected" : "No Microsoft account"}
+          </div>
+          {!signedIn && (
+            <ShaderButton variant="primary" size="md" onClick={() => data.account.signIn()} icon={<PlusIcon />}>
+              Add account
+            </ShaderButton>
+          )}
         </div>
       </header>
 
@@ -126,7 +177,16 @@ export function AccountsPage({
           {accountState.phase === "signedIn" && (
             <ProfileCard player={accountState.profile} onNavigate={onNavigate} />
           )}
-          <SavedAccounts account={data.account} />
+          {accountState.phase === "error" && (
+            <div className="banner banner-bad" role="alert">
+              <WarningIcon />
+              <div>
+                <strong>Sign-in problem</strong>
+                <p>{accountState.message}</p>
+              </div>
+            </div>
+          )}
+          <SavedAccounts data={data} />
           <AccountPanel account={data.account} />
         </div>
 

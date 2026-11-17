@@ -4,8 +4,12 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-pub const SETTINGS_VERSION: u32 = 1;
+pub const SETTINGS_VERSION: u32 = 2;
 pub const MIN_MEMORY_MB: u32 = 1024;
+pub const MIN_WINDOW_WIDTH: u32 = 640;
+pub const MIN_WINDOW_HEIGHT: u32 = 480;
+pub const MAX_WINDOW_SIZE: u32 = 7680;
+pub const MAX_JVM_ARGS_CHARS: usize = 2000;
 pub const MAX_MEMORY_CAP_MB: u32 = 32768;
 pub const RESERVED_FOR_SYSTEM_MB: u64 = 2048;
 pub const DEFAULT_MEMORY_MB: u32 = 4096;
@@ -19,6 +23,11 @@ pub struct Settings {
     pub java_path: Option<String>,
     pub memory_mb: u32,
     pub game_dir: String,
+    /// Window size Minecraft opens with (`--width` / `--height`).
+    pub window_width: u32,
+    pub window_height: u32,
+    /// Extra JVM options, split on spaces when launching.
+    pub jvm_args: String,
     pub reduce_motion: bool,
     /// Application (client) ID of the Azure app used for Microsoft sign-in.
     /// It is public information (not a secret); `None` means sign-in is not set up.
@@ -32,6 +41,9 @@ impl Default for Settings {
             java_path: None,
             memory_mb: DEFAULT_MEMORY_MB,
             game_dir: String::new(),
+            window_width: 1280,
+            window_height: 720,
+            jvm_args: String::new(),
             reduce_motion: false,
             ms_client_id: None,
         }
@@ -106,6 +118,7 @@ pub fn normalize(mut s: Settings) -> Settings {
         .map(|c| c.trim().to_string())
         .filter(|c| !c.is_empty());
     s.game_dir = s.game_dir.trim().to_string();
+    s.jvm_args = s.jvm_args.trim().to_string();
     s.version = SETTINGS_VERSION;
     s
 }
@@ -152,6 +165,31 @@ pub fn validate(s: &Settings, total_ram_mb: u64) -> Vec<FieldError> {
                 message: "This should look like 00000000-0000-0000-0000-000000000000 (the Application (client) ID from Azure).".to_string(),
             });
         }
+    }
+
+    if !(MIN_WINDOW_WIDTH..=MAX_WINDOW_SIZE).contains(&s.window_width) {
+        errors.push(FieldError {
+            field: "windowWidth",
+            message: format!(
+                "Window width must be between {MIN_WINDOW_WIDTH} and {MAX_WINDOW_SIZE} pixels."
+            ),
+        });
+    }
+    if !(MIN_WINDOW_HEIGHT..=MAX_WINDOW_SIZE).contains(&s.window_height) {
+        errors.push(FieldError {
+            field: "windowHeight",
+            message: format!(
+                "Window height must be between {MIN_WINDOW_HEIGHT} and {MAX_WINDOW_SIZE} pixels."
+            ),
+        });
+    }
+    if s.jvm_args.chars().count() > MAX_JVM_ARGS_CHARS || s.jvm_args.contains('\0') {
+        errors.push(FieldError {
+            field: "jvmArgs",
+            message: format!(
+                "Extra JVM options can be at most {MAX_JVM_ARGS_CHARS} characters and must be plain text."
+            ),
+        });
     }
 
     let dir = s.game_dir.trim();
@@ -334,6 +372,29 @@ mod tests {
             ..Settings::default()
         };
         assert!(validate(&s, 16384).is_empty());
+    }
+
+    #[test]
+    fn window_size_must_be_usable_and_within_limits() {
+        let ok = Settings { game_dir: game_dir_ok(), ..defaults_for_tests() };
+        assert!(validate(&ok, 16384).is_empty());
+        let tiny = Settings { window_width: 320, ..ok.clone() };
+        assert_eq!(validate(&tiny, 16384)[0].field, "windowWidth");
+        let tall = Settings { window_height: 9000, ..ok.clone() };
+        assert_eq!(validate(&tall, 16384)[0].field, "windowHeight");
+        let enormous = Settings { jvm_args: "x".repeat(MAX_JVM_ARGS_CHARS + 1), ..ok };
+        assert_eq!(validate(&enormous, 16384)[0].field, "jvmArgs");
+    }
+
+    #[test]
+    fn jvm_options_are_trimmed_and_kept() {
+        let s = normalize(Settings {
+            jvm_args: "  -XX:+UseG1GC  ".into(),
+            ..Settings::default()
+        });
+        assert_eq!(s.jvm_args, "-XX:+UseG1GC");
+        assert_eq!(Settings::default().window_width, 1280);
+        assert_eq!(Settings::default().window_height, 720);
     }
 
     #[test]

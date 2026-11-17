@@ -25,6 +25,18 @@ describe("validateDraft", () => {
     expect(validateDraft({ ...base, memoryMb: Number.NaN }, limits).memoryMb).toBeDefined();
   });
 
+  it("checks the game window size", () => {
+    expect(validateDraft({ ...base, windowWidth: 320 }, limits).windowWidth).toContain("between 640");
+    expect(validateDraft({ ...base, windowWidth: 9000 }, limits).windowWidth).toBeDefined();
+    expect(validateDraft({ ...base, windowHeight: 200 }, limits).windowHeight).toContain("between 480");
+    expect(validateDraft({ ...base, windowWidth: 1600, windowHeight: 900 }, limits)).toEqual({});
+  });
+
+  it("limits extra JVM options but keeps ordinary ones", () => {
+    expect(validateDraft({ ...base, jvmArgs: "-XX:+UseG1GC" }, limits)).toEqual({});
+    expect(validateDraft({ ...base, jvmArgs: "x".repeat(2001) }, limits).jvmArgs).toContain("2000");
+  });
+
   it("requires an absolute game directory", () => {
     expect(validateDraft({ ...base, gameDir: "" }, limits).gameDir).toContain("required");
     expect(validateDraft({ ...base, gameDir: "games\\mc" }, limits).gameDir).toContain("full path");
@@ -49,6 +61,12 @@ describe("normalizeDraft / settingsEqual", () => {
     expect(settingsEqual(base, { ...base, memoryMb: 2048 })).toBe(false);
     expect(settingsEqual(base, { ...base, reduceMotion: true })).toBe(false);
     expect(settingsEqual(base, { ...base, javaPath: "x" })).toBe(false);
+    expect(settingsEqual(base, { ...base, windowWidth: 1920 })).toBe(false);
+    expect(settingsEqual(base, { ...base, jvmArgs: "-XX:+UseG1GC" })).toBe(false);
+  });
+
+  it("trims the extra JVM options", () => {
+    expect(normalizeDraft({ ...base, jvmArgs: "  -XX:+UseG1GC " }).jvmArgs).toBe("-XX:+UseG1GC");
   });
 });
 

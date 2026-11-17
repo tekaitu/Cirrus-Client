@@ -40,6 +40,11 @@ export interface Settings {
   javaPath: string | null;
   memoryMb: number;
   gameDir: string;
+  /** Window size Minecraft opens with. */
+  windowWidth: number;
+  windowHeight: number;
+  /** Extra JVM options, separated by spaces. */
+  jvmArgs: string;
   reduceMotion: boolean;
   /** Azure Application (client) ID for Microsoft sign-in; public, not a secret. */
   msClientId: string | null;
@@ -58,7 +63,7 @@ export interface SettingsState {
 }
 
 export interface FieldError {
-  field: "memoryMb" | "javaPath" | "gameDir" | "msClientId";
+  field: "memoryMb" | "javaPath" | "gameDir" | "msClientId" | "windowWidth" | "windowHeight" | "jvmArgs";
   message: string;
 }
 
@@ -157,9 +162,23 @@ export interface Profile {
 
 export interface GameProgress {
   stage: "metadata" | "downloading" | "finishing";
+  /** Files finished and the number of files to fetch. */
   done: number;
   total: number;
+  /** Bytes finished and the size of the whole download, when every size is known. */
+  bytesDone?: number;
+  bytesTotal?: number;
   message: string;
+}
+
+/** One entry of Mojang's version list, as the launcher's catalog reports it. */
+export interface VersionEntry {
+  id: string;
+  /** "release", "snapshot", "old_beta" or "old_alpha". */
+  kind: string;
+  released: string | null;
+  /** True only when this launcher can download and start it. */
+  supported: boolean;
 }
 
 export interface GameInstallResult {

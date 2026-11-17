@@ -37,9 +37,54 @@ function commit(next: AppNotification[]) {
   listeners.forEach((l) => l());
 }
 
-/** Adds a notification to the bell. Only call this for something that really happened. */
+/** A short-lived message in the corner. The bell keeps the full record. */
+export interface AppToast {
+  id: string;
+  title: string;
+  body?: string;
+  tone: NoticeTone;
+  at: number;
+}
+
+const MAX_TOASTS = 3;
+let toasts: AppToast[] = [];
+const toastListeners = new Set<() => void>();
+
+function commitToasts(next: AppToast[]) {
+  toasts = next.slice(0, MAX_TOASTS);
+  toastListeners.forEach((l) => l());
+}
+
+/** Adds a notification to the bell and a matching toast. Only call this for something that really happened. */
 export function notify(n: { title: string; body?: string; tone?: NoticeTone }): void {
-  commit([{ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title: n.title, body: n.body, tone: n.tone ?? "info", at: Date.now(), read: false }, ...items]);
+  const at = Date.now();
+  const id = `${at}-${Math.random().toString(36).slice(2, 7)}`;
+  const tone = n.tone ?? "info";
+  commit([{ id, title: n.title, body: n.body, tone, at, read: false }, ...items]);
+  commitToasts([{ id, title: n.title, body: n.body, tone, at }, ...toasts]);
+}
+
+export function dismissToast(id: string): void {
+  if (toasts.some((t) => t.id === id)) commitToasts(toasts.filter((t) => t.id !== id));
+}
+
+export function resetToasts(): void {
+  commitToasts([]);
+}
+
+export function useToasts(): AppToast[] {
+  return useSyncExternalStore(
+    (cb) => {
+      toastListeners.add(cb);
+      return () => toastListeners.delete(cb);
+    },
+    () => toasts,
+    () => toasts,
+  );
+}
+
+export function getToasts(): AppToast[] {
+  return toasts;
 }
 
 export function markAllRead(): void {
@@ -53,6 +98,7 @@ export function clearNotifications(): void {
 /** Test helper. */
 export function resetNotifications(): void {
   commit([]);
+  resetToasts();
 }
 
 export function useNotifications(): AppNotification[] {

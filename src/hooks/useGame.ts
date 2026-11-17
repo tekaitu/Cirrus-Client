@@ -27,6 +27,8 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
   const [installer, setInstaller] = useState<GameInstallerState>({ phase: "idle" });
   const [run, setRun] = useState<RunState>({ phase: "idle" });
   const installing = useRef(false);
+  // A launch is in flight, so a second click cannot start Minecraft twice.
+  const launching = useRef(false);
   const mounted = useRef(true);
   const [log, setLog] = useState("");
   const [panel, setPanel] = useState<"none" | "log" | "crash">("none");
@@ -139,6 +141,8 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
   }, []);
 
   const play = useCallback((javaPath: string, mode: PlayMode, username: string) => {
+    if (launching.current) return;
+    launching.current = true;
     setRun({ phase: "starting" });
     setLog("");
     logOffset.current = 0;
@@ -153,6 +157,9 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
       })
       .catch((e) => {
         if (mounted.current) setRun({ phase: "error", message: errorMessage(e) });
+      })
+      .finally(() => {
+        launching.current = false;
       });
   }, [version, loader, profileId]);
 

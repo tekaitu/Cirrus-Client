@@ -56,7 +56,7 @@
 .hdr-win button:hover { background: rgb(255 255 255 / 0.1); color: var(--text); }
 .hdr-win .hdr-win-close:hover { background: #d0393a; color: #fff; }
 
-@media (max-width: 1480px) {
+@media (max-width: 1100px) {
   .hdr-tab .hdr-tab-label { display: none; }
   .hdr-tab .hdr-tab-icon { display: inline-flex; }
   .hdr-tab { padding: 0 12px; }
@@ -90,4 +90,4 @@
 .page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 750; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-2); }
 /* With the names hidden the tabs need their tooltips back. */
-@media (max-width: 1480px) { .hdr-tab[data-tip]::after { display: block !important; } }
+@media (max-width: 1100px) { .hdr-tab[data-tip]::after { display: block !important; } }

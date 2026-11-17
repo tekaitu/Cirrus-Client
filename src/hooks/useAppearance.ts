@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { PlayerAppearance } from "../api/types";
 
@@ -6,6 +6,8 @@ export interface AppearanceState {
   appearance: PlayerAppearance | null;
   loading: boolean;
   error: string | null;
+  /** Fetches the skin again, for when it was changed in game. */
+  reload: () => void;
 }
 
 /**
@@ -20,6 +22,9 @@ export function usePlayerAppearance(player: string | null): AppearanceState {
   const [appearance, setAppearance] = useState<PlayerAppearance | null>(null);
   const [loading, setLoading] = useState(Boolean(player));
   const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
+
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
     if (!player) {
@@ -48,7 +53,7 @@ export function usePlayerAppearance(player: string | null): AppearanceState {
     return () => {
       live = false;
     };
-  }, [player]);
+  }, [player, version]);
 
-  return { appearance, loading, error };
+  return { appearance, loading, error, reload };
 }

@@ -13,6 +13,7 @@ import {
   KeyboardIcon,
   MemoryIcon,
   PaletteIcon,
+  PlusIcon,
   RefreshArrowIcon,
   RocketIcon,
   SettingsIcon,
@@ -22,7 +23,9 @@ import type { PageId } from "../components/Navigation";
 import { PAGE_SHORTCUTS } from "../core/shortcuts";
 import { usernameError, type LoaderId } from "../core/game";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
-import { Banner, Card, Skeleton, type Tone } from "../components/ui";
+import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
+import { ShaderButton } from "../components/ShaderButton";
+import { SkinHead } from "../components/SkinHead";
 import { formatMemory } from "../core/format";
 import { analyzeJava, type JavaAnalysis } from "../core/java";
 import {
@@ -80,20 +83,33 @@ export type SettingsTab =
   | "memory"
   | "folder"
   | "launch"
+  | "account"
   | "keybinds"
   | "updates";
 
-const TABS: Array<{ id: SettingsTab; label: string; icon: ReactNode }> = [
-  { id: "general", label: "General", icon: <SettingsIcon /> },
-  { id: "appearance", label: "Appearance", icon: <PaletteIcon /> },
-  { id: "performance", label: "Performance", icon: <CpuIcon /> },
-  { id: "minecraft", label: "Minecraft", icon: <CubeIcon /> },
-  { id: "memory", label: "Memory and RAM", icon: <MemoryIcon /> },
-  { id: "folder", label: "Game directory", icon: <FolderIcon /> },
-  { id: "launch", label: "Launch settings", icon: <RocketIcon /> },
-  { id: "keybinds", label: "Keybinds", icon: <KeyboardIcon /> },
-  { id: "updates", label: "Updates", icon: <DownloadIcon /> },
+/**
+ * The sections, grouped the way people think about them: what the game is,
+ * how it runs, how Cirrus looks, who plays, and the rest.
+ */
+const TABS: Array<{ id: SettingsTab; label: string; icon: ReactNode; group: string }> = [
+  { id: "minecraft", label: "Minecraft", icon: <CubeIcon />, group: "Game" },
+  { id: "folder", label: "Game directory", icon: <FolderIcon />, group: "Game" },
+  { id: "launch", label: "Launch settings", icon: <RocketIcon />, group: "Game" },
+  { id: "performance", label: "Performance", icon: <CpuIcon />, group: "Performance" },
+  { id: "memory", label: "Memory and RAM", icon: <MemoryIcon />, group: "Performance" },
+  { id: "appearance", label: "Appearance", icon: <PaletteIcon />, group: "Appearance" },
+  { id: "account", label: "Account", icon: <UserIcon />, group: "Account" },
+  { id: "general", label: "General", icon: <SettingsIcon />, group: "More" },
+  { id: "keybinds", label: "Keybinds", icon: <KeyboardIcon />, group: "More" },
+  { id: "updates", label: "Updates", icon: <DownloadIcon />, group: "More" },
 ];
+
+const TAB_GROUPS = TABS.reduce<Array<{ label: string; tabs: typeof TABS }>>((groups, tab) => {
+  const last = groups[groups.length - 1];
+  if (last && last.label === tab.group) last.tabs.push(tab);
+  else groups.push({ label: tab.group, tabs: [tab] });
+  return groups;
+}, []);
 
 export function isSettingsTab(value: string | undefined): value is SettingsTab {
   return TABS.some((t) => t.id === value);
@@ -144,6 +160,7 @@ function SettingsForm({
   const [confirmReset, setConfirmReset] = useState(false);
   const [javaTest, setJavaTest] = useState<JavaTest>({ status: "idle" });
   const [look, setLook] = useState(() => ({ theme: getTheme() }));
+  const [characterSpin, setCharacterSpin] = useState(() => readLocal("cirrus.characterSpin") !== "off");
 
   // After a successful save or reset the backend hands back a new settings object.
   useEffect(() => {
@@ -235,20 +252,27 @@ function SettingsForm({
 
       <div className="settings-layout settings-glass-layout">
         <nav className="settings-tabs settings-glass-nav" aria-label="Settings sections" role="tablist" aria-orientation="vertical">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              id={`tab-${t.id}`}
-              aria-selected={tab === t.id}
-              aria-controls="settings-panel"
-              className={`settings-tab settings-glass-tab ${tab === t.id ? "active" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.icon}
-              <span>{t.label}</span>
-            </button>
+          {TAB_GROUPS.map((group) => (
+            <div className="settings-tab-group" role="presentation" key={group.label}>
+              <p className="settings-tab-group-label" aria-hidden="true">
+                {group.label}
+              </p>
+              {group.tabs.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${t.id}`}
+                  aria-selected={tab === t.id}
+                  aria-controls="settings-panel"
+                  className={`settings-tab settings-glass-tab ${tab === t.id ? "active" : ""}`}
+                  onClick={() => setTab(t.id)}
+                >
+                  {t.icon}
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="settings-panel settings-glass-panel" id="settings-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
@@ -338,6 +362,20 @@ function SettingsForm({
           />
           <span>Reduce motion (turns off animations and transitions)</span>
         </label>
+        <label className="check switch">
+          <input
+            type="checkbox"
+            checked={characterSpin}
+            onChange={(e) => {
+              setCharacterSpin(e.target.checked);
+              writeLocal("cirrus.characterSpin", e.target.checked ? "on" : "off");
+            }}
+          />
+          <span>
+            Turn the character preview automatically
+            <small className="muted"> Off keeps the figure still until you drag it.</small>
+          </span>
+        </label>
       </Card>
             </>
           )}
@@ -396,6 +434,23 @@ function SettingsForm({
             {javaTest.message}
           </p>
         )}
+      </Card>
+      <Card title="JVM options" tone="cyan" icon={<CpuIcon />} description="Extra options passed to Java, after the memory limit.">
+        <Field
+          id="jvm-args"
+          label="Extra JVM options"
+          hint="Leave empty unless you know what you need. Separate options with spaces, for example -XX:+UseG1GC."
+          error={errors.jvmArgs}
+        >
+          <input
+            id="jvm-args"
+            type="text"
+            placeholder="-XX:+UseG1GC"
+            value={draft.jvmArgs}
+            aria-invalid={errors.jvmArgs ? true : undefined}
+            onChange={(e) => edit({ jvmArgs: e.target.value })}
+          />
+        </Field>
       </Card>
       <Card title="Performance mods" tone="cyan" icon={<RocketIcon />} description="More FPS comes mostly from mods, not from launcher settings.">
         <p className="muted small">
@@ -590,6 +645,72 @@ function SettingsForm({
           </button>
         </div>
       </Card>
+      <Card title="Game window" icon={<RocketIcon />} description="The size Minecraft opens at.">
+        <div className="resolution-row">
+          <Field id="window-width" label="Window width" error={errors.windowWidth}>
+            <input
+              id="window-width"
+              type="number"
+              inputMode="numeric"
+              min={640}
+              max={7680}
+              step={10}
+              value={Number.isFinite(draft.windowWidth) ? draft.windowWidth : ""}
+              aria-invalid={errors.windowWidth ? true : undefined}
+              onChange={(e) => edit({ windowWidth: e.target.value === "" ? Number.NaN : Number(e.target.value) })}
+            />
+          </Field>
+          <Field id="window-height" label="Window height" error={errors.windowHeight}>
+            <input
+              id="window-height"
+              type="number"
+              inputMode="numeric"
+              min={480}
+              max={7680}
+              step={10}
+              value={Number.isFinite(draft.windowHeight) ? draft.windowHeight : ""}
+              aria-invalid={errors.windowHeight ? true : undefined}
+              onChange={(e) => edit({ windowHeight: e.target.value === "" ? Number.NaN : Number(e.target.value) })}
+            />
+          </Field>
+        </div>
+        <p className="muted small">Passed to Minecraft as --width and --height. Press F11 in game for fullscreen.</p>
+      </Card>
+            </>
+          )}
+          {tab === "account" && (
+            <>
+      <Card title="Active account" icon={<UserIcon />} description="The account Play signs in with.">
+        {data.account.state.phase === "signedIn" ? (
+          <div className="settings-account-row">
+            <SkinHead uuid={data.account.state.profile.id} name={data.account.state.profile.name} size={44} />
+            <div className="account-list-text">
+              <strong>{data.account.state.profile.name}</strong>
+              <span className="muted small">Microsoft account · connected</span>
+            </div>
+            <Badge tone="good">Active</Badge>
+          </div>
+        ) : (
+          <p className="muted small">
+            {data.account.state.phase === "checking"
+              ? "Checking your Microsoft account…"
+              : "No Microsoft account is signed in. Offline play works without one."}
+          </p>
+        )}
+        <div className="row">
+          <button type="button" className="btn btn-primary" onClick={() => onNavigate("accounts")}>
+            Manage accounts
+          </button>
+          <button type="button" className="btn" onClick={() => data.account.signIn()}>
+            <PlusIcon />
+            Add account
+          </button>
+        </div>
+        <p className="muted small">
+          Sign-ins are kept in Windows Credential Manager, one entry per account. No token is ever written to the
+          settings file or shown here.
+        </p>
+      </Card>
             </>
           )}
           {tab === "keybinds" && (
@@ -676,10 +797,9 @@ function SettingsForm({
       )}
 
       <div className="actions action-bar settings-glass-actions">
-        <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
-          <CheckIcon />
-          {saving ? "Saving…" : "Save settings"}
-        </button>
+        <ShaderButton type="submit" variant="primary" size="md" disabled={!dirty} loading={saving} loadingLabel="Saving…" icon={<CheckIcon />}>
+          Save settings
+        </ShaderButton>
         <button
           type="button"
           className="btn"

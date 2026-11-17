@@ -836,6 +836,22 @@ async fn list_game_versions() -> Result<Vec<String>, String> {
     })
 }
 
+/// Mojang's whole version list, with snapshots and older releases marked as not
+/// installable. Falls back to the built-in target when Mojang cannot be reached.
+#[tauri::command]
+async fn list_game_version_catalog() -> Result<Vec<game::VersionEntry>, String> {
+    let fetched = tauri::async_runtime::spawn_blocking(game::list_catalog).await;
+    Ok(match fetched {
+        Ok(Ok(list)) if !list.is_empty() => list,
+        _ => vec![game::VersionEntry {
+            id: TARGET_MINECRAFT.to_string(),
+            kind: "release".to_string(),
+            released: None,
+            supported: true,
+        }],
+    })
+}
+
 #[tauri::command]
 fn game_status(
     app: AppHandle,
@@ -1116,6 +1132,26 @@ async fn launch_game(
         return refuse("Java was not found at the saved location. Re-scan Java and try again.");
     }
     let (root, memory) = game_root(&app)?;
+    // Window size and extra JVM options come from the settings file. A settings
+    // problem must not stop a launch, so defaults are used when loading fails.
+    let stored = match default_settings(&app, system::total_ram_mb()) {
+        Ok(defaults) => match settings_file(&app) {
+            Ok(file) => settings::load(&file, &defaults).settings,
+            Err(_) => defaults,
+        },
+        Err(_) => Settings::default(),
+    };
+    let launch_options = game::LaunchOptions {
+        memory_mb: memory,
+        window_width: stored.window_width,
+        window_height: stored.window_height,
+        jvm_args: stored
+            .jvm_args
+            .split_whitespace()
+            .filter(|a| a.len() <= 512 && !a.contains('\0'))
+            .map(str::to_string)
+            .collect(),
+    };
     let Some(info) = game::installed(&root, &version, fabric) else {
         return refuse("The game files are not installed yet.");
     };
@@ -1131,7 +1167,7 @@ async fn launch_game(
         &root,
         &info,
         &java,
-        memory,
+        &launch_options,
         &player,
         env!("CARGO_PKG_VERSION"),
         instance_id.as_deref(),
@@ -1442,6 +1478,7 @@ pub fn run() {
             stop_game,
             quit_app,
             list_game_versions,
+            list_game_version_catalog,
             curseforge_available,
             search_mods,
             install_mod,

@@ -60,6 +60,7 @@ vi.mock("../src/api/client", () => ({
     openMicrosoftLink: vi.fn(),
     onAuthDeviceCode: vi.fn(),
     playerAppearance: vi.fn(),
+    listVersionCatalog: vi.fn(),
     onJavaInstallProgress: vi.fn(),
     loadSettings: vi.fn(),
     saveSettings: vi.fn(),
@@ -152,6 +153,11 @@ beforeEach(() => {
   window.localStorage.clear();
   window.localStorage.setItem("unlimited.license", "2");
   mocked.listGameVersions.mockResolvedValue(["1.21.11", "1.21.1", "1.20.6"]);
+  mocked.listVersionCatalog.mockResolvedValue([
+    { id: "1.21.11", kind: "release", released: null, supported: true },
+    { id: "1.21.1", kind: "release", released: null, supported: true },
+    { id: "1.20.6", kind: "release", released: null, supported: true },
+  ]);
   mocked.curseforgeAvailable.mockResolvedValue(false);
   mocked.listMods.mockResolvedValue([]);
   mocked.listInstances.mockResolvedValue([]);
@@ -299,7 +305,8 @@ describe("Home", () => {
     act(() => notify({ title: "Sodium installed", body: "Minecraft 1.21.11", tone: "good" }));
     expect(await screen.findByRole("button", { name: "Notifications, 1 new" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Notifications, 1 new" }));
-    expect(screen.getByText("Sodium installed")).toBeTruthy();
+    const bell = screen.getByRole("dialog", { name: "Notifications" });
+    expect(within(bell).getByText("Sodium installed")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
     expect(screen.getByText("You're all caught up.")).toBeTruthy();
     await settled();
@@ -512,7 +519,7 @@ describe("Microsoft account", () => {
     );
     render(<App />);
     openAccount();
-    expect(await screen.findByText(/expired or was revoked/)).toBeTruthy();
+    expect((await screen.findAllByText(/expired or was revoked/)).length).toBeGreaterThan(0);
   });
 
   it("keeps Microsoft sign-in configuration out of Settings", async () => {
@@ -993,7 +1000,7 @@ describe("Play", () => {
     mocked.installGame.mockResolvedValue({ status: "failed", message: "Could not connect.", loader: null });
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
-    expect(await screen.findByText("Game files could not be downloaded")).toBeTruthy();
+    expect((await screen.findAllByText("Game files could not be downloaded")).length).toBeGreaterThan(0);
     expect(screen.getByText("Could not connect.")).toBeTruthy();
     expect(mocked.launchGame).not.toHaveBeenCalled();
   });
@@ -1100,8 +1107,8 @@ describe("Play", () => {
     chooseOffline();
     fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve" } });
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
-    expect(await screen.findByText("Minecraft could not be started")).toBeTruthy();
-    expect(screen.getByText("A game file is missing.")).toBeTruthy();
+    expect((await screen.findAllByText("Minecraft could not be started")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("A game file is missing.")).length).toBeGreaterThan(0);
   });
 });
 
@@ -1740,5 +1747,162 @@ describe("Versions page", () => {
     const changes = await screen.findAllByRole("button", { name: "Change" });
     fireEvent.click(changes[changes.length - 1]);
     expect((await screen.findByRole("tab", { name: "Game directory" })).getAttribute("aria-selected")).toBe("true");
+  });
+});
+
+describe("Version selection", () => {
+  it("groups releases and snapshots and never offers an unsupported version as installable", async () => {
+    mocked.listVersionCatalog.mockResolvedValue([
+      { id: "1.21.11", kind: "release", released: "2025-12-02T10:00:00+00:00", supported: true },
+      { id: "25w45a", kind: "snapshot", released: "2025-11-05T10:00:00+00:00", supported: false },
+      { id: "1.20.4", kind: "release", released: "2023-12-07T10:00:00+00:00", supported: false },
+    ]);
+    render(<App />);
+    goTo("Versions");
+    await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
+    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
+    const options = Array.from(select.options);
+    expect(options.find((o) => o.value === "25w45a")?.disabled).toBe(true);
+    expect(options.find((o) => o.value === "1.20.4")?.disabled).toBe(true);
+    expect(options.find((o) => o.value === "1.21.11")?.disabled).toBe(false);
+    expect(Array.from(select.querySelectorAll("optgroup")).map((g) => g.label)).toEqual([
+      "Releases",
+      "Snapshots (not supported)",
+    ]);
+  });
+
+  it("says whether the version on screen is installed", async () => {
+    mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+    render(<App />);
+    goTo("Versions");
+    expect(await screen.findByText(/^Installed/)).toBeTruthy();
+    expect(screen.getByText(/Ready to play/)).toBeTruthy();
+    expect(screen.getByText(/Fabric 0\.17\.0 is installed/)).toBeTruthy();
+  });
+});
+
+describe("Account switching and removal", () => {
+  const twoAccounts = () => {
+    mocked.authStatus.mockResolvedValue(
+      authStatus({
+        state: "signedIn",
+        configured: true,
+        savedLogin: true,
+        profile: steve,
+        accounts: [steve, alex],
+        activeId: steve.id,
+      }),
+    );
+  };
+
+  it("marks the active account and removes another only after a confirmation", async () => {
+    twoAccounts();
+    mocked.authSignOut.mockResolvedValue(
+      authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve, accounts: [steve], activeId: steve.id }),
+    );
+    render(<App />);
+    await settled();
+    await goToAccounts();
+    expect((await screen.findAllByText("Active account")).length).toBeGreaterThan(0);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove Alex" }));
+    expect(mocked.authSignOut).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm removing Alex" }));
+    await waitFor(() => expect(mocked.authSignOut).toHaveBeenCalledWith(alex.id));
+  });
+
+  it("draws a clearly labelled default character when the skin cannot be read", async () => {
+    twoAccounts();
+    mocked.playerAppearance.mockRejectedValue(new Error("The skin service is unavailable."));
+    render(<App />);
+    await settled();
+    await goToAccounts();
+    expect(await screen.findByText(/Default look/)).toBeTruthy();
+    expect(screen.getByText(/default look is shown instead/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Refresh skin" })).toBeTruthy();
+  });
+
+  it("never starts Minecraft twice when Play is pressed twice", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
+    mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
+    mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+    mocked.launchGame.mockReturnValue(new Promise(() => {}));
+    render(<App />);
+    await loaded();
+    await screen.findAllByText("Steve");
+    const play = await screen.findByRole("button", { name: "Play" });
+    fireEvent.click(play);
+    fireEvent.click(play);
+    await waitFor(() => expect(mocked.launchGame).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("Settings sections in 0.3.1", () => {
+  it("has an Account section that shows the active account and links to Accounts", async () => {
+    mocked.authStatus.mockResolvedValue(
+      authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve, accounts: [steve], activeId: steve.id }),
+    );
+    render(<App />);
+    await settled();
+    await goToSettings("Account");
+    expect(screen.getByRole("heading", { level: 2, name: "Active account" })).toBeTruthy();
+    expect(screen.getByText("Microsoft account · connected")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Manage accounts" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
+  });
+
+  it("saves the game window size and extra JVM options with the other settings", async () => {
+    mocked.saveSettings.mockResolvedValue({
+      ok: true,
+      errors: [],
+      state: settingsState({ windowWidth: 1920, windowHeight: 1080, jvmArgs: "-XX:+UseG1GC" }),
+    });
+    render(<App />);
+    await goToSettings("Launch settings");
+    fireEvent.change(await screen.findByLabelText("Window width"), { target: { value: "1920" } });
+    fireEvent.change(screen.getByLabelText("Window height"), { target: { value: "1080" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Performance" }));
+    fireEvent.change(await screen.findByLabelText("Extra JVM options"), { target: { value: "-XX:+UseG1GC" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    await waitFor(() =>
+      expect(mocked.saveSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ windowWidth: 1920, windowHeight: 1080, jvmArgs: "-XX:+UseG1GC" }),
+      ),
+    );
+  });
+
+  it("blocks an unusable window size before anything is saved", async () => {
+    render(<App />);
+    await goToSettings("Launch settings");
+    fireEvent.change(await screen.findByLabelText("Window width"), { target: { value: "320" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    expect(await screen.findByText(/Window width must be between/)).toBeTruthy();
+    expect(mocked.saveSettings).not.toHaveBeenCalled();
+  });
+
+  it("remembers whether the character preview turns on its own", async () => {
+    render(<App />);
+    await goToSettings("Appearance");
+    const spin = (await screen.findByRole("checkbox", { name: /Turn the character preview automatically/ })) as HTMLInputElement;
+    expect(spin.checked).toBe(true);
+    fireEvent.click(spin);
+    expect(window.localStorage.getItem("cirrus.characterSpin")).toBe("off");
+  });
+});
+
+describe("Download notifications", () => {
+  it("confirms a finished download with a toast and in the bell", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
+    mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
+    mocked.installGame.mockImplementation(async () => {
+      mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+      return { status: "installed", message: null, loader: "0.17.0" };
+    });
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    render(<App />);
+    await loaded();
+    await screen.findAllByText("Steve");
+    fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
+    expect(await screen.findByText("Game files are ready")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Dismiss notification: Game files are ready" })).toBeTruthy();
   });
 });

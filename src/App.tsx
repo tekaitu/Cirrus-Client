@@ -24,6 +24,8 @@ import { pageForShortcut } from "./core/shortcuts";
 import { readDiscordEnabled, writeDiscordEnabled } from "./core/discord";
 import { useDiscordPresence } from "./hooks/useDiscordPresence";
 import { notify } from "./core/notifications";
+import { Toasts } from "./components/Toasts";
+import { REQUIRED_JAVA_MAJOR } from "./core/java";
 
 /** Which picture sits behind each page. */
 const BACKDROPS: Record<PageId, BackdropId> = {
@@ -95,6 +97,39 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Sign-in results and an expired login get a notification of their own.
+  const accountPhase = data.account.state.phase;
+  const prevAccount = useRef(accountPhase);
+  useEffect(() => {
+    const was = prevAccount.current;
+    prevAccount.current = accountPhase;
+    const state = data.account.state;
+    if (state.phase === "signedIn" && (was === "starting" || was === "waiting")) {
+      notify({ title: "Signed in to Minecraft", body: state.profile.name, tone: "good" });
+    } else if (state.phase === "signedOut" && was !== "signedOut" && state.message?.trim()) {
+      notify({ title: "Microsoft sign-in expired", body: state.message, tone: "warn" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountPhase]);
+
+  // Java missing is worth saying once, when the scan has finished and nothing is installing.
+  const javaMissing =
+    data.java.status === "ready" && !data.java.data.selected && data.installer.state.phase !== "running";
+  const saidJavaMissing = useRef(false);
+  useEffect(() => {
+    if (!javaMissing) {
+      saidJavaMissing.current = false;
+      return;
+    }
+    if (saidJavaMissing.current) return;
+    saidJavaMissing.current = true;
+    notify({
+      title: `Java ${REQUIRED_JAVA_MAJOR} is needed`,
+      body: "Set up & play can install it for you, or pick a Java in Settings.",
+      tone: "warn",
+    });
+  }, [javaMissing]);
 
   const runPhase = data.game.run.phase;
 
@@ -174,6 +209,7 @@ export default function App() {
       {accepted && <SignInDialog account={data.account} />}
       {accepted && <GameDialog data={data} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}
+      <Toasts />
       {accountOpen && (
         <div className="popover" role="dialog" aria-label="Account">
           <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>

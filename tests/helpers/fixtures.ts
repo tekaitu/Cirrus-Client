@@ -60,10 +60,13 @@ export function settingsState(
 ): SettingsState {
   return {
     settings: {
-      version: 1,
+      version: 2,
       javaPath: null,
       memoryMb: 4096,
       gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\game",
+      windowWidth: 1280,
+      windowHeight: 720,
+      jvmArgs: "",
       reduceMotion: false,
       msClientId: null,
       ...settings,
