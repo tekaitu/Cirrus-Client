@@ -23,27 +23,11 @@ jobs:
         run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build --no-daemon
       - name: Dump the real API signatures
         run: |
-          mkdir -p ../api-dump
-          find ~/.gradle -name '*.jar' | grep -iE 'minecraft.*(merged|clientOnly|client)' | grep -v sources | head -5 | tee ../api-dump/jars.txt
-          MC=$(find ~/.gradle -name '*.jar' | grep -iE 'minecraft.*clientOnly' | grep -v sources | head -1)
-          echo "MC=$MC"
-          for c in net.minecraft.client.gui.GuiGraphics net.minecraft.client.gui.Font net.minecraft.client.gui.components.Button net.minecraft.client.gui.components.AbstractWidget net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.components.EditBox net.minecraft.client.gui.GuiSpriteManager net.minecraft.client.renderer.RenderPipelines; do
-            javap -p -cp "$MC" "$c" > "../api-dump/$c.txt" 2>&1 || true
-          done
-          find ~/.gradle -name 'fabric-client-gametest-api-v1*.jar' | grep -v sources | tee ../api-dump/gametest-jars.txt
-          GT=$(head -1 ../api-dump/gametest-jars.txt)
-          unzip -l "$GT" | awk '{print $4}' | grep '\.class' > ../api-dump/gametest-classes.txt || true
-          for c in $(grep -E 'ClientGameTestContext|TestInput|TestSingleplayerContext|FabricClientGameTest|TestScreenshotComparisonOptions' ../api-dump/gametest-classes.txt | sed 's/\.class$//; s#/#.#g'); do
-            javap -public -cp "$GT" "$c" > "../api-dump/$c.txt" 2>&1 || true
-          done
-          ls ../api-dump
-          echo ---- GuiGraphics blit/blitSprite ----
-          grep -E 'blit|fill|drawString|enableScissor|pose' ../api-dump/net.minecraft.client.gui.GuiGraphics.txt || true
-          echo ---- Button / AbstractWidget ----
-          grep -E 'render|extract|Contents|Hover' ../api-dump/net.minecraft.client.gui.components.AbstractWidget.txt ../api-dump/net.minecraft.client.gui.components.Button.txt || true
-          echo ---- Gametest context ----
-          cat ../api-dump/*ClientGameTestContext*.txt 2>/dev/null | head -80
-      - uses: actions/upload-artifact@v4
-        with:
-          name: api-dump
-          path: api-dump
+          MC=$(find ~/.gradle -name '*.jar' | grep -iE 'minecraft-clientonly-1' | grep -v sources | head -1)
+          GT=$(find ~/.gradle -name 'fabric-client-gametest-api-v1*.jar' | grep -v sources | head -1)
+          show() { echo "#### $2"; javap -public -cp "$1" "$2" 2>&1 | sed 's/net\.minecraft\.//g; s/java\.lang\.//g'; }
+          for c in net.minecraft.client.gui.components.Button net.minecraft.client.gui.components.AbstractButton net.minecraft.client.gui.components.AbstractWidget net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.Font net.minecraft.client.Minecraft net.minecraft.client.renderer.RenderPipelines net.minecraft.client.gui.components.Renderable; do show "$MC" "$c"; done | grep -vE 'access\$|lambda\$' | cut -c1-210 > /tmp/dump1.txt
+          for c in com.mojang.blaze3d.platform.Window; do show "$MC" "$c"; done | cut -c1-200 >> /tmp/dump1.txt
+          for c in net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions net.fabricmc.fabric.api.client.gametest.v1.TestInput net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest; do show "$GT" "$c"; done | cut -c1-200 >> /tmp/dump1.txt
+          wc -l /tmp/dump1.txt
+          cat /tmp/dump1.txt
