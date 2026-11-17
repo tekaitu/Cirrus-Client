@@ -1522,7 +1522,6 @@ describe("Accounts page", () => {
     await goToAccounts();
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
     expect(screen.getByText("Offline play")).toBeTruthy();
-    expect(screen.getByText("Switching accounts")).toBeTruthy();
     expect(screen.getByText(/Windows Credential Manager/)).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });

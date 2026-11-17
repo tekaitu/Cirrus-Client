@@ -1,7 +1,7 @@
 import type { PageId } from "../components/Navigation";
 import { AccountPanel } from "../components/AccountPanel";
 import { useState } from "react";
-import { KeyIcon, PlayArrowIcon, ShieldIcon, UserIcon } from "../components/Icons";
+import { PlayArrowIcon, ShieldIcon, UserIcon } from "../components/Icons";
 import { SkinHead } from "../components/SkinHead";
 import { Card } from "../components/ui";
 import type { AppData } from "../hooks/useAppData";
@@ -36,7 +36,7 @@ function ProfileCard({
     <Card
       title="Minecraft profile"
       icon={<UserIcon />}
-      description="Your active Minecraft identity on this device."
+      description="Your Minecraft account."
     >
       <div className="account-profile-card">
         <div className="account-profile-art" aria-hidden="true">
@@ -96,11 +96,7 @@ export function AccountsPage({
     <div className="page accounts-page">
       <header className="page-head accounts-page-head">
         <div>
-          <p className="eyebrow">Cirrus identity</p>
           <h1>Accounts</h1>
-          <p className="muted">
-            Manage your Minecraft identity, Microsoft connection and offline profile.
-          </p>
         </div>
         <div className={`account-connection-pill ${signedIn ? "is-connected" : "is-disconnected"}`}>
           <span className="account-connection-indicator" />
@@ -121,30 +117,19 @@ export function AccountsPage({
         </div>
 
         <aside className="accounts-side" aria-label="Account information">
-          <Card title="Offline play" icon={<UserIcon />} description="Play without connecting an account.">
-            <p className="muted small">
-              Offline play starts Minecraft with a player name you choose. It works for singleplayer and
-              for servers that run in offline mode. Servers that verify Microsoft accounts will refuse it.
-            </p>
+          <Card title="Offline play" icon={<UserIcon />}>
+            <p className="muted small">Play singleplayer or offline-mode servers with any name, no account needed.</p>
             <button type="button" className="btn" onClick={() => onNavigate("versions")}>
               <PlayArrowIcon />
               Choose a player name
             </button>
           </Card>
 
-          <Card title="Switching accounts" icon={<KeyIcon />} description="One Microsoft account at a time.">
+          <Card title="Your sign-in is protected" icon={<ShieldIcon />}>
             <p className="muted small">
-              Cirrus Client keeps one signed-in Microsoft account. To use another account, sign out here
-              and sign in again. Switching between Microsoft and offline play is done on the Versions page.
+              You sign in on Microsoft's own page; Cirrus never sees your password. The sign-in token is kept in
+              Windows Credential Manager.
             </p>
-          </Card>
-
-          <Card title="Your credentials" icon={<ShieldIcon />} description="Your sign-in stays protected.">
-            <ul className="plain-list muted small">
-              <li>Your password is entered on Microsoft's own sign-in page. Cirrus never sees it.</li>
-              <li>Your sign-in token is stored in Windows Credential Manager, not in a regular file.</li>
-              <li>Signing out removes the saved token from this PC.</li>
-            </ul>
           </Card>
         </aside>
       </div>

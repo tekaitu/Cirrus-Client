@@ -346,3 +346,8 @@ button.vc-main { cursor: pointer; }
 /* Light theme: Home keeps the picture vivid but the veil stays dark so the white title and header stay readable. */
 :root[data-theme="light"] .app-bg[data-backdrop="home"] .app-bg-veil { background: linear-gradient(180deg, rgba(8, 13, 24, 0.5) 0%, rgba(8, 13, 24, 0.3) 40%, rgba(8, 13, 24, 0.7) 100%); }
 :root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar, :root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar .pill { color: rgb(255 255 255 / 0.85); }
+
+/* The header always sits on a dark fade, so its controls stay white in both themes. */
+.hdr .hdr-tool, .hdr .hdr-win button, .hdr .hdr-account { color: rgb(255 255 255 / 0.85); }
+.hdr .hdr-tool:hover, .hdr .hdr-win button:hover { color: #fff; background: rgb(255 255 255 / 0.12); }
+.hdr .hdr-win .hdr-win-close:hover { background: #d0393a; }
