@@ -22,9 +22,15 @@ Only those fixed Microsoft, Xbox and Minecraft addresses are contacted; redirect
 
 ## Where tokens live
 
-- The Microsoft **refresh token** is saved in **Windows Credential Manager** (entry "Limited FPS" (the original service name, kept so existing sign-ins keep working) / `microsoft-refresh-token`), not in a file.
-- The Minecraft access token stays in memory and is not sent to the interface. The interface only receives your profile name and id.
-- Tokens are never logged or put into error messages. "Sign out" deletes the saved login.
+- Each account's Microsoft **refresh token** is saved in **Windows Credential Manager** (entry "Limited FPS" — the original service name, kept so existing sign-ins keep working — / `microsoft-refresh-token:<profile id>`), not in a file.
+- `accounts.json` in the app config folder holds only each account's Minecraft name and id, plus which one is active. It holds no tokens.
+- The Minecraft access token stays in memory and is not sent to the interface. The interface only receives the profile name and id, and never displays the id.
+- Tokens are never logged or put into error messages. "Sign out" deletes that account's saved login; removing an account deletes only its own entry.
+- The single-account entry written by older versions is read once and migrated to a per-account entry.
+
+## Several accounts
+
+The account menu can sign in more than one Microsoft account. **Manage accounts** lists every account saved on this PC; switching renews that account's session from its own token before it becomes active, so the name in the header and the account the game launches with always agree. A revoked or expired token removes only that account, and the others keep working.
 
 ## You must register the Azure app (once)
 
@@ -42,7 +48,7 @@ Cirrus Client ships its own public app ID (`eacfd73b-93b5-4f1c-81ec-889620103c1f
 ### 2. Give it to the app
 - **Built in:** the ID above is compiled into `src-tauri/src/auth.rs` (`DEFAULT_CLIENT_ID`), so players can sign in without configuring anything.
 - **Released build:** in the GitHub repository open Settings > Secrets and variables > Actions > **Variables** and add `LIMITEDFPS_MS_CLIENT_ID` to build with a different registration instead of the built-in one. The next build embeds it.
-- **Quick local test:** paste it into Settings > General > Microsoft sign-in (advanced). It is stored in the settings file and overrides the built-in value.
+- **No user-facing setting:** regular players never see the app ID. It is not shown in Settings, the account menu, dialogs or diagnostics, and there is nothing for them to configure.
 
 ### 3. Get it approved for Minecraft (the part that decides everything)
 Microsoft sign-in succeeding does **not** mean Minecraft sign-in works. Mojang's services (`api.minecraftservices.com/authentication/login_with_xbox`) answer **HTTP 403 "Invalid app registration"** for any app ID that is not on their allow list. Request approval through the form linked from <https://aka.ms/AppRegInfo> (Mojang's review). The outcome and the time it takes are up to Mojang; Cirrus Client cannot speed it up and cannot work around it. Until approved, Cirrus shows the 403 message, **offline play keeps working**, and nobody should substitute another launcher's ID.
@@ -59,4 +65,4 @@ Microsoft sign-in succeeding does **not** mean Minecraft sign-in works. Mojang's
 
 ## Status
 
-Verified only by unit tests against a local fake server and by CI. It has **not** been run against the real Microsoft, Xbox or Minecraft services, because that needs your Client ID and Mojang's approval.
+Verified by unit tests against a local fake server, by frontend tests and by CI. The interactive window flow and the real Minecraft profile/cape lookup have **not** been run against the real Microsoft, Xbox or Minecraft services in this environment, because that needs Mojang's approval of the app registration and a real account.

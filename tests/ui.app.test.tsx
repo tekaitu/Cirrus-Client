@@ -55,9 +55,11 @@ vi.mock("../src/api/client", () => ({
     authSignIn: vi.fn(),
     authSignInWindow: vi.fn(),
     authCancel: vi.fn(),
+    authSwitch: vi.fn(),
     authSignOut: vi.fn(),
     openMicrosoftLink: vi.fn(),
     onAuthDeviceCode: vi.fn(),
+    playerAppearance: vi.fn(),
     onJavaInstallProgress: vi.fn(),
     loadSettings: vi.fn(),
     saveSettings: vi.fn(),
@@ -118,10 +120,20 @@ const authStatus = (extra: Partial<AuthStatus> = {}): AuthStatus => ({
   savedLogin: false,
   profile: null,
   message: null,
+  accounts: [],
+  activeId: null,
   ...extra,
 });
-const CLIENT_ID = "12345678-90ab-cdef-1234-567890abcdef";
 const steve = { id: "0123456789abcdef0123456789abcdef", name: "Steve" };
+const alex = { id: "fedcba9876543210fedcba9876543210", name: "Alex" };
+const appearance = (extra: Partial<import("../src/api/types").PlayerAppearance> = {}) => ({
+  id: steve.id,
+  name: steve.name,
+  model: "classic" as const,
+  skin: "data:image/png;base64,AAAA",
+  cape: null,
+  ...extra,
+});
 
 const gameStatus = (extra: Partial<GameStatus> = {}): GameStatus => ({
   installed: false,
@@ -152,6 +164,7 @@ beforeEach(() => {
   mocked.openGameFolder.mockResolvedValue(undefined);
   mocked.discordClearPresence.mockResolvedValue(undefined);
   mocked.playerSkin.mockResolvedValue(null);
+  mocked.playerAppearance.mockResolvedValue(appearance());
   mocked.searchMods.mockResolvedValue({ hits: [], total: 0 });
   gameProgressHandler = null;
   gameExitHandler = null;
@@ -357,42 +370,32 @@ const installedResult = (extra: Partial<InstallResult> = {}): InstallResult => (
 describe("Microsoft account", () => {
   const configured = () => authStatus({ state: "signedOut", configured: true });
 
-  it("explains that sign-in needs an Azure app ID and links to Settings", async () => {
+  it("offers Microsoft sign-in with its own branding and never exposes an app ID", async () => {
+    mocked.authStatus.mockResolvedValue(configured());
     render(<App />);
     openAccount();
     expect((await screen.findAllByText("Not signed in")).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button", { name: "Sign in with Microsoft" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Set up sign-in (owner)" }));
-    expect(await screen.findByLabelText("Azure application (client) ID")).toBeTruthy();
+    const button = await screen.findByRole("button", { name: "Sign in with Microsoft" });
+    expect(button.querySelector("img")).toBeTruthy();
+    expect(screen.queryByLabelText("Application (client) ID")).toBeNull();
+    expect(screen.queryByLabelText("Azure application (client) ID")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Set up sign-in (owner)" })).toBeNull();
+    expect(screen.queryByText(/How to get the app ID/)).toBeNull();
   });
 
-  it("lets the owner paste the app ID in the account menu and saves it", async () => {
-    mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ msClientId: CLIENT_ID }) });
-    render(<App />);
-    await settled();
-    openAccount();
-    expect(await screen.findByText("How to get the app ID (one time, free)")).toBeTruthy();
-    expect(screen.getByText("https://login.microsoftonline.com/consumers/oauth2/nativeclient")).toBeTruthy();
-    const input = screen.getByLabelText("Application (client) ID");
-    fireEvent.change(input, { target: { value: "not-a-guid" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    expect(await screen.findByText(/00000000-0000-0000-0000-000000000000 \(the Application/)).toBeTruthy();
-    expect(mocked.saveSettings).not.toHaveBeenCalled();
-    fireEvent.change(input, { target: { value: CLIENT_ID } });
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    await waitFor(() =>
-      expect(mocked.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ msClientId: CLIENT_ID })),
+  it("switches between saved accounts without signing in again", async () => {
+    mocked.authStatus.mockResolvedValue(
+      authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve, accounts: [steve, alex], activeId: steve.id }),
     );
-  });
-
-  it("shows the reason when the app ID cannot be saved", async () => {
-    mocked.saveSettings.mockResolvedValue({ ok: false, errors: [{ field: "msClientId", message: "Rejected by the backend." }], state: null });
+    mocked.authSwitch.mockResolvedValue(
+      authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: alex, accounts: [alex, steve], activeId: alex.id }),
+    );
     render(<App />);
     await settled();
-    openAccount();
-    fireEvent.change(await screen.findByLabelText("Application (client) ID"), { target: { value: CLIENT_ID } });
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    expect(await screen.findByText("Rejected by the backend.")).toBeTruthy();
+    await goToAccounts();
+    fireEvent.click(await screen.findByRole("button", { name: "Switch to Alex" }));
+    await waitFor(() => expect(mocked.authSwitch).toHaveBeenCalledWith(alex.id));
+    expect(await screen.findByRole("button", { name: "Switch to Steve" })).toBeTruthy();
   });
 
   it("signs in with a device code and shows the real profile", async () => {
@@ -402,7 +405,7 @@ describe("Microsoft account", () => {
     mocked.openMicrosoftLink.mockResolvedValue(undefined);
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with a code instead" }));
     expect(await screen.findByText("Contacting Microsoft…")).toBeTruthy();
 
     await waitFor(() => expect(codeHandler).not.toBeNull());
@@ -413,7 +416,8 @@ describe("Microsoft account", () => {
 
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
     expect(await screen.findAllByText("Steve")).toBeTruthy();
-    expect(screen.getByText("01234567-89ab-cdef-0123-456789abcdef")).toBeTruthy();
+    expect(document.querySelector(".account-card .skin-head")).toBeTruthy();
+    expect(screen.queryByText("01234567-89ab-cdef-0123-456789abcdef")).toBeNull();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 
@@ -423,7 +427,7 @@ describe("Microsoft account", () => {
     mocked.authSignInWindow.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Use the Microsoft window instead" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     expect(await screen.findByText("Finish signing in in the Microsoft window…")).toBeTruthy();
     expect(mocked.authSignIn).not.toHaveBeenCalled();
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
@@ -436,7 +440,7 @@ describe("Microsoft account", () => {
     mocked.authSignInWindow.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Use the Microsoft window instead" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(mocked.authCancel).toHaveBeenCalledTimes(1);
     await act(async () => finish(authStatus({ state: "cancelled", configured: true })));
@@ -448,7 +452,7 @@ describe("Microsoft account", () => {
     mocked.authSignIn.mockReturnValue(new Promise<AuthStatus>(() => {}));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with a code instead" }));
     await waitFor(() => expect(codeHandler).not.toBeNull());
     act(() => codeHandler?.({ userCode: "ZZZZ", verificationUri: "https://evil.example.com/link", expiresIn: 900 }));
     expect(await screen.findByText(/unexpected address/)).toBeTruthy();
@@ -461,7 +465,7 @@ describe("Microsoft account", () => {
     mocked.authSignIn.mockReturnValue(new Promise<AuthStatus>((resolve) => (finish = resolve)));
     render(<App />);
     openAccount();
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with a code instead" }));
     await waitFor(() => expect(codeHandler).not.toBeNull());
     act(() => codeHandler?.({ userCode: "ABCD1234", verificationUri: "https://www.microsoft.com/link", expiresIn: 900 }));
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
@@ -472,7 +476,7 @@ describe("Microsoft account", () => {
 
   it("shows the reason when sign-in fails and lets the user retry", async () => {
     mocked.authStatus.mockResolvedValue(configured());
-    mocked.authSignIn.mockResolvedValueOnce(
+    mocked.authSignInWindow.mockResolvedValueOnce(
       authStatus({
         state: "failed",
         configured: true,
@@ -484,7 +488,7 @@ describe("Microsoft account", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Sign in with Microsoft" }));
     expect(await screen.findByText("Sign-in problem")).toBeTruthy();
     expect(screen.getByText(/does not own Minecraft/)).toBeTruthy();
-    mocked.authSignIn.mockResolvedValueOnce(authStatus({ state: "signedIn", configured: true, profile: steve }));
+    mocked.authSignInWindow.mockResolvedValueOnce(authStatus({ state: "signedIn", configured: true, profile: steve }));
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findAllByText("Steve")).toBeTruthy();
   });
@@ -511,21 +515,12 @@ describe("Microsoft account", () => {
     expect(await screen.findByText(/expired or was revoked/)).toBeTruthy();
   });
 
-  it("saves the Azure client ID from Settings and rejects a malformed one", async () => {
-    mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ msClientId: CLIENT_ID }) });
+  it("keeps Microsoft sign-in configuration out of Settings", async () => {
     render(<App />);
-    goTo("Settings");
-    const input = await screen.findByLabelText("Azure application (client) ID");
-    fireEvent.change(input, { target: { value: "not-a-guid" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
-    expect(await screen.findByText(/00000000-0000-0000-0000-000000000000 \(the Application/)).toBeTruthy();
-    expect(mocked.saveSettings).not.toHaveBeenCalled();
-
-    fireEvent.change(input, { target: { value: CLIENT_ID } });
-    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
-    await waitFor(() =>
-      expect(mocked.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ msClientId: CLIENT_ID })),
-    );
+    await goToSettings("General");
+    expect(screen.queryByLabelText(/Azure application \(client\) ID/)).toBeNull();
+    expect(screen.queryByText("Developer options")).toBeNull();
+    expect(screen.queryByText("Microsoft sign-in app")).toBeNull();
   });
 });
 
@@ -1546,13 +1541,15 @@ describe("Accounts page", () => {
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
-  it("shows a profile card with the username, a dashed UUID and a way to the Skins page", async () => {
+  it("shows the username and skin, never the UUID, and links to the Skins page", async () => {
     mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
     mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
     render(<App />);
     await settled();
     await goToAccounts();
-    expect((await screen.findAllByText("01234567-89ab-cdef-0123-456789abcdef")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Steve")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("01234567-89ab-cdef-0123-456789abcdef")).toBeNull();
+    expect(screen.getByText("MINECRAFT: JAVA EDITION")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Change skin" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
   });
@@ -1653,6 +1650,21 @@ describe("Skins page", () => {
     await waitFor(() => expect(mocked.applySkin).toHaveBeenCalledWith("alex"));
     expect(await screen.findByText("In use")).toBeTruthy();
     expect(window.localStorage.getItem("cirrus.appliedSkin")).toBe("alex");
+  });
+
+  it("previews the account character and switches capes as a local preview", async () => {
+    signedIn();
+    mocked.playerAppearance.mockResolvedValue(appearance({ cape: "data:image/png;base64,CCCC" }));
+    mocked.listSkins.mockResolvedValue([]);
+    render(<App />);
+    await settled();
+    goTo("Skins");
+    expect(await screen.findByText("Steve's Minecraft character")).toBeTruthy();
+    const capes = await screen.findByRole("radiogroup", { name: "Cape" });
+    expect(within(capes).getByRole("radio", { name: /Your Minecraft cape/ })).toBeTruthy();
+    fireEvent.click(within(capes).getByRole("radio", { name: /Cirrus Cloud/ }));
+    expect(screen.getByText(/does not change your account/)).toBeTruthy();
+    expect(mocked.applySkin).not.toHaveBeenCalled();
   });
 
   it("shows why a skin could not be applied", async () => {

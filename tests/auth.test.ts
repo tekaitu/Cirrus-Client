@@ -4,7 +4,15 @@ import { CLIENT_ID_PATTERN, hasErrors, validateDraft } from "../src/core/setting
 import type { AuthStatus } from "../src/api/types";
 import { settingsState } from "./helpers/fixtures";
 
-const base: AuthStatus = { state: "signedOut", configured: true, savedLogin: false, profile: null, message: null };
+const base: AuthStatus = {
+  state: "signedOut",
+  configured: true,
+  savedLogin: false,
+  profile: null,
+  message: null,
+  accounts: [],
+  activeId: null,
+};
 
 describe("accountFromStatus", () => {
   it("maps every backend state", () => {

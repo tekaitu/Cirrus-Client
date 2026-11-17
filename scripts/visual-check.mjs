@@ -48,6 +48,17 @@ function installMock() {
       r("#c58c6b", 32, 48, 16, 16); r(shirt, 36, 52, 4, 4); r("#c58c6b", 36, 56, 4, 8); r(pants, 16, 48, 16, 16);
       r(pants, 20, 52, 4, 12);
     });
+  const capeTexture = png((g) => {
+    g.fillStyle = "#1c2b4d";
+    g.fillRect(1, 1, 10, 16);
+    g.fillStyle = "#e8f0ff";
+    g.fillRect(3, 7, 6, 3);
+    g.fillRect(4, 5, 2, 2);
+    g.fillRect(7, 4, 2, 3);
+    g.fillStyle = "#ffffff";
+    g.fillRect(2, 2, 1, 1);
+    g.fillRect(9, 2, 1, 1);
+  });
   const icon = (a, b) =>
     png((g) => {
       const grd = g.createLinearGradient(0, 0, 64, 64); grd.addColorStop(0, a); grd.addColorStop(1, b);
@@ -80,13 +91,16 @@ function installMock() {
     error: null,
   };
   const settings = {
-    settings: { version: 1, javaPath: null, memoryMb: 4096, gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\game", reduceMotion: false, msClientId: "00000000-0000-0000-0000-000000000000" },
+    settings: { version: 1, javaPath: null, memoryMb: 4096, gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\game", reduceMotion: false, msClientId: null },
     status: "loaded", message: null, filePath: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\settings.json",
     totalRamMb: 15800, minMemoryMb: 1024, maxMemoryMb: 13568,
   };
-  const signedIn = { state: "signedIn", configured: true, savedLogin: true, profile: { id: "0123456789abcdef0123456789abcdef", name: "Brend4n" }, message: null };
+  const profile = { id: "0123456789abcdef0123456789abcdef", name: "Brend4n" };
+  const alt = { id: "fedcba9876543210fedcba9876543210", name: "Aurora" };
+  const signedIn = { state: "signedIn", configured: true, savedLogin: true, profile, accounts: [profile, alt], activeId: profile.id, message: null };
+  const signedOut = { state: "signedOut", configured: true, savedLogin: true, profile: null, accounts: [profile, alt], activeId: profile.id, message: null };
   const log = [
-    "[Cirrus Client 0.3.0] Starting Minecraft 1.21.11 (Fabric)",
+    "[Cirrus Client 0.3.1] Starting Minecraft 1.21.11 (Fabric)",
     "[Cirrus Client] Java: C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.4.7-hotspot\\bin\\java.exe",
     "[Cirrus Client] Memory: 4096 MB", "[Cirrus Client] Player: Brend4n (microsoft)", "----------------------------------------",
     "[12:01:02] [main/INFO]: Loading Minecraft 1.21.11 with Fabric Loader 0.17.2",
@@ -98,17 +112,21 @@ function installMock() {
   window.__crash = { hint: "Minecraft ran out of memory. Give it more in Settings > Memory and RAM, or switch off heavy mods.", report: crashReport, reportPath: "C:\\game\\crash-reports\\crash-2026-11-15.txt", logTail: log };
   let logOffset = 0;
   const handlers = {
-    get_app_info: () => ({ name: "Cirrus Client", version: "0.3.0", target_minecraft: "1.21.11", launcher_ready: true }),
+    get_app_info: () => ({ name: "Cirrus Client", version: "0.3.1", target_minecraft: "1.21.11", launcher_ready: true }),
     get_system_info: () => ({ osName: "Windows", osVersion: "10 (19045)", osLongVersion: "Windows 10 Pro", kernelVersion: "19045", arch: "x86_64", cpuBrand: "AMD Ryzen 5 PRO 4650G with Radeon Graphics", cpuLogicalCores: 12, cpuPhysicalCores: 6, totalRamMb: 15800, availableRamMb: 9000 }),
     detect_java: () => ({ installs: [java], candidatesChecked: 6, notes: ["Checked 6 places."] }),
     load_settings: () => settings, save_settings: () => ({ ok: true, errors: [], state: settings }),
-    auth_status: () => ({ ...signedIn, state: "signedOut", profile: null }), auth_restore: () => signedIn,
+    auth_status: () => signedOut, auth_restore: () => signedIn,
+    auth_switch: (a) => ({ ...signedIn, profile: a.id === alt.id ? alt : profile, activeId: a.id === alt.id ? alt.id : profile.id }),
+    auth_sign_in: () => signedIn, auth_sign_in_window: () => signedIn, auth_cancel: () => true,
+    auth_sign_out: () => ({ ...signedOut, accounts: [], activeId: null }),
     list_game_versions: () => ["1.21.11", "1.21.10", "1.21.8", "1.20.6"],
     game_status: () => ({ installed: true, minecraft: "1.21.11", loader: "0.17.2", gameDir: settings.settings.gameDir, running: false }),
     list_instances: () => [{ minecraft: "1.21.11", loader: "0.17.2", modCount: 6 }, { minecraft: "1.20.6", loader: null, modCount: 0 }],
     list_profiles: () => [{ id: "pvp", name: "PvP", minecraft: "1.21.11", fabric: true, color: 0 }],
     list_mods: () => mods, search_mods: () => ({ hits, total: 6 }), curseforge_available: () => false,
     list_skins: () => skins, player_skin: () => steve,
+    player_appearance: () => ({ id: profile.id, name: profile.name, model: "classic", skin: steve, cape: capeTexture }),
     launch_game: () => { logOffset = 0; return { started: true, message: null, logPath: "C:\\game\\logs\\cirrus-launch.log" }; },
     read_game_log: (a) => { const text = log.slice(a.offset ?? 0); return { text, offset: log.length }; },
     open_game_folder: () => null, discord_available: () => true, discord_set_presence: () => "ok", discord_clear_presence: () => "ok",
