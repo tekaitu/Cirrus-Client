@@ -105,6 +105,12 @@ export interface AuthProfile {
   name: string;
 }
 
+/** An account signed in on this PC, as the account menu lists it. */
+export interface AccountRef {
+  id: string;
+  name: string;
+}
+
 /** Account state from the backend. Tokens never cross into the interface. */
 export interface AuthStatus {
   state: AuthState;
@@ -113,6 +119,10 @@ export interface AuthStatus {
   savedLogin: boolean;
   profile: AuthProfile | null;
   message: string | null;
+  /** Every account signed in on this PC (older backends may leave this out). */
+  accounts: AccountRef[];
+  /** The account the live session belongs to. */
+  activeId: string | null;
 }
 
 /** What the person must do on the Microsoft page to finish signing in. */
@@ -229,6 +239,17 @@ export interface InstalledMod {
 }
 
 export type SkinModel = "classic" | "slim";
+
+/** A player's real Minecraft look: skin, arm model and their own cape. */
+export interface PlayerAppearance {
+  id: string;
+  name: string;
+  model: SkinModel;
+  /** The skin PNG as a data address. */
+  skin: string;
+  /** The account's own cape as a data address, when it has one equipped. */
+  cape: string | null;
+}
 
 export interface SkinEntry {
   id: string;

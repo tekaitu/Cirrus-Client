@@ -3,7 +3,6 @@ import { api, errorMessage } from "../api/client";
 import type { SettingsState } from "../api/types";
 import { BrandIcon } from "../components/BrandIcon";
 import {
-  CodeIcon,
   CheckIcon,
   CpuIcon,
   CubeIcon,
@@ -293,31 +292,6 @@ function SettingsForm({
           </button>
         </div>
       </Card>
-      <details className="dev-details">
-        <summary>
-          <CodeIcon />
-          Developer options
-        </summary>
-      <Card id="sec-account" title="Microsoft sign-in app" description="Only for people building their own copy. Nothing to change here.">
-        <Field
-          id="ms-client-id"
-          label="Azure application (client) ID"
-          hint="Advanced and optional. Leave blank to use the app ID built into Cirrus Client. It is an ID, not a secret. See docs/AUTH.md."
-          error={errors.msClientId}
-        >
-          <input
-            id="ms-client-id"
-            type="text"
-            spellCheck={false}
-            autoComplete="off"
-            placeholder="00000000-0000-0000-0000-000000000000"
-            value={draft.msClientId ?? ""}
-            aria-invalid={errors.msClientId ? true : undefined}
-            onChange={(e) => edit({ msClientId: e.target.value })}
-          />
-        </Field>
-      </Card>
-      </details>
       <Card title="Settings file" icon={<InfoIcon />} description="Everything on the other tabs is stored here.">
         <p className="path">{state.filePath}</p>
       </Card>

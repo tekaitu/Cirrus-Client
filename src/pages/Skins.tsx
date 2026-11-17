@@ -5,7 +5,10 @@ import { PlusIcon, ShirtIcon, TrashIcon, UploadIcon } from "../components/Icons"
 import { SkinFigure } from "../components/SkinModel";
 import { usePlayerSkin } from "../components/SkinHead";
 import { Badge, Banner, Card, Skeleton } from "../components/ui";
+import { capeOptions, capeTexture, type CapeId } from "../core/capes";
+import { usePlayerAppearance } from "../hooks/useAppearance";
 import type { AppData } from "../hooks/useAppData";
+import cirrusCape from "../assets/capes/cirrus.png";
 
 const APPLIED_KEY = "cirrus.appliedSkin";
 
@@ -50,11 +53,19 @@ export function SkinsPage({ data }: { data: AppData }) {
   const [busy, setBusy] = useState(false);
   const [applied, setApplied] = useState<string | null>(readApplied);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [subject, setSubject] = useState<"account" | "library">("account");
+  const [capeId, setCapeId] = useState<CapeId>("account");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const acct = data.account.state;
   const player = acct.phase === "signedIn" ? acct.profile : null;
   const accountSkin = usePlayerSkin(player?.id ?? null);
+  const appearanceState = usePlayerAppearance(player?.id ?? null);
+  const accountCharacter = appearanceState.appearance;
+  // The account's own character is the default subject; a library skin can be
+  // previewed next to it without changing the account.
+  const hasAccountCharacter = Boolean(player && accountCharacter);
+  const showingAccount = subject === "account" && hasAccountCharacter;
 
   const reload = useCallback(async () => {
     try {
@@ -303,41 +314,60 @@ export function SkinsPage({ data }: { data: AppData }) {
           )}
         </Card>
 
-        <Card title="Preview" icon={<ShirtIcon />} description={selected ? selected.name : "Pick a skin to preview it."}>
-          {selected ? (
+        <Card
+          title="Preview"
+          icon={<ShirtIcon />}
+          description={
+            showingAccount
+              ? `${player?.name}'s Minecraft character`
+              : selected
+                ? selected.name
+                : "Pick a skin to preview it."
+          }
+        >
+          {hasAccountCharacter && selected && (
+            <div className="seg skin-subject" role="radiogroup" aria-label="What to preview">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={showingAccount}
+                className={showingAccount ? "seg-on" : ""}
+                onClick={() => setSubject("account")}
+              >
+                Your character
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!showingAccount}
+                className={!showingAccount ? "seg-on" : ""}
+                onClick={() => setSubject("library")}
+              >
+                Selected skin
+              </button>
+            </div>
+          )}
+
+          {showingAccount && accountCharacter ? (
             <>
               <div className="skin-preview">
                 <SkinFigure
-                  skin={selected.dataUrl}
-                  model={selected.model}
+                  skin={accountCharacter.skin}
+                  model={accountCharacter.model}
                   view={view}
                   scale={10}
                   draggable
-                  label={`${selected.name}, ${MODEL_LABEL[selected.model]} model`}
+                  cape={capeTexture(capeId, accountCharacter.cape, cirrusCape)}
+                  label={`${accountCharacter.name}, ${MODEL_LABEL[accountCharacter.model]} model${capeId === "none" ? "" : ", cape"}`}
                 />
                 <span className="skin-floor" aria-hidden="true" />
                 <p className="skin-hint small">Drag to turn · double-click to reset</p>
               </div>
+
               <div className="skin-controls">
                 <div className="field">
-                  <span id="skin-type-label" className="field-label">
-                    Skin type
-                  </span>
-                  <div className="seg" role="radiogroup" aria-labelledby="skin-type-label">
-                    {(["classic", "slim"] as SkinModel[]).map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected.model === m}
-                        className={selected.model === m ? "seg-on" : ""}
-                        disabled={busy}
-                        onClick={() => changeModel(m)}
-                      >
-                        {MODEL_LABEL[m]}
-                      </button>
-                    ))}
-                  </div>
+                  <span className="field-label">Model</span>
+                  <p className="skin-model-value">{MODEL_LABEL[accountCharacter.model]}</p>
                 </div>
                 <div className="field">
                   <span id="skin-view-label" className="field-label">
@@ -360,15 +390,125 @@ export function SkinsPage({ data }: { data: AppData }) {
                   </div>
                 </div>
               </div>
-              <button type="button" className="btn btn-primary btn-wide" disabled={busy || applyBlocked !== null} onClick={apply}>
-                Apply to my account
+
+              <div className="field cape-field">
+                <span id="cape-label" className="field-label">
+                  Cape
+                </span>
+                <div className="cape-options" role="radiogroup" aria-labelledby="cape-label">
+                  {capeOptions(Boolean(accountCharacter.cape)).map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={capeId === option.id}
+                      className={`cape-option ${capeId === option.id ? "cape-option-on" : ""}`}
+                      onClick={() => setCapeId(option.id)}
+                    >
+                      <span className="cape-option-name">
+                        {option.label}
+                        {option.id === "cirrus" && <Badge tone="info">Preview</Badge>}
+                      </span>
+                      <span className="muted small">{option.detail}</span>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="btn" disabled={capeId === "account"} onClick={() => setCapeId("account")}>
+                  Reset to my account's look
+                </button>
+                <p className="muted small">
+                  Your Minecraft cape is read from your account and appears in game. Capes can only be equipped on
+                  minecraft.net; the Cirrus cape is a local preview and does not change your account.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              {player && (appearanceState.loading || appearanceState.error) && (
+                <p className="muted small">
+                  {appearanceState.loading
+                    ? "Loading your Minecraft character…"
+                    : "Your character could not be loaded, so the selected skin is shown instead."}
+                </p>
+              )}
+              {selected ? (
+                <>
+                  <div className="skin-preview">
+                    <SkinFigure
+                      skin={selected.dataUrl}
+                      model={selected.model}
+                      view={view}
+                      scale={10}
+                      draggable
+                      label={`${selected.name}, ${MODEL_LABEL[selected.model]} model`}
+                    />
+                    <span className="skin-floor" aria-hidden="true" />
+                    <p className="skin-hint small">Drag to turn · double-click to reset</p>
+                  </div>
+                  <div className="skin-controls">
+                    <div className="field">
+                      <span id="skin-type-label" className="field-label">
+                        Skin type
+                      </span>
+                      <div className="seg" role="radiogroup" aria-labelledby="skin-type-label">
+                        {(["classic", "slim"] as SkinModel[]).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected.model === m}
+                            className={selected.model === m ? "seg-on" : ""}
+                            disabled={busy}
+                            onClick={() => changeModel(m)}
+                          >
+                            {MODEL_LABEL[m]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="field">
+                      <span id="skin-view-label" className="field-label">
+                        View
+                      </span>
+                      <div className="seg" role="radiogroup" aria-labelledby="skin-view-label">
+                        {(["spin", "front", "back"] as const).map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            role="radio"
+                            aria-checked={view === v}
+                            aria-label={`${v === "spin" ? "Turning" : v === "front" ? "Front" : "Back"} view`}
+                            className={view === v ? "seg-on" : ""}
+                            onClick={() => setView(v)}
+                          >
+                            {v === "spin" ? "Turn" : v === "front" ? "Front" : "Back"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="empty">
+                  <p className="muted">Nothing selected.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {selected && (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary btn-wide"
+                aria-label="Apply to my account"
+                disabled={busy || applyBlocked !== null}
+                onClick={apply}
+              >
+                Apply “{selected.name}” to my account
               </button>
               {applyBlocked && <p className="muted small">{applyBlocked}</p>}
             </>
-          ) : (
-            <div className="empty">
-              <p className="muted">Nothing selected.</p>
-            </div>
           )}
 
           {player && (

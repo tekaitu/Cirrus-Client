@@ -8,7 +8,7 @@ import { AppBackground, type BackdropId } from "./components/Scene";
 import { CloseIcon } from "./components/Icons";
 import { TopNav, type PageId } from "./components/Navigation";
 import { LICENSE_VERSION } from "./content/license";
-import { api, errorMessage } from "./api/client";
+import { api } from "./api/client";
 import { useAppData } from "./hooks/useAppData";
 import { DiagnosticsPage } from "./pages/Diagnostics";
 import { HomePage } from "./pages/Home";
@@ -138,21 +138,6 @@ export default function App() {
     loader: data.selection.loader,
   });
 
-  /** Saves the pasted Azure app ID so sign-in can start right away. Returns an error message or null. */
-  const saveClientId = async (id: string): Promise<string | null> => {
-    if (data.settings.status !== "ready") return "Settings are not loaded yet. Try again in a moment.";
-    try {
-      const outcome = await api.saveSettings({ ...data.settings.data.settings, msClientId: id });
-      if (outcome.ok && outcome.state) {
-        data.applySettings(outcome.state);
-        return null;
-      }
-      return outcome.errors[0]?.message ?? "The app ID could not be saved.";
-    } catch (e) {
-      return errorMessage(e);
-    }
-  };
-
   return (
     <div className="layout">
       <AppBackground id={BACKDROPS[page]} />
@@ -175,7 +160,7 @@ export default function App() {
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
           {page === "skins" && <SkinsPage data={data} />}
           {page === "servers" && <ServersPage />}
-          {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} onSaveClientId={saveClientId} />}
+          {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} />}
           {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} discord={{ enabled: discordOn, onToggle: toggleDiscord }} />}
           {page === "about" && <AboutPage data={data} onLicense={() => setLicenseOpen(true)} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
@@ -194,12 +179,7 @@ export default function App() {
           <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>
             <CloseIcon />
           </button>
-          <AccountPanel
-            account={data.account}
-            onNavigate={navigate}
-            onSaveClientId={saveClientId}
-            onManage={() => navigate("accounts")}
-          />
+          <AccountPanel account={data.account} onManage={() => navigate("accounts")} />
         </div>
       )}
     </div>
