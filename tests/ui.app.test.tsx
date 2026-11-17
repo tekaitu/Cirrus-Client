@@ -414,8 +414,7 @@ describe("Microsoft account", () => {
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
     expect(await screen.findAllByText("Steve")).toBeTruthy();
     expect(screen.getByText("01234567-89ab-cdef-0123-456789abcdef")).toBeTruthy();
-    const row = screen.getByText("Microsoft sign-in (online play)").closest("li") as HTMLElement;
-    expect(within(row).getByText("Ready")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 
   it("signs in through the Microsoft window and never asks for an app ID", async () => {
