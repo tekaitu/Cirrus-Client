@@ -2,6 +2,7 @@ package dev.cirrus.client.gametest;
 
 import dev.cirrus.client.CirrusDashboardScreen;
 import dev.cirrus.client.CirrusMenuScreen;
+import dev.cirrus.client.CirrusTitleScreen;
 import dev.cirrus.client.CirrusThemesScreen;
 import dev.cirrus.client.HudEditorScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -24,13 +25,15 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         Map<String, Supplier<Screen>> screens = new LinkedHashMap<>();
-        screens.put("title", TitleScreen::new);
+        screens.put("title", CirrusTitleScreen::new);
         screens.put("menu", () -> new CirrusMenuScreen(null));
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
         screens.put("themes", () -> new CirrusThemesScreen(null));
         screens.put("hud-editor", () -> new HudEditorScreen(null));
 
-        context.waitTicks(20);
+        context.waitTicks(40);
+        context.takeScreenshot("boot");
+        context.runOnClient(mc -> dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()).put("onboarding.complete", "true"));
         for (int[] combo : SCALES) {
             context.getInput().resizeWindow(combo[0], combo[1]);
             int scale = combo[2];
@@ -45,5 +48,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
                 context.takeScreenshot(entry.getKey() + "-" + combo[0] + "x" + combo[1] + "-gui" + scale);
             }
         }
+        context.setScreen(CirrusTitleScreen::new);
+        context.waitTicks(10);
     }
 }
