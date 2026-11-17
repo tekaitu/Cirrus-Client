@@ -1,6 +1,6 @@
 # Third-party notices
 
-No third-party source code has been copied into this repository.
+The Fabric companion uses the standard Gradle Wrapper JAR and scripts, licensed under Apache-2.0. See https://github.com/gradle/gradle/blob/master/LICENSE.
 
 The project depends on open-source packages installed from npm and crates.io at build time (including Tauri, React, Vite, Vitest, Testing Library, jsdom, and the Rust crates `sysinfo`, `serde`, `serde_json`, `reqwest`, `sha2`, `zip`, `keyring` and, for tests, `tempfile`). They are licensed by their respective authors, mostly under MIT or Apache-2.0. The exact dependency set and license texts will be listed here once lockfiles are committed and a license report can be generated (for example with `cargo about` and a JavaScript license checker).
 

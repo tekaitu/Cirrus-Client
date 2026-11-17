@@ -1,6 +1,6 @@
 # Cirrus Client roadmap and Phase Two preparation
 
-Phase One (the desktop app) is built. Phase Two (the in-game Fabric client) has NOT been started and waits for explicit approval.
+Phase Two (the in-game Fabric client) has started with an explicitly approved first slice. The initial companion module adds a Cirrus entry to the title and pause screens, a truthful minimal menu, and a local HUD status toggle/position setting. Account sync, cosmetics, full HUD layout editing, and launcher installation remain future work.
 
 ## Original Cirrus feature ideas (not built)
 | Idea | Feasibility | Priority |
@@ -15,8 +15,8 @@ Phase One (the desktop app) is built. Phase Two (the in-game Fabric client) has 
 | Crash helper: read the latest crash report and explain the common causes | Medium | Medium |
 | Auto-updater (signed Tauri updater) | Needs a signing key and release hosting | Medium |
 
-## Phase Two architecture notes (docs only, no code yet)
-- A Fabric mod ("cirrus-core") in its own Gradle module, built by the same GitHub Actions workflow, installed by the launcher into the mods folder like any other mod.
+## Phase Two architecture notes
+- A Fabric mod in its own Gradle module, built by a dedicated GitHub Actions workflow. Launcher installation into each selected instance's mods folder is a later integration step.
 - The launcher and the mod talk through a small JSON file in the game directory (settings the mod reads at start), so no network service is needed.
 - HUD elements, the HUD editor and the in-game menu sit on top of cirrus-core as separate Fabric modules so each can be switched off.
 - Nothing in this repository depends on Phase Two; the desktop app works without it.
