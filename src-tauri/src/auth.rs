@@ -40,6 +40,7 @@ pub struct Endpoints {
     pub xsts: String,
     pub mc_login: String,
     pub mc_profile: String,
+    pub mc_cape: String,
 }
 
 impl Endpoints {
@@ -52,6 +53,7 @@ impl Endpoints {
             xsts: "https://xsts.auth.xboxlive.com/xsts/authorize".into(),
             mc_login: "https://api.minecraftservices.com/authentication/login_with_xbox".into(),
             mc_profile: "https://api.minecraftservices.com/minecraft/profile".into(),
+            mc_cape: "https://api.minecraftservices.com/minecraft/profile/capes/active".into(),
         }
     }
 }
@@ -73,10 +75,33 @@ pub struct DeviceCode {
     interval: u64,
 }
 
-#[derive(Serialize, Debug, Clone, PartialEq)]
+/// One skin the Minecraft account owns (only the current one has `state == "ACTIVE"`).
+#[derive(Serialize, Debug, Clone, PartialEq, Default)]
+pub struct SkinEntry {
+    pub id: String,
+    pub state: String,
+    pub url: String,
+    /// "CLASSIC" or "SLIM".
+    pub variant: String,
+}
+
+/// One cape the Minecraft account is allowed to wear.
+#[derive(Serialize, Debug, Clone, PartialEq, Default)]
+pub struct CapeEntry {
+    pub id: String,
+    pub state: String,
+    pub url: String,
+    pub alias: String,
+}
+
+/// The real Minecraft Java profile. `id` (the UUID) is internal account data; the interface shows `name`
+/// and the skin head.
+#[derive(Serialize, Debug, Clone, PartialEq, Default)]
 pub struct Profile {
     pub id: String,
     pub name: String,
+    pub skins: Vec<SkinEntry>,
+    pub capes: Vec<CapeEntry>,
 }
 
 /// A signed-in Minecraft session. `mc_token` is kept in memory only, for the
@@ -134,30 +159,42 @@ pub trait SecretStore: Send + Sync {
 }
 
 /// Windows Credential Manager (through the `keyring` crate).
-pub struct KeyringStore;
+pub struct KeyringStore {
+    user: String,
+}
 
 impl KeyringStore {
-    fn entry() -> Result<keyring::Entry, String> {
-        keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
+    /// The single slot used before several accounts were supported (kept so old sign-ins migrate).
+    pub fn legacy() -> Self {
+        KeyringStore { user: KEYRING_USER.to_string() }
+    }
+
+    /// The slot of one Minecraft account (by its UUID).
+    pub fn account(id: &str) -> Self {
+        KeyringStore { user: format!("{KEYRING_USER}:{id}") }
+    }
+
+    fn entry(&self) -> Result<keyring::Entry, String> {
+        keyring::Entry::new(KEYRING_SERVICE, &self.user)
             .map_err(|e| format!("Credential Manager is not available: {e}"))
     }
 }
 
 impl SecretStore for KeyringStore {
     fn save(&self, secret: &str) -> Result<(), String> {
-        Self::entry()?
+        self.entry()?
             .set_password(secret)
             .map_err(|e| format!("Could not save the sign-in to Credential Manager: {e}"))
     }
     fn load(&self) -> Result<Option<String>, String> {
-        match Self::entry()?.get_password() {
+        match self.entry()?.get_password() {
             Ok(s) => Ok(Some(s)),
             Err(keyring::Error::NoEntry) => Ok(None),
             Err(e) => Err(format!("Could not read the saved sign-in: {e}")),
         }
     }
     fn clear(&self) -> Result<(), String> {
-        match Self::entry()?.delete_credential() {
+        match self.entry()?.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(e) => Err(format!("Could not remove the saved sign-in: {e}")),
         }
@@ -640,19 +677,78 @@ fn minecraft_login(client: &Client, ep: &Endpoints, xsts: &str, uhs: &str) -> Re
     }
 }
 
+/// Reads the profile answer: name, UUID, owned skins and capes. Texture addresses must be on Mojang's host.
+fn parse_profile(v: &Value) -> Result<Profile, AuthError> {
+    let id = text(v, "id").ok_or_else(|| failed("The Minecraft profile had no id."))?;
+    let name = text(v, "name").ok_or_else(|| failed("The Minecraft profile had no name."))?;
+    let list = |key: &str| -> Vec<Value> { v.get(key).and_then(Value::as_array).cloned().unwrap_or_default() };
+    let skins = list("skins")
+        .iter()
+        .filter_map(|s| {
+            let url = text(s, "url").filter(|u| crate::skins::is_texture_url(u))?;
+            Some(SkinEntry {
+                id: text(s, "id").unwrap_or_default(),
+                state: text(s, "state").unwrap_or_default(),
+                url,
+                variant: text(s, "variant").unwrap_or_else(|| "CLASSIC".to_string()).to_ascii_uppercase(),
+            })
+        })
+        .collect();
+    let capes = list("capes")
+        .iter()
+        .filter_map(|c| {
+            let id = text(c, "id")?;
+            let url = text(c, "url").filter(|u| crate::skins::is_texture_url(u))?;
+            Some(CapeEntry {
+                alias: text(c, "alias").unwrap_or_else(|| "Cape".to_string()),
+                state: text(c, "state").unwrap_or_default(),
+                id,
+                url,
+            })
+        })
+        .collect();
+    Ok(Profile { id, name, skins, capes })
+}
+
+fn profile_error(status: u16) -> AuthError {
+    match status {
+        404 => failed("This Microsoft account does not own Minecraft: Java Edition (no profile was found)."),
+        401 => failed("Minecraft rejected the sign-in token."),
+        other => failed(format!("Could not read the Minecraft profile (HTTP {other}).")),
+    }
+}
+
 fn fetch_profile(client: &Client, ep: &Endpoints, mc_token: &str) -> Result<Profile, AuthError> {
     let (status, v) = get_bearer(client, &ep.mc_profile, mc_token)?;
     match status {
-        200 => {
-            let id = text(&v, "id").ok_or_else(|| failed("The Minecraft profile had no id."))?;
-            let name = text(&v, "name").ok_or_else(|| failed("The Minecraft profile had no name."))?;
-            Ok(Profile { id, name })
-        }
-        404 => Err(failed(
-            "This Microsoft account does not own Minecraft: Java Edition (no profile was found).",
-        )),
-        401 => Err(failed("Minecraft rejected the sign-in token.")),
-        other => Err(failed(format!("Could not read the Minecraft profile (HTTP {other}).")),),
+        200 => parse_profile(&v),
+        other => Err(profile_error(other)),
+    }
+}
+
+/// Equips one of the account's own capes (`Some(id)`) or takes the cape off (`None`) on the real Minecraft
+/// account. Returns the updated profile. The caller must only pass ids from `profile.capes`.
+pub fn set_active_cape(
+    client: &Client,
+    ep: &Endpoints,
+    mc_token: &str,
+    cape_id: Option<&str>,
+) -> Result<Profile, AuthError> {
+    let request = match cape_id {
+        Some(id) => client.put(&ep.mc_cape).json(&serde_json::json!({ "capeId": id })),
+        None => client.delete(&ep.mc_cape),
+    };
+    let (status, v) = read(
+        request
+            .header("Accept", "application/json")
+            .bearer_auth(mc_token)
+            .send()
+            .map_err(net_error)?,
+    )?;
+    match status {
+        200 => parse_profile(&v),
+        401 | 403 => Err(AuthError::Rejected("Your Minecraft session has expired. Sign in again to change your cape.".to_string())),
+        other => Err(failed(format!("Minecraft did not accept the cape change (HTTP {other})."))),
     }
 }
 
@@ -794,6 +890,7 @@ mod tests {
             xsts: format!("{base}/xsts"),
             mc_login: format!("{base}/mclogin"),
             mc_profile: format!("{base}/profile"),
+            mc_cape: format!("{base}/cape"),
         }
     }
 
@@ -969,7 +1066,10 @@ mod tests {
             *shown.lock().unwrap() = Some(info.clone());
         })
         .unwrap();
-        assert_eq!(session.profile, Profile { id: "0123456789abcdef0123456789abcdef".into(), name: "Steve".into() });
+        assert_eq!(
+            session.profile,
+            Profile { id: "0123456789abcdef0123456789abcdef".into(), name: "Steve".into(), ..Default::default() }
+        );
         assert!(session.persisted);
         assert_eq!(store.load().unwrap().as_deref(), Some("MS-REFRESH"));
         let info = shown.lock().unwrap().clone().unwrap();
@@ -1115,5 +1215,66 @@ mod tests {
         for secret in ["MC-TOKEN", "MS-ACCESS", "MS-REFRESH", "XSTS-TOKEN", "DEV-SECRET"] {
             assert!(!text.contains(secret), "{text}");
         }
+    }
+
+    #[test]
+    fn the_profile_keeps_name_uuid_skins_and_capes_and_drops_foreign_textures() {
+        let v = json!({
+            "id": "0123456789abcdef0123456789abcdef",
+            "name": "Alex_9",
+            "skins": [
+                {"id":"s1","state":"ACTIVE","url":"https://textures.minecraft.net/texture/aaa","variant":"slim"},
+                {"id":"s2","state":"INACTIVE","url":"https://evil.example/texture/bbb","variant":"CLASSIC"}
+            ],
+            "capes": [
+                {"id":"c1","state":"ACTIVE","url":"https://textures.minecraft.net/texture/ccc","alias":"Migrator"},
+                {"id":"c2","state":"INACTIVE","url":"http://textures.minecraft.net/texture/ddd","alias":"Plain http"}
+            ]
+        });
+        let p = parse_profile(&v).unwrap();
+        assert_eq!(p.name, "Alex_9");
+        assert_eq!(p.id, "0123456789abcdef0123456789abcdef");
+        assert_eq!(p.skins.len(), 1);
+        assert_eq!(p.skins[0].variant, "SLIM");
+        assert_eq!(p.capes.len(), 1);
+        assert_eq!(p.capes[0].alias, "Migrator");
+        // No name or no id means no profile: never a half-signed-in account.
+        assert!(parse_profile(&json!({"id":"abc"})).is_err());
+        assert!(parse_profile(&json!({"name":"Steve"})).is_err());
+    }
+
+    #[test]
+    fn equipping_and_removing_a_cape_talks_to_the_account_and_returns_the_new_profile() {
+        let seen = Arc::new(Mutex::new(Vec::<String>::new()));
+        let log = seen.clone();
+        let (base, _) = serve(move |method, path, body| {
+            log.lock().unwrap().push(format!("{method} {path} {body}"));
+            if path != "/cape" {
+                return (404, "{}".to_string());
+            }
+            let capes = if method == "PUT" {
+                json!([{"id":"c1","state":"ACTIVE","url":"https://textures.minecraft.net/texture/ccc","alias":"Migrator"}])
+            } else {
+                json!([{"id":"c1","state":"INACTIVE","url":"https://textures.minecraft.net/texture/ccc","alias":"Migrator"}])
+            };
+            (200, json!({"id":"0123456789abcdef0123456789abcdef","name":"Steve","capes":capes}).to_string())
+        });
+        let client = http_client().unwrap();
+        let ep = endpoints(&base);
+        let on = set_active_cape(&client, &ep, "MC-TOKEN", Some("c1")).unwrap();
+        assert_eq!(on.capes[0].state, "ACTIVE");
+        let off = set_active_cape(&client, &ep, "MC-TOKEN", None).unwrap();
+        assert_eq!(off.capes[0].state, "INACTIVE");
+        let log = seen.lock().unwrap().clone();
+        assert!(log[0].starts_with("PUT /cape") && log[0].contains("\"capeId\":\"c1\""), "{log:?}");
+        assert!(log[1].starts_with("DELETE /cape"), "{log:?}");
+    }
+
+    #[test]
+    fn an_expired_session_is_reported_when_changing_a_cape() {
+        let (base, _) = serve(|_, _, _| (401, "{}".to_string()));
+        let client = http_client().unwrap();
+        let err = set_active_cape(&client, &endpoints(&base), "OLD", Some("c1")).unwrap_err();
+        assert!(matches!(err, AuthError::Rejected(m) if m.contains("expired")));
     }
 }
