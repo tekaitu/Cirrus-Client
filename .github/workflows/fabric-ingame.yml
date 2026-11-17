@@ -29,11 +29,19 @@ jobs:
       - name: Unit tests
         run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build --no-daemon
       - name: Run the real Minecraft client and take screenshots
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_GL_VERSION_OVERRIDE: "4.6"
+          MESA_GLSL_VERSION_OVERRIDE: "460"
         run: |
           set +e
-          xvfb-run -a -s "-screen 0 1920x1080x24" env LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=4.6 MESA_GLSL_VERSION_OVERRIDE=460 \
-            java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain runClientGameTest --no-daemon --stacktrace 2>&1 | tail -150
-          echo "exit: ${PIPESTATUS[0]}"
+          java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain runClientGameTest --no-daemon --info > "$RUNNER_TEMP/game.log" 2>&1
+          echo "exit: $?"
+          wc -l "$RUNNER_TEMP/game.log"
+          echo "---- game output (errors and Cirrus lines)"
+          grep -nE "ERROR|FATAL|Exception|Caused by|cirrus|Cirrus|GLFW|OpenGL|Renderer|gametest|Screenshot|screenshot" "$RUNNER_TEMP/game.log" | grep -v "^\S*\s*at " | cut -c1-260 | head -120
+          echo "---- last 40 lines"
+          tail -40 "$RUNNER_TEMP/game.log" | cut -c1-260
           find . -name '*.png' -path '*screenshots*' | head -80
       - name: Publish screenshots to the ingame-shots branch
         if: always()
