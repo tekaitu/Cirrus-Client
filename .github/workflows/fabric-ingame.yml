@@ -7,9 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  inspect-api:
+  screenshots:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: fabric-mod
@@ -19,15 +21,35 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Build the mod (this also downloads Minecraft and Fabric API)
-        run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build --no-daemon
-      - name: Dump the real API signatures
+      - name: Install a virtual display and software OpenGL
+        working-directory: .
         run: |
-          MC=$(find ~/.gradle -name '*.jar' | grep -iE 'minecraft-clientonly-1' | grep -v sources | head -1)
-          GT=$(find ~/.gradle -name 'fabric-client-gametest-api-v1*.jar' | grep -v sources | head -1)
-          show() { echo "#### $2"; javap -public -cp "$1" "$2" 2>&1 | sed 's/net\.minecraft\.//g; s/java\.lang\.//g'; }
-          for c in net.minecraft.client.gui.components.Button net.minecraft.client.gui.components.AbstractButton net.minecraft.client.gui.components.AbstractWidget net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.Font net.minecraft.client.Minecraft net.minecraft.client.renderer.RenderPipelines net.minecraft.client.gui.components.Renderable; do show "$MC" "$c"; done | grep -vE 'access\$|lambda\$' | cut -c1-210 > /tmp/dump1.txt
-          for c in com.mojang.blaze3d.platform.Window; do show "$MC" "$c"; done | cut -c1-200 >> /tmp/dump1.txt
-          for c in net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions net.fabricmc.fabric.api.client.gametest.v1.TestInput net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest; do show "$GT" "$c"; done | cut -c1-200 >> /tmp/dump1.txt
-          wc -l /tmp/dump1.txt
-          cat /tmp/dump1.txt
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgl1-mesa-dri libglx-mesa0 libgl1 mesa-vulkan-drivers libxrandr2 libxxf86vm1 libxcursor1 libxi6 libopenal1
+      - name: Unit tests
+        run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build --no-daemon
+      - name: Run the real Minecraft client and take screenshots
+        run: |
+          set +e
+          xvfb-run -a -s "-screen 0 1920x1080x24" env LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=4.6 MESA_GLSL_VERSION_OVERRIDE=460 \
+            java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain runClientGameTest --no-daemon --stacktrace 2>&1 | tail -150
+          echo "exit: ${PIPESTATUS[0]}"
+          find . -name '*.png' -path '*screenshots*' | head -80
+      - name: Publish screenshots to the ingame-shots branch
+        if: always()
+        working-directory: .
+        run: |
+          mkdir -p "$RUNNER_TEMP/shots"
+          find fabric-mod/build/run -path '*screenshots*' -name '*.png' -exec cp {} "$RUNNER_TEMP/shots/" \; || true
+          find fabric-mod/run -path '*screenshots*' -name '*.png' -exec cp {} "$RUNNER_TEMP/shots/" \; || true
+          ls "$RUNNER_TEMP/shots" | head -80
+          cp -r fabric-mod/build/run/clientGameTest/logs "$RUNNER_TEMP/shots/logs" 2>/dev/null || true
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout --orphan ingame-shots
+          git rm -rf --quiet . || true
+          git clean -fdxq
+          cp -r "$RUNNER_TEMP/shots/." .
+          git add -A
+          git commit -q -m "In-game screenshots for ${GITHUB_SHA}" || echo "nothing to commit"
+          git push -f origin ingame-shots
