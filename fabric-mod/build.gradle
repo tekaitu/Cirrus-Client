@@ -19,6 +19,17 @@ loom {
     }
 }
 
+fabricApi {
+    configureTests {
+        createSourceSet = false
+        modId = "cirrus_fabric"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+        clearRunDirectory = true
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()

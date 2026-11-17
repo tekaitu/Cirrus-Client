@@ -25,7 +25,7 @@ public final class HudEditorScreen extends Screen {
   }
   addRenderableWidget(CirrusButton.of(10,height-34,w,22,Component.literal("Back"),b->minecraft.setScreen(parent)));
  }
- public void render(GuiGraphics g,int mx,int my,float d){renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);int rail=Math.min(176,Math.max(126,width/3));CirrusUi.panel(g,8,8,width-16,height-16,18,t);CirrusUi.panel(g,14,14,rail-20,height-28,16,t);CirrusUi.brand(g,20,20,22,t);CirrusUi.headingText(g,font,"HUD ELEMENTS",18,54,t.cyan);CirrusUi.text(g,font,"Drag elements to position them",rail+18,18,t.text,true);CirrusUi.smallText(g,font,"Positions save automatically per instance",rail+18,34,t.muted,false);
+ public void render(GuiGraphics g,int mx,int my,float d){var t=CirrusTheme.current(config());int rail=Math.min(176,Math.max(126,width/3));CirrusUi.panel(g,8,8,width-16,height-16,18,t);CirrusUi.panel(g,14,14,rail-20,height-28,16,t);CirrusUi.brand(g,20,20,22,t);CirrusUi.headingText(g,font,"HUD ELEMENTS",18,54,t.cyan);CirrusUi.text(g,font,"Drag elements to position them",rail+18,18,t.text,true);CirrusUi.smallText(g,font,"Positions save automatically per instance",rail+18,34,t.muted,false);
   int sw=minecraft.getWindow().getGuiScaledWidth(),sh=minecraft.getWindow().getGuiScaledHeight();
   for(HudElement e:HudElementRegistry.all())if(e.enabled(config())){int x=e.x(config(),sw),y=e.y(config(),sh);e.render(g,x,y,0,config());CirrusUi.outline(g,x-3,y-3,e.width()+6,e.height()+6,6,e.id().equals(selected)?t.cyan:t.border);if(e.id().equals(selected)){CirrusUi.panel(g,rail+8,56,Math.min(160,width-rail-24),34,9,t);CirrusUi.text(g,font,e.label(),rail+16,63,t.text,true);CirrusUi.smallText(g,font,"X "+x+"   Y "+y,rail+16,78,t.muted,false);}}
   super.render(g,mx,my,d);
@@ -46,5 +46,7 @@ public final class HudEditorScreen extends Screen {
  public boolean mouseReleased(MouseButtonEvent event){dragging=false;setDragging(false);return super.mouseReleased(event);}
  private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
  public void onClose(){minecraft.setScreen(parent);}
+
+ @Override public void renderBackground(GuiGraphics bg,int bmx,int bmy,float bd){CirrusUi.backdrop(bg,width,height,CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())));}
 }
 
