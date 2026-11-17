@@ -86,7 +86,7 @@ function installMock() {
   };
   const signedIn = { state: "signedIn", configured: true, savedLogin: true, profile: { id: "0123456789abcdef0123456789abcdef", name: "Brend4n" }, message: null };
   const log = [
-    "[Cirrus Client 0.1.0] Starting Minecraft 1.21.11 (Fabric)",
+    "[Cirrus Client 0.3.0] Starting Minecraft 1.21.11 (Fabric)",
     "[Cirrus Client] Java: C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.4.7-hotspot\\bin\\java.exe",
     "[Cirrus Client] Memory: 4096 MB", "[Cirrus Client] Player: Brend4n (microsoft)", "----------------------------------------",
     "[12:01:02] [main/INFO]: Loading Minecraft 1.21.11 with Fabric Loader 0.17.2",
@@ -98,7 +98,7 @@ function installMock() {
   window.__crash = { hint: "Minecraft ran out of memory. Give it more in Settings > Memory and RAM, or switch off heavy mods.", report: crashReport, reportPath: "C:\\game\\crash-reports\\crash-2026-11-15.txt", logTail: log };
   let logOffset = 0;
   const handlers = {
-    get_app_info: () => ({ name: "Cirrus Client", version: "0.2.0", target_minecraft: "1.21.11", launcher_ready: true }),
+    get_app_info: () => ({ name: "Cirrus Client", version: "0.3.0", target_minecraft: "1.21.11", launcher_ready: true }),
     get_system_info: () => ({ osName: "Windows", osVersion: "10 (19045)", osLongVersion: "Windows 10 Pro", kernelVersion: "19045", arch: "x86_64", cpuBrand: "AMD Ryzen 5 PRO 4650G with Radeon Graphics", cpuLogicalCores: 12, cpuPhysicalCores: 6, totalRamMb: 15800, availableRamMb: 9000 }),
     detect_java: () => ({ installs: [java], candidatesChecked: 6, notes: ["Checked 6 places."] }),
     load_settings: () => settings, save_settings: () => ({ ok: true, errors: [], state: settings }),
@@ -175,13 +175,16 @@ const pages = [
   ["mods", (p) => nav(p, "Mods")],
   ["modpacks", (p) => nav(p, "Modpacks")],
   ["skins", (p) => nav(p, "Skins")],
-  ["accounts", (p) => nav(p, "Accounts")],
+  ["servers", (p) => nav(p, "Servers")],
+  ["accounts", async (p) => { await p.getByRole("button", { name: "Account", exact: true }).click(); await p.waitForTimeout(500); await p.getByRole("button", { name: "Manage accounts" }).click(); await p.waitForTimeout(650); }],
+  ["account-menu", async (p) => { await p.getByRole("button", { name: "Account", exact: true }).click(); await p.waitForTimeout(600); }],
+  ["bell", async (p) => { await p.getByRole("button", { name: /^Notifications/ }).click(); await p.waitForTimeout(500); }],
   ["settings", (p) => nav(p, "Settings")],
   ["settings-appearance", async (p) => { await nav(p, "Settings"); await p.getByRole("tab", { name: /Appearance/ }).click().catch(async () => { await p.getByText("Appearance", { exact: true }).first().click(); }); await p.waitForTimeout(400); }],
   ["about", (p) => nav(p, "About")],
-  ["diagnostics", (p) => nav(p, "Diagnostics")],
+  ["diagnostics", async (p) => { await nav(p, "Settings"); await nav(p, "Diagnostics"); }],
 ];
-const core = ["home", "versions", "browse", "mods", "modpacks", "skins", "accounts", "settings"];
+const core = ["home", "versions", "browse", "mods", "modpacks", "skins", "servers", "accounts", "settings"];
 await run("dark", 1920, 1080, pages.filter(([n]) => ["home", "versions", "browse", "mods"].includes(n)));
 await run("dark", 1600, 900, pages);
 await run("light", 1600, 900, pages.filter(([n]) => core.includes(n)));

@@ -3,6 +3,7 @@ import { api, errorMessage } from "../api/client";
 import type { SettingsState } from "../api/types";
 import { BrandIcon } from "../components/BrandIcon";
 import {
+  CodeIcon,
   CheckIcon,
   CpuIcon,
   CubeIcon,
@@ -119,11 +120,13 @@ function SettingsForm({
   data,
   initialTab,
   onNavigate,
+  discord,
 }: {
   state: SettingsState;
   data: AppData;
   initialTab: SettingsTab;
   onNavigate: (page: PageId, section?: string) => void;
+  discord?: { enabled: boolean; onToggle: () => void };
 }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   useEffect(() => setTab(initialTab), [initialTab]);
@@ -268,12 +271,34 @@ function SettingsForm({
             <BrandIcon name="discord" />
             Join the Discord community
           </button>
-          <span className="muted small">
-            Cirrus Client {data.app.status === "ready" ? `v${data.app.data.version}` : ""} · early build
-          </span>
+        </div>
+        {discord && (
+          <label className="switch-row">
+            <span>
+              <strong>Show what I&apos;m playing on Discord</strong>
+              <span className="muted small"> Your Discord status shows Cirrus Client and the version you play.</span>
+            </span>
+            <input type="checkbox" role="switch" aria-label="Discord Presence" checked={discord.enabled} onChange={discord.onToggle} />
+          </label>
+        )}
+        <div className="row">
+          <button type="button" className="btn" onClick={() => onNavigate("about")}>
+            About
+          </button>
+          <button type="button" className="btn" onClick={() => onNavigate("diagnostics")}>
+            Diagnostics
+          </button>
+          <button type="button" className="btn" onClick={data.reloadJava}>
+            Re-scan Java
+          </button>
         </div>
       </Card>
-      <Card id="sec-account" title="Microsoft sign-in" tone="pink" icon={<UserIcon />} description="Advanced: normally nothing to change here.">
+      <details className="dev-details">
+        <summary>
+          <CodeIcon />
+          Developer options
+        </summary>
+      <Card id="sec-account" title="Microsoft sign-in app" description="Only for people building their own copy. Nothing to change here.">
         <Field
           id="ms-client-id"
           label="Azure application (client) ID"
@@ -292,6 +317,7 @@ function SettingsForm({
           />
         </Field>
       </Card>
+      </details>
       <Card title="Settings file" icon={<InfoIcon />} description="Everything on the other tabs is stored here.">
         <p className="path">{state.filePath}</p>
       </Card>
@@ -718,10 +744,12 @@ export function SettingsPage({
   data,
   section,
   onNavigate,
+  discord,
 }: {
   data: AppData;
   section?: string;
   onNavigate: (page: PageId, section?: string) => void;
+  discord?: { enabled: boolean; onToggle: () => void };
 }) {
   const s = data.settings;
   if (s.status === "loading") {
@@ -750,5 +778,5 @@ export function SettingsPage({
       </div>
     );
   }
-  return <SettingsForm state={s.data} data={data} initialTab={isSettingsTab(section) ? section : "general"} onNavigate={onNavigate} />;
+  return <SettingsForm state={s.data} data={data} initialTab={isSettingsTab(section) ? section : "general"} onNavigate={onNavigate} discord={discord} />;
 }

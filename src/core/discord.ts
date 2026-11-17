@@ -27,6 +27,7 @@ const PAGE_LINES: Record<PageId, string> = {
   mods: "Managing mods",
   modpacks: "Managing modpacks",
   skins: "Choosing a skin",
+  servers: "Looking at servers",
   accounts: "Managing accounts",
   settings: "Tuning settings",
   about: "Reading about Cirrus Client",

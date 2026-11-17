@@ -28,7 +28,7 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
     <div className="page about-page">
       <header className="page-head">
         <h1>About</h1>
-        <p className="muted">Version, updates, credits and links.</p>
+        
       </header>
 
       <section className="about-hero" aria-label="Cirrus Client">
@@ -40,7 +40,7 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
           <p className="about-tagline">The sky is the limit.</p>
           <p className="muted small">
             {version ? `Version ${version}` : "Version unknown"}
-            {target ? ` · built for Minecraft ${target}` : ""} · early build
+            {target ? ` · built for Minecraft ${target}` : ""}
           </p>
         </div>
       </section>
@@ -49,10 +49,7 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
 
       <div className="about-grid">
         <Card title="Updates" icon={<DownloadIcon />} description="How you get a newer version.">
-          <p className="muted small">
-            Cirrus Client does not update itself yet. New builds are published on GitHub; download the newest one and
-            replace the old file. Your settings, profiles and worlds are kept in a separate folder, so they carry over.
-          </p>
+          <p className="muted small">New versions are published on GitHub. Your settings and worlds are kept when you update.</p>
           <button type="button" className="btn btn-primary" onClick={() => open(() => api.openGithub())}>
             <DownloadIcon />
             Open the GitHub page
@@ -81,15 +78,6 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
                 Open GitHub
               </button>
             </div>
-            <div>
-              <div>
-                <strong>Website</strong>
-                <p className="muted small">There is no official website yet.</p>
-              </div>
-              <button type="button" className="btn" disabled title="No official website has been published yet">
-                Not available
-              </button>
-            </div>
           </div>
         </Card>
 
@@ -102,9 +90,8 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
               </li>
             ))}
           </ul>
-          <p className="muted small">
-            Minecraft is a trademark of Mojang AB / Microsoft. Cirrus Client is not affiliated with or endorsed by Mojang or
-            Microsoft.
+          <p className="about-notice">
+            NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
           </p>
           <button type="button" className="btn" onClick={onLicense}>
             Read the license

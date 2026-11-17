@@ -16,13 +16,14 @@ import { AboutPage } from "./pages/About";
 import { AccountsPage } from "./pages/Accounts";
 import { ModsPage } from "./pages/Mods";
 import { SkinsPage } from "./pages/Skins";
+import { ServersPage } from "./pages/Servers";
 import { VersionsPage } from "./pages/Versions";
 import { ModpacksPage } from "./pages/Modpacks";
 import { SettingsPage } from "./pages/Settings";
 import { pageForShortcut } from "./core/shortcuts";
-import { readRecent, writeRecent, type RecentPlay } from "./core/recent";
 import { readDiscordEnabled, writeDiscordEnabled } from "./core/discord";
 import { useDiscordPresence } from "./hooks/useDiscordPresence";
+import { notify } from "./core/notifications";
 
 /** Which picture sits behind each page. */
 const BACKDROPS: Record<PageId, BackdropId> = {
@@ -31,6 +32,7 @@ const BACKDROPS: Record<PageId, BackdropId> = {
   mods: "library",
   modpacks: "library",
   skins: "library",
+  servers: "library",
   browse: "browse",
   accounts: "night",
   settings: "night",
@@ -42,7 +44,6 @@ export default function App() {
   const data = useAppData();
   const [page, setPage] = useState<PageId>("home");
   const [section, setSection] = useState<string | undefined>(undefined);
-  const [recent, setRecent] = useState<RecentPlay | null>(readRecent);
   const [accountOpen, setAccountOpen] = useState(false);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [accepted, setAccepted] = useState(() => {
@@ -95,23 +96,32 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Remember when the game last started, for "Recent activity" on Home.
   const runPhase = data.game.run.phase;
-  const wasRunning = useRef(false);
+
+  // Tell the bell about the things that matter: the game starting, ending or crashing.
+  const prevRun = useRef(runPhase);
+  const runState = data.game.run;
   useEffect(() => {
-    if (runPhase === "running" && !wasRunning.current) {
-      const entry: RecentPlay = {
-        version: data.selection.version,
-        loader: data.selection.loader,
-        profile: data.selection.profile?.name ?? null,
-        at: Date.now(),
-      };
-      writeRecent(entry);
-      setRecent(entry);
-    }
-    wasRunning.current = runPhase === "running";
-  }, [runPhase, data.selection.version, data.selection.loader, data.selection.profile]);
-  const scanning = data.java.status === "loading";
+    if (prevRun.current === runPhase) return;
+    prevRun.current = runPhase;
+    if (runPhase === "running") notify({ title: "Minecraft started", body: `Minecraft ${data.selection.version}`, tone: "good" });
+    else if (runPhase === "ended") {
+      if (runState.phase === "ended" && runState.crash) notify({ title: "Minecraft crashed", body: "Open the crash report from Home or Versions.", tone: "bad" });
+      else if (runState.phase === "ended") notify({ title: "Minecraft closed", tone: "info" });
+    } else if (runPhase === "error" && runState.phase === "error") notify({ title: "Minecraft could not start", body: runState.message, tone: "bad" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runPhase]);
+
+  const instPhase = data.game.installer.phase;
+  const prevInst = useRef(instPhase);
+  useEffect(() => {
+    if (prevInst.current === instPhase) return;
+    const was = prevInst.current;
+    prevInst.current = instPhase;
+    if (was === "running" && instPhase === "idle") notify({ title: "Game files are ready", body: `Minecraft ${data.selection.version}`, tone: "good" });
+    else if (instPhase === "error") notify({ title: "Game files could not be downloaded", tone: "bad" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instPhase]);
 
   // Discord status ("Playing Minecraft 1.21.11", "Browsing mods", ...). On by default, can be switched off.
   const [discordOn, setDiscordOn] = useState(readDiscordEnabled);
@@ -151,29 +161,27 @@ export default function App() {
           page={page}
           onNavigate={navigate}
           onAccount={toggleAccount}
-          onRescan={data.reloadJava}
-          scanning={scanning}
           accountOpen={accountOpen}
           player={data.account.state.phase === "signedIn" ? data.account.state.profile : null}
-          discord={{ enabled: discordOn, onToggle: toggleDiscord }}
         />
         <main className="content">
           <div key={page} className="page-enter">
           {page === "home" && (
-            <HomePage data={data} recent={recent} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />
+            <HomePage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />
           )}
           {page === "versions" && <VersionsPage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />}
           {page === "browse" && <ModsPage data={data} mode="browse" onNavigate={navigate} />}
           {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
           {page === "skins" && <SkinsPage data={data} />}
+          {page === "servers" && <ServersPage />}
           {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} onSaveClientId={saveClientId} />}
-          {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} />}
+          {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} discord={{ enabled: discordOn, onToggle: toggleDiscord }} />}
           {page === "about" && <AboutPage data={data} onLicense={() => setLicenseOpen(true)} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
           </div>
         </main>
-        <FooterBar data={data} onNavigate={navigate} onLicense={() => setLicenseOpen(true)} />
+        <FooterBar data={data} onNavigate={navigate} />
       </div>
       {!accepted && (
         <LicenseDialog mode="gate" onAccept={accept} onDecline={() => void api.quitApp().catch(() => {})} />
@@ -186,7 +194,12 @@ export default function App() {
           <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>
             <CloseIcon />
           </button>
-          <AccountPanel account={data.account} onNavigate={navigate} onSaveClientId={saveClientId} />
+          <AccountPanel
+            account={data.account}
+            onNavigate={navigate}
+            onSaveClientId={saveClientId}
+            onManage={() => navigate("accounts")}
+          />
         </div>
       )}
     </div>

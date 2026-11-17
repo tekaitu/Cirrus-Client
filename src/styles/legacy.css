@@ -837,7 +837,7 @@ input[type="text"], input[type="number"], select, textarea { border-radius: 8px;
 .play-dock .install-inline { flex: 1 1 320px; }
 .play-dock .btn-primary, .play-dock .btn-danger { height: 50px; padding: 0 34px; font-size: 1.04rem; font-weight: 800; border-radius: 10px; }
 .play-dock .btn-primary svg, .play-dock .btn-danger svg { width: 20px; height: 20px; }
-.play-dock .btn-primary:not(:disabled) { box-shadow: 0 8px 22px rgb(var(--accent-rgb) / 0.35), 0 1px 0 rgba(255, 255, 255, 0.16) inset; }
+.play-dock .btn-primary:not(:disabled) { box-shadow: none; }
 .play-dock .btn:not(.btn-primary):not(.btn-danger) { height: 50px; border-radius: 10px; }
 .hero .hero-note, .hero .banner { margin: 0; }
 .chips { padding: 0 18px 18px; margin: -4px 0 0; }

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { exitText, gameProgressView, usernameError, type LoaderId, type PlayMode } from "../core/game";
 import { REQUIRED_JAVA_MAJOR } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
-import { PackageIcon, PlayArrowIcon, SettingsIcon, ShieldIcon, StopIcon, TerminalIcon } from "./Icons";
+import { BrandIcon } from "./BrandIcon";
+import { PackageIcon, PlayArrowIcon, SettingsIcon, StopIcon, TerminalIcon } from "./Icons";
 import { Banner } from "./ui";
 import type { PageId } from "./Navigation";
 
@@ -151,6 +152,7 @@ export function PlayPanel({
 
   return (
     <div className={`play-panel lp lp-${variant}`}>
+      {variant === "full" && (
       <ol className="steps" aria-label="Setup progress">
         {steps.map((st, i) => (
           <li key={st.label} className={`${st.done ? "step-done" : ""} ${st.active ? "step-active" : ""}`.trim()}>
@@ -162,6 +164,7 @@ export function PlayPanel({
           <span className={`steps-fill steps-fill-${doneCount}`} />
         </li>
       </ol>
+      )}
       {variant === "full" && selection.profile && (
         <div className="profile-chip">
           <PackageIcon />
@@ -269,20 +272,6 @@ export function PlayPanel({
       </>)}
 
       <div className="play-dock">
-      {variant === "quick" && (
-        <p className="play-summary">
-          <span>
-            Minecraft <strong>{selection.version}</strong> · {selection.loader === "fabric" ? "Fabric" : "Vanilla"}
-            {selection.profile && <> · profile <strong>{selection.profile.name}</strong></>}
-          </span>
-          <span className="muted">
-            {mode === "offline" ? (
-              <>Offline as <strong>{name.trim() || "…"}</strong></>
-            ) : signedIn ? (
-              <>Playing as <strong>{acct.profile.name}</strong></>
-            ) : (
-              "Not signed in"
-            )}
           </span>
           <button type="button" className="link-inline" onClick={() => onNavigate("versions")}>
             Change
@@ -311,7 +300,7 @@ export function PlayPanel({
             disabled={action.disabled}
             onClick={action.onClick}
           >
-            {action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <ShieldIcon /> : !action.disabled && <PlayArrowIcon />}
+            {action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <BrandIcon name="microsoft" size={20} /> : !action.disabled && <PlayArrowIcon />}
             {action.label}
           </button>
           {game.run.phase === "starting" || running ? (
@@ -320,15 +309,17 @@ export function PlayPanel({
               View log
             </button>
           ) : (
-            <button type="button" className="btn btn-pill" onClick={() => onNavigate(variant === "quick" ? "versions" : "settings")}>
-              <SettingsIcon />
-              {variant === "quick" ? "Launch options" : "Settings"}
-            </button>
+            variant === "full" && (
+              <button type="button" className="btn btn-pill" onClick={() => onNavigate("settings")}>
+                <SettingsIcon />
+                Settings
+              </button>
+            )
           )}
         </div>
       )}
       </div>
-      {action.hint && !progress && <p className="muted small hero-note">{action.hint}</p>}
+      {variant === "full" && action.hint && !progress && <p className="muted small hero-note">{action.hint}</p>}
 
       {game.installer.phase === "error" && (
         <Banner tone="bad" title="Game files could not be downloaded">

@@ -2,20 +2,17 @@ import {
   CloseIcon,
   CompassIcon,
   CubeIcon,
-  DiagnosticsIcon,
   HomeIcon,
-  InfoIcon,
   MaximizeIcon,
   MinimizeIcon,
   ModsIcon,
   PackageIcon,
-  RefreshIcon,
+  ServerIcon,
   SettingsIcon,
   ShirtIcon,
-  UserIcon,
 } from "./Icons";
-import { BrandIcon } from "./BrandIcon";
 import { LogoMark } from "./Logo";
+import { NotificationBell } from "./NotificationBell";
 import { SkinHead } from "./SkinHead";
 import { useCustomFrame, windowActions } from "../core/windowFrame";
 
@@ -26,6 +23,7 @@ export type PageId =
   | "mods"
   | "modpacks"
   | "skins"
+  | "servers"
   | "accounts"
   | "settings"
   | "about"
@@ -38,6 +36,7 @@ export const PAGE_TITLES: Record<PageId, string> = {
   mods: "Mods",
   modpacks: "Modpacks",
   skins: "Skins",
+  servers: "Servers",
   accounts: "Accounts",
   settings: "Settings",
   about: "About",
@@ -56,28 +55,19 @@ const TABS: Item[] = [
   { id: "mods", icon: <ModsIcon /> },
   { id: "modpacks", icon: <PackageIcon /> },
   { id: "skins", icon: <ShirtIcon /> },
-  { id: "accounts", icon: <UserIcon /> },
-];
-
-const TOOLS: Item[] = [
-  { id: "settings", icon: <SettingsIcon /> },
-  { id: "about", icon: <InfoIcon /> },
-  { id: "diagnostics", icon: <DiagnosticsIcon /> },
+  { id: "servers", icon: <ServerIcon /> },
 ];
 
 interface Props {
   page: PageId;
   onNavigate: (page: PageId) => void;
   onAccount: () => void;
-  onRescan: () => void;
-  scanning: boolean;
   accountOpen: boolean;
   player: { name: string; id: string } | null;
-  discord?: { enabled: boolean; onToggle: () => void };
 }
 
-/** The top bar: brand, page tabs, tools, the player and (in the desktop app) the window buttons. */
-export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accountOpen, player, discord }: Props) {
+/** The top bar: brand, page tabs, notifications, settings, the player and (in the desktop app) the window buttons. */
+export function TopNav({ page, onNavigate, onAccount, accountOpen, player }: Props) {
   const customFrame = useCustomFrame();
 
   return (
@@ -115,53 +105,17 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
       </nav>
 
       <div className="hdr-right" data-tauri-drag-region>
-        <nav aria-label="Tools" className="hdr-tools">
-          <ul>
-            {TOOLS.map((item) => {
-              const active = page === item.id;
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    className={`hdr-tool ${active ? "active" : ""}`}
-                    aria-label={PAGE_TITLES[item.id]}
-                    data-tip={PAGE_TITLES[item.id]}
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => onNavigate(item.id)}
-                  >
-                    {item.icon}
-                  </button>
-                </li>
-              );
-            })}
-            {discord && (
-              <li>
-                <button
-                  type="button"
-                  className={`hdr-tool ${discord.enabled ? "on" : ""}`}
-                  aria-label="Discord Presence"
-                  aria-pressed={discord.enabled}
-                  data-tip={discord.enabled ? "Discord status on" : "Discord status off"}
-                  onClick={discord.onToggle}
-                >
-                  <BrandIcon name="discord" />
-                </button>
-              </li>
-            )}
-            <li>
-              <button
-                type="button"
-                className="hdr-tool"
-                aria-label="Re-scan Java"
-                data-tip={scanning ? "Scanning Java…" : "Re-scan Java"}
-                onClick={onRescan}
-                disabled={scanning}
-              >
-                <RefreshIcon />
-              </button>
-            </li>
-          </ul>
-        </nav>
+        <NotificationBell />
+        <button
+          type="button"
+          className={`hdr-tool ${page === "settings" ? "active" : ""}`}
+          aria-label="Settings"
+          aria-current={page === "settings" ? "page" : undefined}
+          data-tip="Settings"
+          onClick={() => onNavigate("settings")}
+        >
+          <SettingsIcon />
+        </button>
 
         <button
           type="button"
@@ -173,8 +127,7 @@ export function TopNav({ page, onNavigate, onAccount, onRescan, scanning, accoun
         >
           <SkinHead uuid={player?.id ?? null} name={player?.name ?? null} size={30} />
           <span className="hdr-account-text">
-            <small>{player ? "Signed in" : "Not signed in"}</small>
-            <strong>{player ? player.name : "Guest"}</strong>
+            <strong>{player ? player.name : "Sign in"}</strong>
           </span>
         </button>
 

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import App from "../src/App";
 import { initTheme } from "../src/core/theme";
+import { notify, resetNotifications } from "../src/core/notifications";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
 import type { AuthStatus, DeviceCodeInfo, GameExit, GameProgress, GameStatus, InstallProgress, InstallResult } from "../src/api/types";
@@ -67,8 +68,37 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
-function goTo(name: "Home" | "Versions" | "Browse" | "Modpacks" | "Mods" | "Skins" | "Accounts" | "Settings" | "About" | "Diagnostics") {
+function goTo(name: "Home" | "Versions" | "Browse" | "Modpacks" | "Mods" | "Skins" | "Servers" | "Settings") {
   fireEvent.click(screen.getByRole("button", { name }));
+}
+
+/** About lives in the footer (and in Settings). */
+function goToAbout() {
+  fireEvent.click(screen.getAllByRole("button", { name: "About" })[0]!);
+}
+
+/** Diagnostics is reached from Settings. */
+async function goToDiagnostics() {
+  goTo("Settings");
+  fireEvent.click(await screen.findByRole("button", { name: "Diagnostics" }));
+}
+
+/** Accounts is reached from the account menu. */
+async function goToAccounts() {
+  fireEvent.click(screen.getByRole("button", { name: "Account" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Manage accounts" }));
+}
+
+/** Waits until the first Java scan has been asked for, so the screen has stopped changing. */
+async function settled() {
+  await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
+}
+
+/** Waits until Java and the game files have both been looked at and the screen has caught up. */
+async function loaded() {
+  await settled();
+  await waitFor(() => expect(mocked.gameStatus).toHaveBeenCalled());
+  await act(async () => {});
 }
 
 async function goToSettings(tab?: string) {
@@ -157,45 +187,50 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  resetNotifications();
   vi.resetAllMocks();
   delete document.documentElement.dataset.reduceMotion;
 });
 
 describe("Home", () => {
-  it("shows the branding, the target version and the detected Java", async () => {
+  it("shows the big title, the Play button and nothing else", async () => {
     render(<App />);
     expect(screen.getByRole("heading", { level: 1, name: /1\.21\.11\s+Fabric/ })).toBeTruthy();
     expect(screen.getByText("Minecraft Java Edition")).toBeTruthy();
-    expect(await screen.findByText("Java 21")).toBeTruthy();
-    expect((await screen.findAllByText("Not installed")).length).toBeGreaterThanOrEqual(2); // game files and Fabric
+    expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
+    // No status chips, news, shortcuts or recent-play cards on Home.
+    expect(screen.queryByText(/not live news/i)).toBeNull();
+    expect(screen.queryByText("Launcher news")).toBeNull();
+    expect(screen.queryByText("Java 21")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Setup progress" })).toBeNull();
+    expect(screen.getByRole("button", { name: "All versions" })).toBeTruthy();
   });
 
-  it("has a labelled top bar with pages on the left and tools on the right", async () => {
+  it("has a top bar with the page tabs, a bell, Settings and the account", async () => {
     render(<App />);
     const main = screen.getByRole("navigation", { name: "Main" });
-    const tools = screen.getByRole("navigation", { name: "Tools" });
-    for (const [nav, names] of [
-      [main, ["Home", "Versions", "Browse", "Mods", "Modpacks", "Skins", "Accounts"]],
-      [tools, ["Settings", "About", "Diagnostics", "Re-scan Java"]],
-    ] as const) {
-      for (const name of names) {
-        expect(nav.contains(screen.getByRole("button", { name }))).toBe(true);
-      }
+    for (const name of ["Home", "Versions", "Browse", "Mods", "Modpacks", "Skins", "Servers"]) {
+      expect(main.contains(screen.getByRole("button", { name }))).toBe(true);
+    }
+    for (const name of ["Accounts", "About", "Diagnostics", "Re-scan Java", "Discord Presence"]) {
+      expect(main.contains(screen.queryByRole("button", { name }))).toBe(false);
     }
     expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Account" })).toBeTruthy();
-    await screen.findByText("Java 21");
+    await settled();
   });
 
-  it("lets the Discord status be switched off from the top bar", async () => {
+  it("lets the Discord status be switched off in Settings", async () => {
     render(<App />);
-    const toggle = screen.getByRole("button", { name: "Discord Presence" });
-    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    goTo("Settings");
+    const toggle = (await screen.findByRole("switch", { name: "Discord Presence" })) as HTMLInputElement;
+    expect(toggle.checked).toBe(true);
     fireEvent.click(toggle);
-    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    expect(toggle.checked).toBe(false);
     await waitFor(() => expect(mocked.discordClearPresence).toHaveBeenCalled());
     expect(window.localStorage.getItem("cirrus.discordPresence")).toBe("off");
-    await screen.findByText("Java 21");
   });
 
   it("jumps between pages with Alt + a number", async () => {
@@ -205,86 +240,97 @@ describe("Home", () => {
     fireEvent.keyDown(window, { key: "6", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "7", altKey: true });
-    expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Servers" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "3", altKey: true, ctrlKey: true }); // not ours
-    expect(screen.getByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
-    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
+    expect(screen.getByRole("heading", { level: 1, name: "Servers" })).toBeTruthy();
+    await settled();
   });
 
-  it("shows when the game was last played, once it has been started", async () => {
-    window.localStorage.setItem(
-      "cirrus.lastPlayed",
-      JSON.stringify({ version: "1.21.1", loader: "vanilla", profile: null, at: Date.now() - 3 * 3600 * 1000 }),
-    );
+  it("re-scans Java from Settings and opens Discord from the footer", async () => {
     render(<App />);
-    expect(await screen.findByText("Minecraft 1.21.1 · Vanilla")).toBeTruthy();
-    expect(screen.getByText(/Started 3 hours ago/)).toBeTruthy();
-    await screen.findByText("Java 21");
-  });
-
-  it("says nothing was played yet on a fresh install", async () => {
-    render(<App />);
-    expect(await screen.findByText(/Nothing played yet/)).toBeTruthy();
-    await screen.findByText("Java 21");
-  });
-
-  it("shows local news cards, clearly labelled, with dates and categories", async () => {
-    render(<App />);
-    expect(screen.getByText(/not live news/i)).toBeTruthy();
-    const cards = screen.getAllByRole("article");
-    expect(cards.length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText("1 Nov 2026")).toBeTruthy();
-    expect(screen.getAllByText("Update").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Tip").length).toBeGreaterThan(0);
-    await screen.findByText("Java 21");
-  });
-
-  it("rail re-scans Java and the footer opens Diagnostics for help", async () => {
-    render(<App />);
-    await screen.findByText("Java 21");
-    fireEvent.click(screen.getByRole("button", { name: "Re-scan Java" }));
-    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalledTimes(2));
-    fireEvent.click(screen.getByRole("button", { name: /Discord community/ }));
+    await settled();
+    fireEvent.click(screen.getByRole("button", { name: "Discord" }));
     expect(mocked.openCommunity).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "Get help" }));
+    goTo("Settings");
+    fireEvent.click(await screen.findByRole("button", { name: "Re-scan Java" }));
+    await waitFor(() => expect(mocked.detectJava).toHaveBeenCalledTimes(2));
+  });
+
+  it("opens About from the footer", async () => {
+    render(<App />);
+    goToAbout();
+    expect(await screen.findByRole("heading", { level: 1, name: "About" })).toBeTruthy();
+    expect(screen.getByText(/NOT AN OFFICIAL MINECRAFT PRODUCT/)).toBeTruthy();
+    await settled();
+  });
+
+  it("warns in the footer only when Java is a problem", async () => {
+    render(<App />);
+    await settled();
+    expect(screen.queryByRole("button", { name: /Java needs attention/ })).toBeNull();
+    cleanup();
+    mocked.detectJava.mockResolvedValue({ installs: [], candidatesChecked: 2 });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /Java needs attention/ }));
     expect(await screen.findByRole("heading", { level: 1, name: "Diagnostics" })).toBeTruthy();
   });
 
-  it("shows a loading state while Java is being detected", () => {
-    mocked.detectJava.mockReturnValue(new Promise<never>(() => {}));
+  it("shows empty, then real notifications, in the bell", async () => {
     render(<App />);
-    expect(screen.getByRole("status", { name: "Detecting Java" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toBeTruthy();
+    expect(screen.getByText("You're all caught up.")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Notifications" })).toBeNull();
+
+    act(() => notify({ title: "Sodium installed", body: "Minecraft 1.21.11", tone: "good" }));
+    expect(await screen.findByRole("button", { name: "Notifications, 1 new" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 1 new" }));
+    expect(screen.getByText("Sodium installed")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(screen.getByText("You're all caught up.")).toBeTruthy();
+    await settled();
   });
 
-  it("offers Microsoft sign-in for online play, and says it is optional", async () => {
+  it("has an empty Servers page that makes nothing up", async () => {
     render(<App />);
-    expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
-    expect(screen.getByText(/switch to “Offline name” to play without signing in/)).toBeTruthy();
-    expect(screen.getByText("Microsoft sign-in (online play)")).toBeTruthy();
-    expect(screen.getByText("Optional")).toBeTruthy();
+    goTo("Servers");
+    expect(await screen.findByRole("heading", { level: 1, name: "Servers" })).toBeTruthy();
+    expect(screen.getByText("No partner servers yet")).toBeTruthy();
+    await settled();
+  });
+
+  it("shows a loading state while Java is being detected", async () => {
+    mocked.detectJava.mockReturnValue(new Promise<never>(() => {}));
+    render(<App />);
+    await goToDiagnostics();
+    expect(await screen.findByRole("status", { name: "Detecting Java" })).toBeTruthy();
   });
 
   it("explains when only an old Java is installed", async () => {
     mocked.detectJava.mockResolvedValue({ installs: [java17Raw], candidatesChecked: 3 });
     render(<App />);
-    expect(await screen.findByText("No Java 21+ found")).toBeTruthy();
+    await goToDiagnostics();
+    expect(await screen.findByText(/None is compatible with Minecraft/)).toBeTruthy();
   });
 
   it("shows an empty state when no Java exists, and can detect again", async () => {
     mocked.detectJava.mockResolvedValue({ installs: [], candidatesChecked: 4 });
     render(<App />);
-    expect(await screen.findByText("No Java found")).toBeTruthy();
+    await goToDiagnostics();
+    expect(await screen.findByText("No Java installations found")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Detect again" }));
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalledTimes(2));
   });
 
-  it("shows the error and a retry button when detection fails", async () => {
+  it("shows the error and can detect again when detection fails", async () => {
     mocked.detectJava.mockRejectedValueOnce(new Error("could not scan"));
     render(<App />);
+    await goToDiagnostics();
     expect(await screen.findByText("Java detection failed")).toBeTruthy();
     expect(screen.getByText("could not scan")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByText("Java 21")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Detect again" }));
+    expect((await screen.findAllByText("Java 21")).length).toBeGreaterThan(0);
   });
 
   it("passes the saved custom Java path to detection", async () => {
@@ -323,7 +369,7 @@ describe("Microsoft account", () => {
   it("lets the owner paste the app ID in the account menu and saves it", async () => {
     mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ msClientId: CLIENT_ID }) });
     render(<App />);
-    await screen.findByText("Java 21"); // settings have loaded by then
+    await settled();
     openAccount();
     expect(await screen.findByText("How to get the app ID (one time, free)")).toBeTruthy();
     expect(screen.getByText("https://login.microsoftonline.com/consumers/oauth2/nativeclient")).toBeTruthy();
@@ -342,7 +388,7 @@ describe("Microsoft account", () => {
   it("shows the reason when the app ID cannot be saved", async () => {
     mocked.saveSettings.mockResolvedValue({ ok: false, errors: [{ field: "msClientId", message: "Rejected by the backend." }], state: null });
     render(<App />);
-    await screen.findByText("Java 21");
+    await settled();
     openAccount();
     fireEvent.change(await screen.findByLabelText("Application (client) ID"), { target: { value: CLIENT_ID } });
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
@@ -491,11 +537,13 @@ describe("Java installer", () => {
 
   it("offers the install button only when no compatible Java exists", async () => {
     render(<App />);
+    await goToDiagnostics();
     expect(await screen.findByRole("button", { name: "Install Java 21" })).toBeTruthy();
     cleanup();
     mocked.detectJava.mockResolvedValue({ installs: [java21Raw], candidatesChecked: 3 });
     render(<App />);
-    await screen.findByText("Java 21");
+    await goToDiagnostics();
+    expect((await screen.findAllByText("Java 21")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Install Java 21" })).toBeNull();
   });
 
@@ -503,6 +551,7 @@ describe("Java installer", () => {
     let finish: (r: InstallResult) => void = () => {};
     mocked.installJava.mockReturnValue(new Promise<InstallResult>((resolve) => (finish = resolve)));
     render(<App />);
+    await goToDiagnostics();
     fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
 
     expect(await screen.findByText("Starting…")).toBeTruthy();
@@ -521,13 +570,14 @@ describe("Java installer", () => {
     await waitFor(() =>
       expect(mocked.detectJava).toHaveBeenLastCalledWith(expect.stringContaining("temurin-21")),
     );
-    expect(await screen.findByText("Java 21")).toBeTruthy();
+    expect((await screen.findAllByText("Java 21")).length).toBeGreaterThan(0);
   });
 
   it("can be cancelled while downloading", async () => {
     let finish: (r: InstallResult) => void = () => {};
     mocked.installJava.mockReturnValue(new Promise<InstallResult>((resolve) => (finish = resolve)));
     render(<App />);
+    await goToDiagnostics();
     fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
     await waitFor(() => expect(progressHandler).not.toBeNull());
     act(() => progressHandler?.({ stage: "downloading", downloaded: 1000, total: 50_000_000, message: "x" }));
@@ -551,6 +601,7 @@ describe("Java installer", () => {
       javaPath: null,
     });
     render(<App />);
+    await goToDiagnostics();
     fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
     expect(await screen.findByText("Java could not be installed")).toBeTruthy();
     expect(screen.getByText(/did not match the vendor's checksum/)).toBeTruthy();
@@ -564,6 +615,7 @@ describe("Java installer", () => {
   it("shows an error when the install command itself fails", async () => {
     mocked.installJava.mockRejectedValue(new Error("A Java installation is already running."));
     render(<App />);
+    await goToDiagnostics();
     fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
     expect(await screen.findByText("A Java installation is already running.")).toBeTruthy();
   });
@@ -571,6 +623,7 @@ describe("Java installer", () => {
   it("starts only one installation at a time", async () => {
     mocked.installJava.mockReturnValue(new Promise<InstallResult>(() => {}));
     render(<App />);
+    await goToDiagnostics();
     const button = await screen.findByRole("button", { name: "Install Java 21" });
     fireEvent.click(button);
     fireEvent.click(button);
@@ -588,15 +641,10 @@ describe("Java installer", () => {
       settings: null,
     });
     render(<App />);
+    await goToDiagnostics();
     fireEvent.click(await screen.findByRole("button", { name: "Install Java 21" }));
     expect(await screen.findByText("Java 21 is already available")).toBeTruthy();
     expect(screen.getByText(/Nothing in Settings was changed/)).toBeTruthy();
-  });
-
-  it("is also available on the Diagnostics page", async () => {
-    render(<App />);
-    goTo("Diagnostics");
-    expect(await screen.findByRole("button", { name: "Install Java 21" })).toBeTruthy();
   });
 });
 
@@ -684,7 +732,7 @@ describe("Settings layout", () => {
 describe("Diagnostics", () => {
   it("shows the system and Java results returned by the backend", async () => {
     render(<App />);
-    goTo("Diagnostics");
+    await goToDiagnostics();
     expect(await screen.findByText("AMD Ryzen 5 PRO 4650G with Radeon Graphics")).toBeTruthy();
     expect(screen.getByText("Windows 10 Pro 10 (19045)")).toBeTruthy();
     expect((await screen.findAllByText(java21Raw.path)).length).toBeGreaterThan(0);
@@ -699,7 +747,7 @@ describe("Diagnostics", () => {
       notes: ["JAVA_HOME is not set.", "PATH: 2 entries contain Java."],
     });
     render(<App />);
-    goTo("Diagnostics");
+    await goToDiagnostics();
     expect(await screen.findByText("Java in use")).toBeTruthy();
     expect(screen.getByText("Java 21 (21.0.4)")).toBeTruthy();
     expect(screen.getByText("Where Cirrus Client looked (2)")).toBeTruthy();
@@ -709,14 +757,14 @@ describe("Diagnostics", () => {
   it("shows an empty state when no Java is installed", async () => {
     mocked.detectJava.mockResolvedValue({ installs: [], candidatesChecked: 4 });
     render(<App />);
-    goTo("Diagnostics");
+    await goToDiagnostics();
     expect(await screen.findByText("No Java installations found")).toBeTruthy();
   });
 
   it("shows an error when system information fails", async () => {
     mocked.getSystemInfo.mockRejectedValue(new Error("no sysinfo"));
     render(<App />);
-    goTo("Diagnostics");
+    await goToDiagnostics();
     expect(await screen.findByText("System information unavailable")).toBeTruthy();
     expect(screen.getByText("no sysinfo")).toBeTruthy();
   });
@@ -725,7 +773,7 @@ describe("Diagnostics", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     render(<App />);
-    goTo("Diagnostics");
+    await goToDiagnostics();
     await screen.findByText("AMD Ryzen 5 PRO 4650G with Radeon Graphics");
     const copy = screen.getByRole("button", { name: "Copy report" }) as HTMLButtonElement;
     await waitFor(() => expect(copy.disabled).toBe(false));
@@ -739,7 +787,7 @@ describe("Diagnostics", () => {
     const writeText = vi.fn().mockRejectedValue(new Error("denied"));
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     render(<App />);
-    goTo("Diagnostics");
+    await goToDiagnostics();
     const copy = (await screen.findByRole("button", { name: "Copy report" })) as HTMLButtonElement;
     await waitFor(() => expect(copy.disabled).toBe(false));
     fireEvent.click(copy);
@@ -891,8 +939,7 @@ describe("Play", () => {
     mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
   };
   const waitReady = async () => {
-    await screen.findByText("Java 21");
-    await screen.findAllByText("Installed");
+    await loaded();
     await screen.findAllByText("Steve");
   };
   const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
@@ -902,6 +949,7 @@ describe("Play", () => {
     ready();
     render(<App />);
     await waitReady();
+    goTo("Versions");
     const steps = screen.getByRole("list", { name: "Setup progress" });
     expect(within(steps).getByText("Account")).toBeTruthy();
     expect(within(steps).getByText("Java")).toBeTruthy();
@@ -911,8 +959,8 @@ describe("Play", () => {
 
   it("starts with the game files still to do when they are missing", async () => {
     render(<App />);
-    await screen.findByText("Java 21");
-    await screen.findAllByText("Steve");
+    await waitReady();
+    goTo("Versions");
     const steps = screen.getByRole("list", { name: "Setup progress" });
     await waitFor(() => expect(within(steps).getAllByText("✓")).toHaveLength(2));
   });
@@ -961,7 +1009,6 @@ describe("Play", () => {
     mocked.installJava.mockReturnValue(new Promise<InstallResult>(() => {}));
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
-    expect(screen.getByText(/Installs Java 21/)).toBeTruthy();
     await waitFor(() => expect(mocked.installJava).toHaveBeenCalledTimes(1));
   });
 
@@ -993,8 +1040,7 @@ describe("Play", () => {
     ready();
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
-    await screen.findByText("Java 21");
-    await screen.findAllByText("Installed");
+    await loaded();
     goTo("Versions");
     chooseOffline();
     fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Alex" } });
@@ -1087,10 +1133,11 @@ describe("License", () => {
     expect(mocked.quitApp).toHaveBeenCalledTimes(1);
   });
 
-  it("can be read again from the footer", async () => {
+  it("can be read again from About", async () => {
     render(<App />);
     expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "License" }));
+    goToAbout();
+    fireEvent.click(await screen.findByRole("button", { name: "Read the license" }));
     const dialog = await screen.findByRole("dialog", { name: "Cirrus Client license" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
@@ -1120,7 +1167,7 @@ describe("Modpacks", () => {
     ready();
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
-    await screen.findByText("Java 21");
+    await settled();
     goTo("Modpacks");
     expect(await screen.findByText("1.21.11 Fabric")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Play profile PvP" }));
@@ -1212,10 +1259,9 @@ describe("Launch log and crash details", () => {
     mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: "C:\\game\\logs\\cirrus-launch.log" });
     render(<App />);
-    await screen.findByText("Java 21");
-    await screen.findAllByText("Installed");
+    await loaded();
     await screen.findAllByText("Steve");
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Play" }));
     await waitFor(() => expect(mocked.launchGame).toHaveBeenCalled());
     await waitFor(() => expect(gameExitHandler).not.toBeNull());
   };
@@ -1266,7 +1312,7 @@ describe("Launch log and crash details", () => {
 describe("Window frame", () => {
   it("draws no window buttons outside the desktop app", async () => {
     render(<App />);
-    await screen.findByText("Java 21");
+    await settled();
     expect(screen.queryByRole("button", { name: "Close window" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Minimize window" })).toBeNull();
     await goToSettings("Appearance");
@@ -1474,7 +1520,7 @@ describe("Mods", () => {
 describe("Accounts page", () => {
   it("shows the Microsoft account, offline play and how credentials are kept", async () => {
     render(<App />);
-    goTo("Accounts");
+    await goToAccounts();
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
     expect(screen.getByText("Offline play")).toBeTruthy();
     expect(screen.getByText("Switching accounts")).toBeTruthy();
@@ -1487,8 +1533,8 @@ describe("Accounts page", () => {
     mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
     mocked.authSignOut.mockResolvedValue(authStatus({ state: "signedOut", configured: true }));
     render(<App />);
-    await screen.findByText("Java 21");
-    goTo("Accounts");
+    await settled();
+    await goToAccounts();
     expect((await screen.findAllByText("Steve")).length).toBeGreaterThan(0);
     fireEvent.click(await screen.findByRole("button", { name: /Sign out/ }));
     await waitFor(() => expect(mocked.authSignOut).toHaveBeenCalledTimes(1));
@@ -1496,7 +1542,7 @@ describe("Accounts page", () => {
 
   it("does not open the account menu on top of the Accounts page", async () => {
     render(<App />);
-    goTo("Accounts");
+    await goToAccounts();
     openAccount();
     expect(screen.queryByRole("dialog", { name: "Account" })).toBeNull();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
@@ -1506,8 +1552,8 @@ describe("Accounts page", () => {
     mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
     mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
     render(<App />);
-    await screen.findByText("Java 21");
-    goTo("Accounts");
+    await settled();
+    await goToAccounts();
     expect((await screen.findAllByText("01234567-89ab-cdef-0123-456789abcdef")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Change skin" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
@@ -1601,7 +1647,7 @@ describe("Skins page", () => {
     mocked.listSkins.mockResolvedValue([skin()]);
     mocked.applySkin.mockResolvedValue(undefined);
     render(<App />);
-    await screen.findByText("Java 21");
+    await settled();
     goTo("Skins");
     const apply = await screen.findByRole("button", { name: "Apply to my account" });
     await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
@@ -1616,7 +1662,7 @@ describe("Skins page", () => {
     mocked.listSkins.mockResolvedValue([skin()]);
     mocked.applySkin.mockRejectedValue(new Error("Minecraft rejected the skin."));
     render(<App />);
-    await screen.findByText("Java 21");
+    await settled();
     goTo("Skins");
     const apply = await screen.findByRole("button", { name: "Apply to my account" });
     await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
@@ -1628,20 +1674,19 @@ describe("Skins page", () => {
 describe("About page", () => {
   it("shows the version, the tagline and the links, and opens Discord and GitHub", async () => {
     render(<App />);
-    goTo("About");
+    goToAbout();
     expect(await screen.findByText(/Version 0\.1\.0/)).toBeTruthy();
     expect(screen.getByText("The sky is the limit.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open Discord" }));
     expect(mocked.openCommunity).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Open GitHub" }));
     expect(mocked.openGithub).toHaveBeenCalledTimes(1);
-    expect((screen.getByRole("button", { name: "Not available" }) as HTMLButtonElement).disabled).toBe(true);
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
   it("opens the license from About", async () => {
     render(<App />);
-    goTo("About");
+    goToAbout();
     fireEvent.click(await screen.findByRole("button", { name: "Read the license" }));
     expect(await screen.findByRole("dialog", { name: "Cirrus Client license" })).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
@@ -1650,7 +1695,7 @@ describe("About page", () => {
   it("shows an error when a link cannot be opened", async () => {
     mocked.openGithub.mockRejectedValue(new Error("no browser"));
     render(<App />);
-    goTo("About");
+    goToAbout();
     fireEvent.click(await screen.findByRole("button", { name: "Open GitHub" }));
     expect(await screen.findByText("no browser")).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());

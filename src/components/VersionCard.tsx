@@ -1,10 +1,20 @@
-import type { ReactNode } from "react";
-import { kindForVersion } from "../core/scene";
-import { SceneCanvas } from "./Scene";
+import type { CSSProperties, ReactNode } from "react";
+import { cardArt } from "../core/art";
 
-/** The picture on a version or profile card: an original landscape that is the same for the same version. */
+/** The picture on a version or profile card: official key art, cropped differently for each version. */
 export function VersionArt({ version, extra = "", className = "" }: { version: string; extra?: string; className?: string }) {
-  return <SceneCanvas kind={kindForVersion(version)} seed={`${version}${extra}`} className={`vc-art ${className}`.trim()} />;
+  const art = cardArt(version, extra);
+  return (
+    <img
+      className={`vc-art ${className}`.trim()}
+      src={art.src}
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      style={{ objectPosition: art.position, "--z": art.zoom } as CSSProperties}
+    />
+  );
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { SkinModel as Model } from "../api/types";
 
 /** One body part: where its pieces are in the skin picture (u, v), its size in skin pixels, and where it sits. */
@@ -110,6 +110,7 @@ export function SkinFigure({
   scale = 6,
   legacy = false,
   label,
+  draggable = false,
 }: {
   skin: string;
   model: Model;
@@ -119,10 +120,42 @@ export function SkinFigure({
   /** A 64 x 32 skin has no separate left arm/leg or second layer. */
   legacy?: boolean;
   label: string;
+  /** Let the player turn the figure by dragging it (double-click puts it back). */
+  draggable?: boolean;
 }) {
+  // While the player drags, `turn` is the angle in degrees and replaces the preset view.
+  const [turn, setTurn] = useState<number | null>(null);
+  const from = useRef<{ x: number; angle: number } | null>(null);
+  useEffect(() => setTurn(null), [view]);
+
+  const onDown = (e: PointerEvent<HTMLSpanElement>) => {
+    if (!draggable) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    from.current = { x: e.clientX, angle: turn ?? (view === "back" ? 162 : -25) };
+  };
+  const onMove = (e: PointerEvent<HTMLSpanElement>) => {
+    if (!from.current) return;
+    setTurn(from.current.angle + (e.clientX - from.current.x) * 0.9);
+  };
+  const onUp = () => {
+    from.current = null;
+  };
+
+  const manual: CSSProperties | undefined =
+    turn === null ? undefined : { animation: "none", transform: `rotateX(-8deg) rotateY(${turn}deg)` };
   return (
-    <span className="skin-stage" role="img" aria-label={label} style={{ width: 22 * scale, height: 34 * scale }}>
-      <span className={`skin-figure skin-view-${view}`} style={{ width: 0, height: 0 }}>
+    <span
+      className={`skin-stage ${draggable ? "skin-draggable" : ""}`}
+      role="img"
+      aria-label={label}
+      style={{ width: 22 * scale, height: 34 * scale }}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+      onDoubleClick={() => setTurn(null)}
+    >
+      <span className={`skin-figure skin-view-${view}`} style={{ width: 0, height: 0, ...manual }}>
         <span className="skin-center">
           {parts(model, legacy).map((p, i) => (
             <Box key={i} p={p} skin={skin} s={scale} />

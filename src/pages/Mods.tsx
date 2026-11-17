@@ -1,3 +1,4 @@
+import { notify } from "../core/notifications";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
@@ -152,6 +153,7 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
             : `${label} was already installed.`,
       });
       setDone((d) => [...d, `${p}:${id}`]);
+      if (added > 0) notify({ title: `${label} installed`, body: `Minecraft ${version}`, tone: "good" });
       await refreshInstalled();
     } catch (e) {
       setNotice({ tone: "bad", text: `${label} could not be installed: ${errorMessage(e)}` });

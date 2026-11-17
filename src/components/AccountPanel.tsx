@@ -1,9 +1,10 @@
+import { BrandIcon } from "./BrandIcon";
 import { useEffect, useState } from "react";
 import { CLIENT_ID_PATTERN } from "../core/settings";
 import { formatUuid } from "../core/auth";
 import type { Account } from "../hooks/useAuth";
 import type { PageId } from "./Navigation";
-import { KeyIcon, ShieldIcon } from "./Icons";
+import { KeyIcon } from "./Icons";
 import { LogoMark } from "./Logo";
 import { Banner, Card, Skeleton } from "./ui";
 
@@ -117,10 +118,13 @@ export function AccountPanel({
   account,
   onNavigate,
   onSaveClientId,
+  onManage,
 }: {
   account: Account;
   onNavigate: (page: PageId) => void;
   onSaveClientId?: (id: string) => Promise<string | null>;
+  /** Shown as a "Manage accounts" button (the pop-up in the top bar); the Accounts page itself leaves it out. */
+  onManage?: () => void;
 }) {
   const { state } = account;
 
@@ -134,10 +138,7 @@ export function AccountPanel({
             <LogoMark size={44} />
             <div>
               <p className="account-name">Not signed in</p>
-              <p className="muted small">
-                Sign-in is not set up in this build yet: it needs an app ID registered with Microsoft and approved
-                by Mojang. Players never type one; the owner adds it once.
-              </p>
+              <p className="muted small">Sign-in is not available in this build yet.</p>
             </div>
           </div>
           {onSaveClientId && <SignInSetup onSave={onSaveClientId} />}
@@ -153,7 +154,7 @@ export function AccountPanel({
             <LogoMark size={44} />
             <div>
               <p className="account-name">Not signed in</p>
-              <p className="muted small">Sign in with your Microsoft account that owns Minecraft: Java Edition.</p>
+              <p className="muted small">Use the Microsoft account that owns Minecraft.</p>
             </div>
           </div>
           {state.message && <p className="error-text" role="alert">{state.message}</p>}
@@ -163,8 +164,9 @@ export function AccountPanel({
             aria-label="Sign in with Microsoft"
             onClick={() => account.signIn("code")}
           >
-            <span className="signin-badge" aria-hidden="true">
-              <ShieldIcon />
+            <span className="signin-icons" aria-hidden="true">
+              <BrandIcon name="minecraft" size={22} />
+              <BrandIcon name="microsoft" size={20} />
             </span>
             <span className="signin-text">
               <strong>Sign in with Microsoft</strong>
@@ -175,10 +177,6 @@ export function AccountPanel({
             <KeyIcon />
             Use the Microsoft window instead
           </button>
-          <p className="muted small">
-            Shows a code to enter on Microsoft&apos;s own page. Cirrus Client only asks to sign in to Minecraft and never sees
-            your password.
-          </p>
         </>
       )}
 
@@ -214,6 +212,11 @@ export function AccountPanel({
         >
           {state.message}
         </Banner>
+      )}
+      {onManage && state.phase !== "checking" && (
+        <button type="button" className="btn btn-quiet btn-block" onClick={onManage}>
+          Manage accounts
+        </button>
       )}
     </Card>
   );

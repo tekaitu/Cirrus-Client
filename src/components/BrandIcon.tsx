@@ -1,22 +1,36 @@
-import { ChatIcon, CodeIcon } from "./Icons";
+import { ChatIcon, CodeIcon, CubeIcon } from "./Icons";
 
-/** Official logos the owner drops into src/assets/brand/ (see the README there). Nothing is drawn by hand. */
-const FILES = import.meta.glob("../assets/brand/*.svg", { eager: true, query: "?url", import: "default" }) as Record<
+/**
+ * Official logos live as files in src/assets/brand/ (see the README there). Nothing is drawn by hand.
+ * discord.svg and github.svg are single-colour and take the text colour; microsoft.svg and minecraft.svg are
+ * the companies' own full-colour files and are shown as they are.
+ */
+const FILES = import.meta.glob("../assets/brand/*.{svg,png,webp}", { eager: true, query: "?url", import: "default" }) as Record<
   string,
   string
 >;
 
-export type BrandName = "discord" | "github";
+export type BrandName = "discord" | "github" | "microsoft" | "minecraft";
+
+const FULL_COLOUR: BrandName[] = ["microsoft", "minecraft"];
 
 function fileFor(name: BrandName): string | null {
-  const key = Object.keys(FILES).find((k) => k.endsWith(`/${name}.svg`));
+  const key = Object.keys(FILES).find((k) => new RegExp(`/${name}\\.(svg|png|webp)$`).test(k));
   return key ? FILES[key] : null;
 }
 
-/** The brand's own logo when its file is present, otherwise a neutral icon. */
+/** The brand's own logo when its file is present, otherwise a neutral icon (or nothing for Microsoft). */
 export function BrandIcon({ name, size = 18 }: { name: BrandName; size?: number }) {
   const url = fileFor(name);
-  if (!url) return name === "discord" ? <ChatIcon /> : <CodeIcon />;
+  if (!url) {
+    if (name === "discord") return <ChatIcon />;
+    if (name === "github") return <CodeIcon />;
+    if (name === "minecraft") return <CubeIcon />;
+    return null;
+  }
+  if (FULL_COLOUR.includes(name)) {
+    return <img className="brand-icon brand-icon-colour" src={url} alt="" aria-hidden="true" width={size} height={size} />;
+  }
   return (
     <span
       className="brand-icon"
