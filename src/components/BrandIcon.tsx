@@ -35,7 +35,7 @@ export function BrandIcon({ name, size = 18 }: { name: BrandName; size?: number 
     <span
       className="brand-icon"
       aria-hidden="true"
-      style={{ width: size, height: size, WebkitMaskImage: `url(${url})`, maskImage: `url(${url})` }}
+      style={{ width: size, height: size, WebkitMaskImage: `url("${url}")`, maskImage: `url("${url}")` }}
     />
   );
 }

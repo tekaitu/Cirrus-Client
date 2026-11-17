@@ -342,3 +342,7 @@ button.vc-main { cursor: pointer; }
 .dev-details[open] > summary { border-bottom: 1px solid var(--border); }
 .dev-details > :not(summary) { margin: 14px 16px; }
 .about-notice { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; color: var(--text-soft); }
+
+/* Light theme: Home keeps the picture vivid but the veil stays dark so the white title and header stay readable. */
+:root[data-theme="light"] .app-bg[data-backdrop="home"] .app-bg-veil { background: linear-gradient(180deg, rgba(8, 13, 24, 0.5) 0%, rgba(8, 13, 24, 0.3) 40%, rgba(8, 13, 24, 0.7) 100%); }
+:root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar, :root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar .pill { color: rgb(255 255 255 / 0.85); }

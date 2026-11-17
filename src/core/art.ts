@@ -26,9 +26,8 @@ export function seedFrom(text: string): number {
 
 /** Which picture and which crop a version card shows. The same version always gets the same one. */
 export function cardArt(version: string, extra = ""): { src: string; position: string; zoom: number } {
-  const h = seedFrom(version);
-  const id = ART_IDS[h % ART_IDS.length];
   const h2 = seedFrom(`${version}${extra}`);
+  const id = ART_IDS[(h2 >>> 4) % ART_IDS.length];
   const x = 15 + (h2 % 71);
   const y = 25 + ((h2 >>> 8) % 51);
   const zoom = 1.15 + ((h2 >>> 16) % 30) / 100;
