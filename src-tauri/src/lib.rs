@@ -461,7 +461,12 @@ async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<Aut
     let emitter = app.clone();
     let flag = cancel.clone();
     let worker = tauri::async_runtime::spawn_blocking(move || {
-        auth::sign_in(&auth::Endpoints::production(), &client_id, &auth::KeyringStore, &flag, &move |info| {
+        // The Minecraft profile (and so the account id) is only known once the
+        // exchange finishes, so this first save goes to the unscoped entry old
+        // versions used. `adopt_session` immediately copies it to the account's
+        // own entry and clears the unscoped one.
+        let store = auth::KeyringStore::default();
+        auth::sign_in(&auth::Endpoints::production(), &client_id, &store, &flag, &move |info| {
             let _ = emitter.emit(AUTH_CODE_EVENT, info.clone());
         })
     })
@@ -502,10 +507,14 @@ async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Res
     let handle = app.clone();
     let flag = cancel.clone();
     let worker = tauri::async_runtime::spawn_blocking(move || {
+        // As in `auth_sign_in`: no profile id exists yet, so the token is first
+        // written to the unscoped entry and then moved to the account entry by
+        // `adopt_session`.
+        let store = auth::KeyringStore::default();
         auth::sign_in_window(
             &auth::Endpoints::production(),
             &client_id,
-            &auth::KeyringStore,
+            &store,
             &flag,
             &|url| show_login_window(&handle, url, &flag),
         )
@@ -967,10 +976,18 @@ async fn player_appearance(state: State<'_, AppearanceCache>, player: String) ->
         .ok_or_else(|| "That player's skin could not be loaded.".to_string())
 }
 
-/// The current skin of a player (by id or name) as a PNG data address, for avatars. `None` when unavailable.
+/// The current skin of a player (by id or name) as a PNG data address, for
+/// avatars. A missing skin is an error rather than an empty success, so the
+/// avatar falls back to the player's initial instead of an unusable address.
 #[tauri::command]
-async fn player_skin(state: State<'_, AppearanceCache>, player: String) -> Option<String> {
-    appearance_for(&state, player).await.map(|appearance| appearance.skin)
+async fn player_skin(state: State<'_, AppearanceCache>, player: String) -> Result<Option<String>, String> {
+    let appearance = appearance_for(&state, player)
+        .await
+        .ok_or_else(|| "That player's skin could not be loaded.".to_string())?;
+    if appearance.skin.is_empty() {
+        return Err("That player has no skin to show.".to_string());
+    }
+    Ok(Some(appearance.skin))
 }
 
 #[tauri::command]

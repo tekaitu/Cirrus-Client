@@ -1137,6 +1137,25 @@ mod tests {
     }
 
     #[test]
+    fn credential_entries_are_scoped_per_account() {
+        let first = KeyringStore::for_account("11111111111111111111111111111111");
+        let second = KeyringStore::for_account("22222222222222222222222222222222");
+        assert_eq!(first.user, "microsoft-refresh-token:11111111111111111111111111111111");
+        assert_eq!(second.user, "microsoft-refresh-token:22222222222222222222222222222222");
+        // Two accounts must never resolve to the same Credential Manager entry,
+        // and neither may fall back to the pre-multi-account entry.
+        assert_ne!(first.user, second.user);
+        assert_ne!(first.user, KeyringStore::default().user);
+        assert_ne!(second.user, KeyringStore::default().user);
+    }
+
+    #[test]
+    fn the_default_store_is_the_single_legacy_entry() {
+        assert_eq!(KeyringStore::default().user, KEYRING_USER);
+        assert!(!KeyringStore::default().user.contains(':'));
+    }
+
+    #[test]
     fn error_messages_never_contain_tokens() {
         let (base, _) = happy_chain(|path, _| (path == "/profile").then(|| (500, json!({"access_token":"MC-TOKEN"}).to_string())));
         let err = sign_in(&endpoints(&base), ID, &MemoryStore::default(), &AtomicBool::new(false), &|_| {}).unwrap_err();
