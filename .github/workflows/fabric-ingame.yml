@@ -1,0 +1,49 @@
+name: Fabric in-game check
+
+# Runs the real Minecraft 1.21.11 client with the Cirrus mod on a virtual display and publishes the screenshots.
+on:
+  push:
+    branches: [fabric-ui-rendering]
+  workflow_dispatch:
+
+jobs:
+  inspect-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fabric-mod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build the mod (this also downloads Minecraft and Fabric API)
+        run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build --no-daemon
+      - name: Dump the real API signatures
+        run: |
+          mkdir -p ../api-dump
+          find ~/.gradle -name '*.jar' | grep -iE 'minecraft.*(merged|clientOnly|client)' | grep -v sources | head -5 | tee ../api-dump/jars.txt
+          MC=$(find ~/.gradle -name '*.jar' | grep -iE 'minecraft.*clientOnly' | grep -v sources | head -1)
+          echo "MC=$MC"
+          for c in net.minecraft.client.gui.GuiGraphics net.minecraft.client.gui.Font net.minecraft.client.gui.components.Button net.minecraft.client.gui.components.AbstractWidget net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.components.EditBox net.minecraft.client.gui.GuiSpriteManager net.minecraft.client.renderer.RenderPipelines; do
+            javap -p -cp "$MC" "$c" > "../api-dump/$c.txt" 2>&1 || true
+          done
+          find ~/.gradle -name 'fabric-client-gametest-api-v1*.jar' | grep -v sources | tee ../api-dump/gametest-jars.txt
+          GT=$(head -1 ../api-dump/gametest-jars.txt)
+          unzip -l "$GT" | awk '{print $4}' | grep '\.class' > ../api-dump/gametest-classes.txt || true
+          for c in $(grep -E 'ClientGameTestContext|TestInput|TestSingleplayerContext|FabricClientGameTest|TestScreenshotComparisonOptions' ../api-dump/gametest-classes.txt | sed 's/\.class$//; s#/#.#g'); do
+            javap -public -cp "$GT" "$c" > "../api-dump/$c.txt" 2>&1 || true
+          done
+          ls ../api-dump
+          echo ---- GuiGraphics blit/blitSprite ----
+          grep -E 'blit|fill|drawString|enableScissor|pose' ../api-dump/net.minecraft.client.gui.GuiGraphics.txt || true
+          echo ---- Button / AbstractWidget ----
+          grep -E 'render|extract|Contents|Hover' ../api-dump/net.minecraft.client.gui.components.AbstractWidget.txt ../api-dump/net.minecraft.client.gui.components.Button.txt || true
+          echo ---- Gametest context ----
+          cat ../api-dump/*ClientGameTestContext*.txt 2>/dev/null | head -80
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-dump
+          path: api-dump
