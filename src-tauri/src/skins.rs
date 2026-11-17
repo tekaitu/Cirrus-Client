@@ -287,18 +287,52 @@ fn get_json(client: &Client, url: &str) -> Result<(u16, Value), String> {
     Ok((status, serde_json::from_str(&body).unwrap_or(Value::Null)))
 }
 
-/// The skin address and model inside a session-server profile answer.
-pub fn texture_from_profile(profile: &Value) -> Option<(String, String)> {
+/// The texture addresses inside a session-server profile answer. A cape is
+/// only present when the account actually owns one.
+pub struct Textures {
+    pub skin: String,
+    pub model: String,
+    pub cape: Option<String>,
+}
+
+pub fn textures_from_profile(profile: &Value) -> Option<Textures> {
     let props = profile.get("properties")?.as_array()?;
     let value = props.iter().find(|p| p.get("name").and_then(Value::as_str) == Some("textures"))?.get("value")?.as_str()?;
     let decoded: Value = serde_json::from_slice(&b64_decode(value)?).ok()?;
-    let skin = decoded.get("textures")?.get("SKIN")?;
-    let url = skin.get("url")?.as_str()?.to_string();
+    let textures = decoded.get("textures")?;
+    let skin = textures.get("SKIN")?;
+    let skin_url = skin.get("url")?.as_str()?.to_string();
     let model = match skin.get("metadata").and_then(|m| m.get("model")).and_then(Value::as_str) {
         Some("slim") => "slim",
         _ => "classic",
     };
-    Some((url, model.to_string()))
+    // A CAPE property is only offered for download when it is on Mojang's own
+    // texture host, so a crafted profile can never point the launcher elsewhere.
+    let cape = textures
+        .get("CAPE")
+        .and_then(|c| c.get("url"))
+        .and_then(Value::as_str)
+        .filter(|url| is_texture_url(url))
+        .map(str::to_string);
+    Some(Textures { skin: skin_url, model: model.to_string(), cape })
+}
+
+/// The skin address and model inside a session-server profile answer.
+pub fn texture_from_profile(profile: &Value) -> Option<(String, String)> {
+    textures_from_profile(profile).map(|t| (t.skin, t.model))
+}
+
+/// What the character preview needs: the skin PNG, the arm model, and the
+/// account's own cape when it has one. Addresses are data URLs so the window
+/// never loads an image from the network (and the CSP stays tight).
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Appearance {
+    pub id: String,
+    pub name: String,
+    pub model: String,
+    pub skin: String,
+    pub cape: Option<String>,
 }
 
 pub fn download_texture(client: &Client, url: &str) -> Result<Vec<u8>, String> {
@@ -315,8 +349,8 @@ pub fn download_texture(client: &Client, url: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-/// Looks a player up by name or id and returns (their name, PNG, model).
-pub fn fetch_player_skin(client: &Client, ep: &Endpoints, who: &str) -> Result<(String, Vec<u8>, String), String> {
+/// Finds a player's id and session profile by name or id.
+fn resolve_profile<'a>(client: &Client, ep: &Endpoints, who: &str) -> Result<(String, Value), String> {
     let who = who.trim();
     let (id, name) = if is_uuid(who) {
         (who.replace('-', ""), None)
@@ -341,9 +375,37 @@ pub fn fetch_player_skin(client: &Client, ep: &Endpoints, who: &str) -> Result<(
         other => return Err(format!("Mojang's session service answered HTTP {other}.")),
     }
     let shown = name.or_else(|| profile.get("name").and_then(Value::as_str).map(str::to_string)).unwrap_or_else(|| who.to_string());
-    let (url, model) = texture_from_profile(&profile).ok_or_else(|| format!("{shown} has no custom skin to copy."))?;
-    let png = download_texture(client, &url)?;
-    Ok((shown, png, model))
+    Ok((shown, profile))
+}
+
+/// Looks a player up by name or id and returns (their name, PNG, model).
+pub fn fetch_player_skin(client: &Client, ep: &Endpoints, who: &str) -> Result<(String, Vec<u8>, String), String> {
+    let (shown, profile) = resolve_profile(client, ep, who)?;
+    let textures = textures_from_profile(&profile).ok_or_else(|| format!("{shown} has no custom skin to copy."))?;
+    let png = download_texture(client, &textures.skin)?;
+    Ok((shown, png, textures.model))
+}
+
+/// A player's full appearance: skin, arm model, and their own cape when one is
+/// equipped on the account. A cape that cannot be downloaded is left out
+/// instead of failing the whole preview.
+pub fn fetch_appearance(client: &Client, ep: &Endpoints, who: &str) -> Result<Appearance, String> {
+    let (shown, profile) = resolve_profile(client, ep, who)?;
+    let id = profile
+        .get("id")
+        .and_then(Value::as_str)
+        .map(|i| i.replace('-', ""))
+        .unwrap_or_else(|| who.replace('-', ""));
+    let textures = textures_from_profile(&profile).ok_or_else(|| format!("{shown} has no custom skin to copy."))?;
+    let png = download_texture(client, &textures.skin)?;
+    let cape = textures.cape.as_deref().and_then(|url| download_texture(client, url).ok()).map(|png| png_data_url(&png));
+    Ok(Appearance {
+        id,
+        name: shown,
+        model: textures.model,
+        skin: png_data_url(&png),
+        cape,
+    })
 }
 
 const BOUNDARY: &str = "----CirrusClientSkinUpload7d1f3a9c";
@@ -482,6 +544,25 @@ mod tests {
         assert_eq!(texture_from_profile(&profile).unwrap().1, "classic");
         assert!(texture_from_profile(&serde_json::json!({ "properties": [] })).is_none());
         assert!(texture_from_profile(&Value::Null).is_none());
+    }
+
+    #[test]
+    fn a_cape_is_only_offered_when_it_is_a_mojang_texture() {
+        let with_cape = r#"{"textures":{"SKIN":{"url":"https://textures.minecraft.net/texture/skin"},"CAPE":{"url":"https://textures.minecraft.net/texture/cape"}}}"#;
+        let profile = serde_json::json!({ "properties": [{ "name": "textures", "value": b64_encode(with_cape.as_bytes()) }] });
+        let t = textures_from_profile(&profile).unwrap();
+        assert_eq!(t.model, "classic");
+        assert_eq!(t.cape.as_deref(), Some("https://textures.minecraft.net/texture/cape"));
+
+        // A cape address outside Mojang's texture host is ignored, not followed.
+        let hostile = r#"{"textures":{"SKIN":{"url":"https://textures.minecraft.net/texture/skin"},"CAPE":{"url":"https://evil.example/cape.png"}}}"#;
+        let profile = serde_json::json!({ "properties": [{ "name": "textures", "value": b64_encode(hostile.as_bytes()) }] });
+        assert_eq!(textures_from_profile(&profile).unwrap().cape, None);
+
+        // No cape property at all is normal.
+        let plain = r#"{"textures":{"SKIN":{"url":"https://textures.minecraft.net/texture/skin"}}}"#;
+        let profile = serde_json::json!({ "properties": [{ "name": "textures", "value": b64_encode(plain.as_bytes()) }] });
+        assert_eq!(textures_from_profile(&profile).unwrap().cape, None);
     }
 
     #[test]

@@ -86,6 +86,10 @@ pub struct Session {
     pub profile: Profile,
     #[allow(dead_code)]
     pub mc_token: String,
+    /// The newest Microsoft refresh token, when Microsoft returned one. The
+    /// launcher stores it under this account's own Credential Manager entry;
+    /// it never crosses into the interface.
+    pub refresh_token: Option<String>,
     /// False when the refresh token could not be saved to Credential Manager.
     pub persisted: bool,
 }
@@ -95,6 +99,7 @@ impl std::fmt::Debug for Session {
         f.debug_struct("Session")
             .field("profile", &self.profile)
             .field("mc_token", &"<hidden>")
+            .field("refresh_token", &"<hidden>")
             .field("persisted", &self.persisted)
             .finish()
     }
@@ -134,30 +139,52 @@ pub trait SecretStore: Send + Sync {
 }
 
 /// Windows Credential Manager (through the `keyring` crate).
-pub struct KeyringStore;
+///
+/// Each Microsoft account gets its own entry (`microsoft-refresh-token:<id>`).
+/// The unscoped (default) entry is the single-account one written by older
+/// versions; it is still read once so an existing sign-in is not lost.
+pub struct KeyringStore {
+    user: String,
+}
+
+impl Default for KeyringStore {
+    fn default() -> Self {
+        KeyringStore { user: KEYRING_USER.to_string() }
+    }
+}
 
 impl KeyringStore {
-    fn entry() -> Result<keyring::Entry, String> {
-        keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
+    /// The Credential Manager entry that belongs to one Minecraft account.
+    pub fn for_account(profile_id: &str) -> Self {
+        KeyringStore { user: format!("{KEYRING_USER}:{profile_id}") }
+    }
+
+    fn entry(&self) -> Result<keyring::Entry, String> {
+        keyring::Entry::new(KEYRING_SERVICE, &self.user)
             .map_err(|e| format!("Credential Manager is not available: {e}"))
+    }
+
+    /// True when the single-account entry from an older version still exists.
+    pub fn legacy_saved(&self) -> bool {
+        matches!(self.load(), Ok(Some(_)))
     }
 }
 
 impl SecretStore for KeyringStore {
     fn save(&self, secret: &str) -> Result<(), String> {
-        Self::entry()?
+        self.entry()?
             .set_password(secret)
             .map_err(|e| format!("Could not save the sign-in to Credential Manager: {e}"))
     }
     fn load(&self) -> Result<Option<String>, String> {
-        match Self::entry()?.get_password() {
+        match self.entry()?.get_password() {
             Ok(s) => Ok(Some(s)),
             Err(keyring::Error::NoEntry) => Ok(None),
             Err(e) => Err(format!("Could not read the saved sign-in: {e}")),
         }
     }
     fn clear(&self) -> Result<(), String> {
-        match Self::entry()?.delete_credential() {
+        match self.entry()?.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(e) => Err(format!("Could not remove the saved sign-in: {e}")),
         }
@@ -477,7 +504,7 @@ pub fn sign_in_window(
     let ms = exchange_code(&client, ep, client_id, &code, &request.verifier)?;
     let (mc_token, profile) = finish(&client, ep, &ms.access_token)?;
     let persisted = persist(store, &ms.refresh_token);
-    Ok(Session { profile, mc_token, persisted })
+    Ok(Session { profile, mc_token, refresh_token: ms.refresh_token, persisted })
 }
 
 // ----------------------------------------------------------- Microsoft OAuth
@@ -693,7 +720,7 @@ pub fn sign_in(
     }
     let (mc_token, profile) = finish(&client, ep, &ms.access_token)?;
     let persisted = persist(store, &ms.refresh_token);
-    Ok(Session { profile, mc_token, persisted })
+    Ok(Session { profile, mc_token, refresh_token: ms.refresh_token, persisted })
 }
 
 /// Silent sign-in from the saved refresh token. `Ok(None)` means nothing was saved.
@@ -713,7 +740,7 @@ pub fn restore(ep: &Endpoints, client_id: &str, store: &dyn SecretStore) -> Resu
     let (mc_token, profile) = finish(&client, ep, &ms.access_token)?;
     // Microsoft may rotate the refresh token; keep the newest one.
     let persisted = if ms.refresh_token.is_some() { persist(store, &ms.refresh_token) } else { true };
-    Ok(Some(Session { profile, mc_token, persisted }))
+    Ok(Some(Session { profile, mc_token, refresh_token: ms.refresh_token, persisted }))
 }
 
 pub fn sign_out(store: &dyn SecretStore) -> Result<(), String> {
@@ -972,6 +999,8 @@ mod tests {
         assert_eq!(session.profile, Profile { id: "0123456789abcdef0123456789abcdef".into(), name: "Steve".into() });
         assert!(session.persisted);
         assert_eq!(store.load().unwrap().as_deref(), Some("MS-REFRESH"));
+        assert_eq!(session.refresh_token.as_deref(), Some("MS-REFRESH"));
+        assert!(!format!("{session:?}").contains("MS-REFRESH"));
         let info = shown.lock().unwrap().clone().unwrap();
         assert_eq!(info.user_code, "ABCD1234");
         // The secret device code and tokens never appear in what the UI is shown or in Debug output.
