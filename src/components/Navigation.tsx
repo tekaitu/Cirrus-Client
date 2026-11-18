@@ -35,7 +35,7 @@ export const PAGE_TITLES: Record<PageId, string> = {
   browse: "Browse",
   mods: "Mods",
   modpacks: "Modpacks",
-  skins: "Skins",
+  skins: "Character",
   servers: "Servers",
   accounts: "Accounts",
   settings: "Settings",

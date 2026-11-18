@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameProgress } from "../api/types";
 import { formatElapsed, formatRemaining, formatSpeed, gameInstallView } from "../core/installProgress";
-import { ShaderButton } from "./ShaderButton";
+import { Button } from "./Button";
 
 /**
  * The download panel. It shows what the backend reported (stage, files, bytes)
@@ -78,9 +78,9 @@ export function InstallProgress({
       </dl>
 
       <div className="install-actions">
-        <ShaderButton variant="secondary" size="sm" onClick={onCancel} disabled={cancelling || !view.canCancel}>
+        <Button variant="secondary" size="sm" onClick={onCancel} disabled={cancelling || !view.canCancel}>
           {cancelling ? "Cancelling…" : "Cancel"}
-        </ShaderButton>
+        </Button>
         {!view.canCancel && <span className="muted small">The last step cannot be stopped safely.</span>}
       </div>
     </div>

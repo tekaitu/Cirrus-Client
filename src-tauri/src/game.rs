@@ -139,6 +139,8 @@ pub struct VersionEntry {
     pub released: Option<String>,
     /// True only when the launcher can actually download and start it.
     pub supported: bool,
+    /// The Java major version this release asks for in Mojang's manifest.
+    pub java_major: Option<u32>,
 }
 
 /// Every version Mojang lists, newest first, each marked as installable or not.
@@ -167,6 +169,11 @@ pub fn catalog_from_manifest(manifest: &Value) -> Vec<VersionEntry> {
                     Some(VersionEntry {
                         supported: kind == "release" && supported_release(&id),
                         released: v.get("releaseTime").and_then(Value::as_str).map(str::to_string),
+                        java_major: v
+                            .get("javaVersion")
+                            .and_then(|j| j.get("majorVersion"))
+                            .and_then(Value::as_u64)
+                            .and_then(|n| u32::try_from(n).ok()),
                         kind,
                         id,
                     })
@@ -1482,6 +1489,18 @@ mod tests {
         assert_eq!(list[1].kind, "snapshot");
         assert!(!list[1].supported, "snapshots are listed but not installable");
         assert!(!list[2].supported, "1.20.4 needs an older Java");
+    }
+
+    #[test]
+    fn the_catalog_reports_the_java_version_from_the_manifest() {
+        let manifest = json!({"versions":[
+            {"id":"1.21.11","type":"release","javaVersion":{"majorVersion":21}},
+            {"id":"1.16.5","type":"release","javaVersion":{"majorVersion":8}},
+            {"id":"1.21.4","type":"release"}]});
+        let list = catalog_from_manifest(&manifest);
+        assert_eq!(list[0].java_major, Some(21));
+        assert_eq!(list[1].java_major, Some(8));
+        assert_eq!(list[2].java_major, None);
     }
 
     #[test]

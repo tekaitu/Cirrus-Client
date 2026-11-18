@@ -1,20 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { VersionEntry } from "../api/types";
-import { CubeIcon, RefreshArrowIcon } from "./Icons";
+import { CubeIcon, RefreshArrowIcon, SearchIcon } from "./Icons";
 import type { AppData } from "../hooks/useAppData";
-import { groupVersions, releasedText, versionStatus, type VersionOption } from "../core/versionCatalog";
+import {
+  filterVersions,
+  groupVersions,
+  javaCompatibility,
+  releasedText,
+  versionStatus,
+  type VersionOption,
+} from "../core/versionCatalog";
 
 /**
- * Choosing what to play. Releases and snapshots are grouped, every entry says
- * whether it is installed, and versions this build cannot download are listed
- * as not supported instead of looking installable.
+ * Choosing what to play. The full catalog can be searched and filtered by
+ * release or snapshot; each option says whether it is installed, and versions
+ * this build cannot download are disabled with the reason. When Mojang's
+ * manifest says which Java a version needs, the picker compares that with the
+ * Java Cirrus actually found, so a mismatch is visible before Play is pressed.
  */
 export function VersionSelector({ data, disabled = false }: { data: AppData; disabled?: boolean }) {
   const { selection, game } = data;
   const [catalog, setCatalog] = useState<VersionEntry[] | null>(null);
   const [catalogError, setCatalogError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<"all" | "release" | "snapshot">("all");
 
   const load = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -48,24 +59,36 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
         kind: "release",
         released: null,
         supported: true,
+        javaMajor: null,
       })),
       snapshots: [],
     };
   }, [catalog, selection.versions]);
 
-  const chosen =
-    [...groups.releases, ...groups.snapshots].find((v) => v.id === selection.version) ?? null;
-  const installed =
-    game.status?.installed === true && game.status.minecraft === selection.version ? true : false;
+  const shown = useMemo(() => filterVersions(groups, { query, kind }), [groups, query, kind]);
+  const total = groups.releases.length + groups.snapshots.length;
+  const filteredTotal = shown.releases.length + shown.snapshots.length;
+
+  const chosen = [...groups.releases, ...groups.snapshots].find((v) => v.id === selection.version) ?? null;
+  const installed = game.status?.installed === true && game.status.minecraft === selection.version;
   const status = versionStatus(chosen, installed);
   const checked = game.status !== null;
   const fabric = selection.loader === "fabric";
   const released = chosen ? releasedText(chosen) : null;
 
-  /** Keep a saved version selectable even when Mojang's list no longer has it. */
-  const extraRelease = chosen === null && selection.version
-    ? [{ id: selection.version, kind: "release" as const, released: null, supported: true }]
-    : [];
+  const detectedJava = data.java.status === "ready" ? (data.java.data.selected?.major ?? null) : null;
+  const java = javaCompatibility(chosen?.javaMajor, detectedJava);
+
+  /**
+   * Keep the saved version visible in the list even when the filter hides it
+   * or Mojang's catalog no longer has it, so the select never shows a blank.
+   */
+  const pinned: VersionOption[] =
+    chosen && ![...shown.releases, ...shown.snapshots].some((v) => v.id === chosen.id)
+      ? [chosen]
+      : chosen === null && selection.version
+        ? [{ id: selection.version, kind: "release", released: null, supported: true, javaMajor: null }]
+        : [];
 
   return (
     <div className="version-selector">
@@ -77,6 +100,7 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
           <p className="version-kicker">Selected version</p>
           <p className="version-big">
             {selection.version} <span className="version-loader-chip">{fabric ? "Fabric" : "Vanilla"}</span>
+            {chosen?.kind === "snapshot" && <span className="version-kind-chip">Snapshot</span>}
           </p>
           <p className={`version-status version-status-${status.tone}`}>
             {checked ? status.label : "Checking install status…"}
@@ -95,6 +119,41 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
         </button>
       </div>
 
+      <div className="version-filters">
+        <div className="search-box version-search">
+          <SearchIcon />
+          <input
+            type="text"
+            aria-label="Filter versions"
+            placeholder="Filter versions…"
+            value={query}
+            disabled={disabled}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="seg" role="radiogroup" aria-label="Version type">
+          {(
+            [
+              ["all", "All"],
+              ["release", "Releases"],
+              ["snapshot", "Snapshots"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={kind === id}
+              className={kind === id ? "seg-on" : ""}
+              disabled={disabled}
+              onClick={() => setKind(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="version-fields">
         <label className="pick">
           <span>Minecraft version</span>
@@ -104,27 +163,34 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
             disabled={disabled}
             onChange={(e) => selection.setVersion(e.target.value)}
           >
-            {extraRelease.map((v) => (
+            {pinned.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.id}
               </option>
             ))}
-            <optgroup label="Releases">
-              {groups.releases.map((v) => (
-                <option key={v.id} value={v.id} disabled={!v.supported}>
-                  {v.id}
-                  {!v.supported ? " — needs another Java" : ""}
-                </option>
-              ))}
-            </optgroup>
-            {groups.snapshots.length > 0 && (
-              <optgroup label="Snapshots (not supported)">
-                {groups.snapshots.map((v) => (
+            {shown.releases.length > 0 && (
+              <optgroup label="Releases">
+                {shown.releases.map((v) => (
+                  <option key={v.id} value={v.id} disabled={!v.supported}>
+                    {v.id}
+                    {!v.supported ? " — needs another Java" : ""}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {shown.snapshots.length > 0 && (
+              <optgroup label="Snapshots (not installable)">
+                {shown.snapshots.map((v) => (
                   <option key={v.id} value={v.id} disabled>
                     {v.id}
                   </option>
                 ))}
               </optgroup>
+            )}
+            {pinned.length === 0 && filteredTotal === 0 && (
+              <option value={selection.version} disabled>
+                No version matches “{query.trim()}”
+              </option>
             )}
           </select>
         </label>
@@ -148,6 +214,20 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
           </div>
         </div>
       </div>
+
+      {(query.trim() !== "" || kind !== "all") && (
+        <p className="version-count muted small" role="status">
+          Showing {filteredTotal} of {total} versions
+          {query.trim() !== "" ? ` matching “${query.trim()}”` : ""}.
+        </p>
+      )}
+
+      {java && (
+        <p className={`version-java version-java-${java.tone} small`} role="status">
+          {java.label}
+          {java.tone === "warn" && !installed ? " · this build only installs Java 21-era versions." : ""}
+        </p>
+      )}
 
       <p className="version-note muted small">
         {fabric

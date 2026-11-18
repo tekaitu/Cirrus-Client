@@ -24,7 +24,7 @@ import { PAGE_SHORTCUTS } from "../core/shortcuts";
 import { usernameError, type LoaderId } from "../core/game";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
-import { ShaderButton } from "../components/ShaderButton";
+import { Button } from "../components/Button";
 import { SkinHead } from "../components/SkinHead";
 import { formatMemory } from "../core/format";
 import { analyzeJava, type JavaAnalysis } from "../core/java";
@@ -797,9 +797,9 @@ function SettingsForm({
       )}
 
       <div className="actions action-bar settings-glass-actions">
-        <ShaderButton type="submit" variant="primary" size="md" disabled={!dirty} loading={saving} loadingLabel="Saving…" icon={<CheckIcon />}>
+        <Button type="submit" variant="primary" size="md" disabled={!dirty} loading={saving} loadingLabel="Saving…" icon={<CheckIcon />}>
           Save settings
-        </ShaderButton>
+        </Button>
         <button
           type="button"
           className="btn"

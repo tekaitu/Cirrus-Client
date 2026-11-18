@@ -74,9 +74,13 @@ pub struct DeviceCode {
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct Profile {
     pub id: String,
     pub name: String,
+    /// Minecraft's profile endpoint only answers for accounts that own Java
+    /// Edition, so a profile is proof of ownership. It is never guessed.
+    pub owns_minecraft: bool,
 }
 
 /// A signed-in Minecraft session. `mc_token` is kept in memory only, for the
@@ -673,7 +677,7 @@ fn fetch_profile(client: &Client, ep: &Endpoints, mc_token: &str) -> Result<Prof
         200 => {
             let id = text(&v, "id").ok_or_else(|| failed("The Minecraft profile had no id."))?;
             let name = text(&v, "name").ok_or_else(|| failed("The Minecraft profile had no name."))?;
-            Ok(Profile { id, name })
+            Ok(Profile { id, name, owns_minecraft: true })
         }
         404 => Err(failed(
             "This Microsoft account does not own Minecraft: Java Edition (no profile was found).",
@@ -996,7 +1000,10 @@ mod tests {
             *shown.lock().unwrap() = Some(info.clone());
         })
         .unwrap();
-        assert_eq!(session.profile, Profile { id: "0123456789abcdef0123456789abcdef".into(), name: "Steve".into() });
+        assert_eq!(
+            session.profile,
+            Profile { id: "0123456789abcdef0123456789abcdef".into(), name: "Steve".into(), owns_minecraft: true }
+        );
         assert!(session.persisted);
         assert_eq!(store.load().unwrap().as_deref(), Some("MS-REFRESH"));
         assert_eq!(session.refresh_token.as_deref(), Some("MS-REFRESH"));

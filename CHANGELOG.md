@@ -4,20 +4,22 @@ Every big change gets its own version number. Small fixes bump the last number (
 
 ## 0.3.1 — Minecraft identity, real player preview, no developer settings
 - Microsoft sign-in opens in a dedicated sign-in window by default; the device code stays as a fallback.
-- Account menu and Accounts page show the Minecraft player name and skin head instead of the UUID. The UUID is no longer displayed anywhere in the interface.
+- Account menu and Accounts page show the real Minecraft player head, player name, formatted UUID, skin model, equipped cape and Minecraft ownership. Account switching and removal stay in the same place.
 - Several Microsoft accounts can be saved and switched without signing in again; each token lives in its own Credential Manager entry.
 - Official Microsoft and Minecraft brand marks on the sign-in button and account card.
-- Skins: the real character is the default preview (own skin, Classic/Slim model, own cape), with drag-to-turn with momentum, double-click reset, and a cape chooser. The Cirrus cape is clearly labelled as a local preview.
+- Character: the real character is the default preview (own skin, Classic/Slim model, own cape), with drag-to-turn, zoom, a cape chooser, four original Cirrus skin presets, PNG upload and a one-click restore of the previous skin. The Cirrus cape is clearly labelled as a local preview.
 - Header uses the transparent Cirrus cloud mark instead of a black tile.
 - Removed Developer options and the Azure Application (client) ID from every user-facing screen. The app ID is built into the build, still overridable with `LIMITEDFPS_MS_CLIENT_ID`.
 - Appearance lookups are cached in the backend for five minutes, so the account menu and Skins page do not re-download the same skin.
-- New shader-inspired button system: layered surfaces, a cursor-following light, a hover sheen, and clear loading, pressed and disabled states. The Play button uses it everywhere.
+- New shared control layer for every button, icon button, segmented control and navigation tab: solid surfaces, a one-pixel press, a 120 ms release, fixed heights, and explicit loading, disabled and keyboard-focus states. No cursor light, sheen, glow or hover lift.
 - Download panel now shows the real stage, percentage, average speed, time left and elapsed time from the bytes the backend reports, with a safe cancel and clear success and failure states.
-- Mojang's whole version list is grouped into releases and snapshots. Snapshots and releases this build cannot install are listed as not supported instead of looking installable, and the selected version shows whether it is installed.
+- Mojang's whole version list is grouped into releases and snapshots and can now be searched and filtered by type. Snapshots and releases this build cannot install are marked as such instead of looking installable, the selected version shows whether it is installed, and the Java major from Mojang's manifest is compared with the Java Cirrus found.
 - Settings are grouped into Game, Performance, Appearance, Account and More, with a new Account section, Minecraft window size and extra JVM options.
-- The character preview breathes gently, can be refreshed when a skin changes, and falls back to a clearly labelled default look instead of a blank square.
+- The character preview stands still, turns only when dragged, can be refreshed when a skin changes, and falls back to a clearly labelled default look instead of a blank square.
 - Accounts page gains the full 3D character, an active-account marker, add-account and a two-step remove confirmation.
 - Toast notifications for sign-in, expired logins, downloads, launches and missing Java, matching the notification bell.
+- Home shows who is signed in, the account's ownership and skin model, the install state and the last played version.
+- A failed game download can be retried without leaving the panel.
 
 ## 0.3.0 — Official artwork, calmer Home, Servers and notifications
 - Real Minecraft key art for the background and version cards.

@@ -2,23 +2,28 @@ import type { PageId } from "../components/Navigation";
 import { AccountPanel } from "../components/AccountPanel";
 import { CharacterPreview } from "../components/CharacterPreview";
 import { PlayArrowIcon, PlusIcon, ShieldIcon, UserIcon, WarningIcon } from "../components/Icons";
-import { ShaderButton } from "../components/ShaderButton";
+import { Button } from "../components/Button";
 import { SkinHead } from "../components/SkinHead";
 import { Badge, Card } from "../components/ui";
 import type { AppData } from "../hooks/useAppData";
 import { useState } from "react";
+import { formatUuid } from "../core/auth";
+import { usePlayerAppearance } from "../hooks/useAppearance";
 
 /**
  * Name, character and identity of one signed-in Minecraft account. The UUID is
- * internal account data and is deliberately not shown anywhere in the UI.
+ * shown because it is the account's public Minecraft identity, not a secret;
+ * the sign-in token never reaches the interface.
  */
 function ProfileCard({
   player,
   onNavigate,
 }: {
-  player: { name: string; id: string };
+  player: { name: string; id: string; ownsMinecraft?: boolean };
   onNavigate: (page: PageId) => void;
 }) {
+  const appearance = usePlayerAppearance(player.id);
+  const character = appearance.appearance;
   return (
     <Card
       title="Minecraft profile"
@@ -34,27 +39,47 @@ function ProfileCard({
           <span className="account-kicker">MINECRAFT: JAVA EDITION</span>
           <h2>{player.name}</h2>
           <span className="account-online-status">
-            <span className="dot dot-live" aria-hidden="true" /> Connected and ready to play
+            <span className="dot dot-live" aria-hidden="true" /> Microsoft account connected
           </span>
-          <dl className="account-profile-details">
+          <dl className="account-details">
             <div>
-              <dt>PLAYER NAME</dt>
+              <dt>Player name</dt>
               <dd>{player.name}</dd>
             </div>
             <div>
-              <dt>ACCOUNT</dt>
-              <dd>Microsoft</dd>
+              <dt>Minecraft UUID</dt>
+              <dd className="account-uuid">{formatUuid(player.id)}</dd>
+            </div>
+            <div>
+              <dt>Ownership</dt>
+              <dd>
+                {player.ownsMinecraft
+                  ? "Minecraft: Java Edition owned"
+                  : "Ownership not reported by this build"}
+              </dd>
+            </div>
+            <div>
+              <dt>Skin model</dt>
+              <dd>{character ? (character.model === "slim" ? "Slim" : "Classic") : appearance.loading ? "Loading…" : "Not loaded"}</dd>
+            </div>
+            <div>
+              <dt>Cape</dt>
+              <dd>{character?.cape ? "Equipped on your account" : "None equipped"}</dd>
+            </div>
+            <div>
+              <dt>Skin</dt>
+              <dd>{character ? "Loaded from your account" : "Unavailable"}</dd>
             </div>
           </dl>
           <div className="row account-profile-actions">
-            <ShaderButton
+            <Button
               variant="primary"
               size="md"
               onClick={() => onNavigate("skins")}
               icon={<UserIcon />}
             >
               Change skin
-            </ShaderButton>
+            </Button>
           </div>
         </div>
       </div>
@@ -73,9 +98,9 @@ function SavedAccounts({ data }: { data: AppData }) {
       icon={<UserIcon />}
       description="Switch without signing in again."
       action={
-        <ShaderButton variant="secondary" size="sm" icon={<PlusIcon />} onClick={() => account.signIn()}>
+        <Button variant="secondary" size="sm" icon={<PlusIcon />} onClick={() => account.signIn()}>
           Add account
-        </ShaderButton>
+        </Button>
       }
     >
       <ul className="account-list">
@@ -165,9 +190,9 @@ export function AccountsPage({
             {signedIn ? "Microsoft connected" : "No Microsoft account"}
           </div>
           {!signedIn && (
-            <ShaderButton variant="primary" size="md" onClick={() => data.account.signIn()} icon={<PlusIcon />}>
+            <Button variant="primary" size="md" onClick={() => data.account.signIn()} icon={<PlusIcon />}>
               Add account
-            </ShaderButton>
+            </Button>
           )}
         </div>
       </header>

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { fromReleaseIds, groupVersions, optionOf, releasedText, versionStatus } from "../src/core/versionCatalog";
+import {
+  filterVersions,
+  fromReleaseIds,
+  groupVersions,
+  javaCompatibility,
+  optionOf,
+  releasedText,
+  versionStatus,
+} from "../src/core/versionCatalog";
 
 const entry = (id: string, kind: string, supported: boolean, released: string | null = null) => ({
   id,
@@ -66,5 +74,42 @@ describe("releasedText", () => {
     expect(releasedText(optionOf(entry("1.21", "release", true, "2025-12-02T10:00:00+00:00")))).toMatch(/2025/);
     expect(releasedText(optionOf(entry("1.21", "release", true)))).toBeNull();
     expect(releasedText(optionOf(entry("1.21", "release", true, "not a date")))).toBeNull();
+  });
+});
+
+describe("filterVersions", () => {
+  const groups = groupVersions([
+    entry("1.21.11", "release", true),
+    entry("1.21", "release", true),
+    entry("1.20.4", "release", false),
+    entry("25w45a", "snapshot", false),
+    entry("24w14a", "snapshot", false),
+  ]);
+
+  it("matches version ids without caring about case", () => {
+    const filtered = filterVersions(groups, { query: "W45" });
+    expect(filtered.releases).toHaveLength(0);
+    expect(filtered.snapshots.map((v) => v.id)).toEqual(["25w45a"]);
+  });
+
+  it("can show releases or snapshots only", () => {
+    expect(filterVersions(groups, { kind: "release" }).snapshots).toHaveLength(0);
+    expect(filterVersions(groups, { kind: "snapshot" }).releases).toHaveLength(0);
+    expect(filterVersions(groups, { kind: "snapshot" }).snapshots).toHaveLength(2);
+  });
+
+  it("returns nothing for a query that matches no version", () => {
+    const filtered = filterVersions(groups, { query: "nope" });
+    expect(filtered.releases).toHaveLength(0);
+    expect(filtered.snapshots).toHaveLength(0);
+  });
+});
+
+describe("javaCompatibility", () => {
+  it("compares only when both numbers are known", () => {
+    expect(javaCompatibility(21, 21)).toEqual({ tone: "good", label: "Java 21 required · Java 21 detected" });
+    expect(javaCompatibility(21, 17)).toEqual({ tone: "warn", label: "Needs Java 21, but Java 17 is selected" });
+    expect(javaCompatibility(null, 21)).toBeNull();
+    expect(javaCompatibility(21, null)).toBeNull();
   });
 });

@@ -1,22 +1,42 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { api, errorMessage } from "../api/client";
 import type { SkinEntry, SkinModel } from "../api/types";
-import { PlusIcon, ShirtIcon, TrashIcon, UploadIcon } from "../components/Icons";
+import { PlusIcon, RefreshArrowIcon, ShirtIcon, TrashIcon, UploadIcon } from "../components/Icons";
 import { SkinFigure } from "../components/SkinModel";
 import { usePlayerSkin } from "../components/SkinHead";
 import { Badge, Banner, Card, Skeleton } from "../components/ui";
+import { Button } from "../components/Button";
 import { capeOptions, capeTexture, type CapeId } from "../core/capes";
+import { SKIN_PRESETS, presetBase64, type SkinPreset } from "../core/skinPresets";
 import { usePlayerAppearance } from "../hooks/useAppearance";
 import type { AppData } from "../hooks/useAppData";
 import cirrusCape from "../assets/capes/cirrus.png";
 
 const APPLIED_KEY = "cirrus.appliedSkin";
+const PREVIOUS_KEY = "cirrus.previousSkin";
 
 function readApplied(): string | null {
   try {
     return window.localStorage.getItem(APPLIED_KEY);
   } catch {
     return null;
+  }
+}
+
+function readPrevious(): string | null {
+  try {
+    return window.localStorage.getItem(PREVIOUS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function remember(key: string, value: string | null) {
+  try {
+    if (value) window.localStorage.setItem(key, value);
+    else window.localStorage.removeItem(key);
+  } catch {
+    /* only used to mark which skin is in use */
   }
 }
 
@@ -52,6 +72,8 @@ export function SkinsPage({ data }: { data: AppData }) {
   const [view, setView] = useState<"spin" | "front" | "back">("spin");
   const [busy, setBusy] = useState(false);
   const [applied, setApplied] = useState<string | null>(readApplied);
+  const [previous, setPrevious] = useState<string | null>(readPrevious);
+  const [zoom, setZoom] = useState(10);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [subject, setSubject] = useState<"account" | "library">("account");
   const [capeId, setCapeId] = useState<CapeId>("account");
@@ -148,17 +170,48 @@ export function SkinsPage({ data }: { data: AppData }) {
 
   const apply = () => {
     if (!selected) return;
+    const target = selected;
     void run(
       async () => {
-        await api.applySkin(selected.id);
-        try {
-          window.localStorage.setItem(APPLIED_KEY, selected.id);
-        } catch {
-          /* only used to mark the skin as in use */
+        await api.applySkin(target.id);
+        // Keep the skin that was in use so it can be restored with one click.
+        if (applied && applied !== target.id) {
+          remember(PREVIOUS_KEY, applied);
+          setPrevious(applied);
         }
-        setApplied(selected.id);
+        remember(APPLIED_KEY, target.id);
+        setApplied(target.id);
       },
-      () => `“${selected.name}” is now your skin. It shows up in game after the next launch.`,
+      () => `“${target.name}” is now your skin. It shows up in game after the next launch.`,
+    );
+  };
+
+  const restorePrevious = () => {
+    const target = skins?.find((s) => s.id === previous);
+    if (!target) return;
+    const before = applied;
+    void run(
+      async () => {
+        await api.applySkin(target.id);
+        remember(APPLIED_KEY, target.id);
+        remember(PREVIOUS_KEY, before);
+        setApplied(target.id);
+        setPrevious(before);
+        setSelectedId(target.id);
+      },
+      () => `Restored “${target.name}”.`,
+    );
+  };
+
+  const addPreset = (preset: SkinPreset) => {
+    void run(
+      async () => {
+        const added = await api.addSkinFile(preset.name, preset.model, presetBase64(preset));
+        await reload();
+        setSelectedId(added.id);
+        return added;
+      },
+      (r) => `Added “${(r as SkinEntry).name}” to your library.`,
     );
   };
 
@@ -197,8 +250,10 @@ export function SkinsPage({ data }: { data: AppData }) {
   return (
     <div className="page skins-page">
       <header className="page-head">
-        <h1>Skins</h1>
-        <p className="muted">Keep your skins in one place and put one on your Minecraft account.</p>
+        <h1>Character</h1>
+        <p className="muted">
+          Your Minecraft character, skin library and capes. Everything here shows the account Cirrus is signed in with.
+        </p>
       </header>
 
       {notice && (
@@ -265,6 +320,27 @@ export function SkinsPage({ data }: { data: AppData }) {
             Usernames copy that player&apos;s public skin. Links must be on textures.minecraft.net. Files must be 64 × 64
             PNG images.
           </p>
+
+          <div className="field">
+            <span className="field-label">Cirrus presets</span>
+            <div className="preset-row">
+              {SKIN_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="preset-button"
+                  aria-label={`Add preset ${preset.name}`}
+                  disabled={busy}
+                  onClick={() => addPreset(preset)}
+                >
+                  <span aria-hidden="true">
+                    <SkinFigure skin={preset.dataUrl} model={preset.model} view="front" scale={1.1} label="" />
+                  </span>
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {skins === null && <Skeleton label="Loading skins" lines={3} />}
           {skins && skins.length === 0 && (
@@ -348,6 +424,23 @@ export function SkinsPage({ data }: { data: AppData }) {
             </div>
           )}
 
+          {(showingAccount || selected) && (
+            <div className="skin-zoom">
+              <span className="field-label" id="skin-zoom-label">Zoom</span>
+              <input
+                type="range"
+                min={6}
+                max={16}
+                step={1}
+                value={zoom}
+                aria-labelledby="skin-zoom-label"
+                aria-valuetext={`${Math.round((zoom / 10) * 100)} percent`}
+                onChange={(e) => setZoom(Number(e.target.value))}
+              />
+              <span className="skin-zoom-value">{Math.round((zoom / 10) * 100)}%</span>
+            </div>
+          )}
+
           {showingAccount && accountCharacter ? (
             <>
               <div className="skin-preview">
@@ -355,7 +448,7 @@ export function SkinsPage({ data }: { data: AppData }) {
                   skin={accountCharacter.skin}
                   model={accountCharacter.model}
                   view={view}
-                  scale={10}
+                  scale={zoom}
                   draggable
                   cape={capeTexture(capeId, accountCharacter.cape, cirrusCape)}
                   label={`${accountCharacter.name}, ${MODEL_LABEL[accountCharacter.model]} model${capeId === "none" ? "" : ", cape"}`}
@@ -438,7 +531,7 @@ export function SkinsPage({ data }: { data: AppData }) {
                       skin={selected.dataUrl}
                       model={selected.model}
                       view={view}
-                      scale={10}
+                      scale={zoom}
                       draggable
                       label={`${selected.name}, ${MODEL_LABEL[selected.model]} model`}
                     />
@@ -508,6 +601,18 @@ export function SkinsPage({ data }: { data: AppData }) {
                 Apply “{selected.name}” to my account
               </button>
               {applyBlocked && <p className="muted small">{applyBlocked}</p>}
+              {previous && previous !== applied && skins?.some((s) => s.id === previous) && (
+                <Button
+                  variant="secondary"
+                  size="md"
+                  className="btn-wide"
+                  icon={<RefreshArrowIcon />}
+                  disabled={busy || applyBlocked !== null}
+                  onClick={restorePrevious}
+                >
+                  Restore previous skin
+                </Button>
+              )}
             </>
           )}
 

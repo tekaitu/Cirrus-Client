@@ -116,7 +116,9 @@ export const api = {
   applySkin: (id: string) => call<void>("apply_skin", { id }),
   playerSkin: (player: string) => call<string | null>("player_skin", { player }),
   /** Full skin, arm model and own cape of a player, as data addresses. */
-  playerAppearance: (player: string) => call<PlayerAppearance>("player_appearance", { player }),
+  /** `force` bypasses the five-minute skin cache so Refresh really asks Mojang again. */
+  playerAppearance: (player: string, force = false) =>
+    call<PlayerAppearance>("player_appearance", { player, force }),
   quitApp: () => call<void>("quit_app"),
   curseforgeAvailable: () => call<boolean>("curseforge_available"),
   searchMods: (provider: ModProvider, query: string, version: string, offset: number, category?: string, sort?: string) =>

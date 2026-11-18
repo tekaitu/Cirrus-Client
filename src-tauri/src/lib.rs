@@ -848,6 +848,7 @@ async fn list_game_version_catalog() -> Result<Vec<game::VersionEntry>, String> 
             kind: "release".to_string(),
             released: None,
             supported: true,
+            java_major: None,
         }],
     })
 }
@@ -954,15 +955,17 @@ const APPEARANCE_TTL: std::time::Duration = std::time::Duration::from_secs(300);
 #[derive(Default)]
 struct AppearanceCache(Mutex<std::collections::HashMap<String, (std::time::Instant, skins::Appearance)>>);
 
-async fn appearance_for(cache: &AppearanceCache, player: String) -> Option<skins::Appearance> {
+async fn appearance_for(cache: &AppearanceCache, player: String, force: bool) -> Option<skins::Appearance> {
     let key = player.trim().to_ascii_lowercase();
     if key.is_empty() {
         return None;
     }
-    if let Ok(map) = cache.0.lock() {
-        if let Some((at, appearance)) = map.get(&key) {
-            if at.elapsed() < APPEARANCE_TTL {
-                return Some(appearance.clone());
+    if !force {
+        if let Ok(map) = cache.0.lock() {
+            if let Some((at, appearance)) = map.get(&key) {
+                if at.elapsed() < APPEARANCE_TTL {
+                    return Some(appearance.clone());
+                }
             }
         }
     }
@@ -986,8 +989,12 @@ async fn appearance_for(cache: &AppearanceCache, player: String) -> Option<skins
 /// A player's skin, arm model and own cape, ready to draw. The window never
 /// talks to Mojang's image host: the PNGs arrive as data addresses.
 #[tauri::command]
-async fn player_appearance(state: State<'_, AppearanceCache>, player: String) -> Result<skins::Appearance, String> {
-    appearance_for(&state, player)
+async fn player_appearance(
+    state: State<'_, AppearanceCache>,
+    player: String,
+    force: Option<bool>,
+) -> Result<skins::Appearance, String> {
+    appearance_for(&state, player, force.unwrap_or(false))
         .await
         .ok_or_else(|| "That player's skin could not be loaded.".to_string())
 }
@@ -997,7 +1004,7 @@ async fn player_appearance(state: State<'_, AppearanceCache>, player: String) ->
 /// avatar falls back to the player's initial instead of an unusable address.
 #[tauri::command]
 async fn player_skin(state: State<'_, AppearanceCache>, player: String) -> Result<Option<String>, String> {
-    let appearance = appearance_for(&state, player)
+    let appearance = appearance_for(&state, player, false)
         .await
         .ok_or_else(|| "That player's skin could not be loaded.".to_string())?;
     if appearance.skin.is_empty() {

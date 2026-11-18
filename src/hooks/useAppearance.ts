@@ -36,7 +36,8 @@ export function usePlayerAppearance(player: string | null): AppearanceState {
     let live = true;
     setLoading(true);
     setError(null);
-    void Promise.resolve(api.playerAppearance(player))
+    // The first load may use the backend cache; an explicit refresh must not.
+    void Promise.resolve(api.playerAppearance(player, version > 0))
       .then((next) => {
         if (!live) return;
         setAppearance(next ?? null);

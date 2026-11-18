@@ -71,7 +71,7 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
-function goTo(name: "Home" | "Versions" | "Browse" | "Modpacks" | "Mods" | "Skins" | "Servers" | "Settings") {
+function goTo(name: "Home" | "Versions" | "Browse" | "Modpacks" | "Mods" | "Character" | "Servers" | "Settings") {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
@@ -125,7 +125,7 @@ const authStatus = (extra: Partial<AuthStatus> = {}): AuthStatus => ({
   activeId: null,
   ...extra,
 });
-const steve = { id: "0123456789abcdef0123456789abcdef", name: "Steve" };
+const steve = { id: "0123456789abcdef0123456789abcdef", name: "Steve", ownsMinecraft: true };
 const alex = { id: "fedcba9876543210fedcba9876543210", name: "Alex" };
 const appearance = (extra: Partial<import("../src/api/types").PlayerAppearance> = {}) => ({
   id: steve.id,
@@ -228,7 +228,7 @@ describe("Home", () => {
   it("has a top bar with the page tabs, a bell, Settings and the account", async () => {
     render(<App />);
     const main = screen.getByRole("navigation", { name: "Main" });
-    for (const name of ["Home", "Versions", "Browse", "Mods", "Modpacks", "Skins", "Servers"]) {
+    for (const name of ["Home", "Versions", "Browse", "Mods", "Modpacks", "Character", "Servers"]) {
       expect(main.contains(screen.getByRole("button", { name }))).toBe(true);
     }
     for (const name of ["Accounts", "About", "Diagnostics", "Re-scan Java", "Discord Presence"]) {
@@ -257,7 +257,7 @@ describe("Home", () => {
     fireEvent.keyDown(window, { key: "4", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "6", altKey: true });
-    expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Character" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "7", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Servers" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "3", altKey: true, ctrlKey: true }); // not ours
@@ -424,7 +424,7 @@ describe("Microsoft account", () => {
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
     expect(await screen.findAllByText("Steve")).toBeTruthy();
     expect(document.querySelector(".account-card .skin-head")).toBeTruthy();
-    expect(screen.queryByText("01234567-89ab-cdef-0123-456789abcdef")).toBeNull();
+    expect(screen.getAllByText("01234567-89ab-cdef-0123-456789abcdef").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 
@@ -689,7 +689,7 @@ describe("Settings layout", () => {
     render(<App />);
     await goToSettings("Keybinds");
     expect(await screen.findByText("Go to Mods")).toBeTruthy();
-    expect(screen.getByText("Go to Skins")).toBeTruthy();
+    expect(screen.getByText("Go to Character")).toBeTruthy();
     expect(screen.getByText(/In-game keybinds come with the in-game client/)).toBeTruthy();
   });
 
@@ -1548,17 +1548,18 @@ describe("Accounts page", () => {
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
-  it("shows the username and skin, never the UUID, and links to the Skins page", async () => {
+  it("shows the username, UUID, ownership and skin, and links to the Character page", async () => {
     mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true, savedLogin: true }));
     mocked.authRestore.mockResolvedValue(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve }));
     render(<App />);
     await settled();
     await goToAccounts();
     expect((await screen.findAllByText("Steve")).length).toBeGreaterThan(0);
-    expect(screen.queryByText("01234567-89ab-cdef-0123-456789abcdef")).toBeNull();
+    expect(screen.getAllByText("01234567-89ab-cdef-0123-456789abcdef").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Minecraft: Java Edition owned").length).toBeGreaterThan(0);
     expect(screen.getByText("MINECRAFT: JAVA EDITION")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Change skin" }));
-    expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Character" })).toBeTruthy();
   });
 });
 
@@ -1578,7 +1579,7 @@ describe("Skins page", () => {
 
   it("shows an empty state when the library has no skins", async () => {
     render(<App />);
-    goTo("Skins");
+    goTo("Character");
     expect(await screen.findByRole("heading", { level: 2, name: "No skins yet" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Choose file" })).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
@@ -1588,7 +1589,7 @@ describe("Skins page", () => {
     mocked.addSkinPlayer.mockResolvedValue(skin({ id: "notch", name: "Notch", source: "player:Notch" }));
     mocked.addSkinUrl.mockResolvedValue(skin({ id: "link", name: "Skin from a link", source: "url" }));
     render(<App />);
-    goTo("Skins");
+    goTo("Character");
     const input = await screen.findByLabelText("Username or skin link");
     fireEvent.change(input, { target: { value: "Notch" } });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
@@ -1607,7 +1608,7 @@ describe("Skins page", () => {
 
   it("asks for something to add when the box is empty", async () => {
     render(<App />);
-    goTo("Skins");
+    goTo("Character");
     await screen.findByLabelText("Username or skin link");
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     expect(await screen.findByText(/Enter a Minecraft username or a skin link first/)).toBeTruthy();
@@ -1619,7 +1620,7 @@ describe("Skins page", () => {
     mocked.setSkinModel.mockResolvedValue(skin({ model: "slim" }));
     mocked.removeSkin.mockResolvedValue(undefined);
     render(<App />);
-    goTo("Skins");
+    goTo("Character");
     expect(await screen.findByRole("button", { name: "Select Alex" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Select Bob" }));
     expect(screen.getByRole("button", { name: "Select Bob" }).getAttribute("aria-pressed")).toBe("true");
@@ -1638,7 +1639,7 @@ describe("Skins page", () => {
   it("will not apply a skin while signed out, and says why", async () => {
     mocked.listSkins.mockResolvedValue([skin()]);
     render(<App />);
-    goTo("Skins");
+    goTo("Character");
     const apply = await screen.findByRole("button", { name: "Apply to my account" });
     expect((apply as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/Sign in with Microsoft to change your account's skin/)).toBeTruthy();
@@ -1650,7 +1651,7 @@ describe("Skins page", () => {
     mocked.applySkin.mockResolvedValue(undefined);
     render(<App />);
     await settled();
-    goTo("Skins");
+    goTo("Character");
     const apply = await screen.findByRole("button", { name: "Apply to my account" });
     await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(apply);
@@ -1665,7 +1666,7 @@ describe("Skins page", () => {
     mocked.listSkins.mockResolvedValue([]);
     render(<App />);
     await settled();
-    goTo("Skins");
+    goTo("Character");
     expect(await screen.findByText("Steve's Minecraft character")).toBeTruthy();
     const capes = await screen.findByRole("radiogroup", { name: "Cape" });
     expect(within(capes).getByRole("radio", { name: /Your Minecraft cape/ })).toBeTruthy();
@@ -1674,13 +1675,56 @@ describe("Skins page", () => {
     expect(mocked.applySkin).not.toHaveBeenCalled();
   });
 
+  it("adds a Cirrus preset as a real PNG", async () => {
+    mocked.addSkinFile.mockResolvedValue(skin({ id: "preset", name: "Cirrus Sky" }));
+    render(<App />);
+    goTo("Character");
+    fireEvent.click(await screen.findByRole("button", { name: "Add preset Cirrus Sky" }));
+    await waitFor(() => expect(mocked.addSkinFile).toHaveBeenCalledTimes(1));
+    const [name, model, base64] = mocked.addSkinFile.mock.calls[0]!;
+    expect(name).toBe("Cirrus Sky");
+    expect(model).toBe("classic");
+    expect(String(base64).startsWith("iVBOR")).toBe(true);
+    expect(await screen.findByText(/Added “Cirrus Sky” to your library/)).toBeTruthy();
+  });
+
+  it("zooms the character preview without touching the account", async () => {
+    mocked.listSkins.mockResolvedValue([skin()]);
+    render(<App />);
+    goTo("Character");
+    const zoom = (await screen.findByLabelText("Zoom")) as HTMLInputElement;
+    expect(zoom.value).toBe("10");
+    fireEvent.change(zoom, { target: { value: "14" } });
+    expect(zoom.value).toBe("14");
+    expect(screen.getByText("140%")).toBeTruthy();
+    expect(mocked.applySkin).not.toHaveBeenCalled();
+  });
+
+  it("restores the skin that was in use before the last change", async () => {
+    signedIn();
+    mocked.listSkins.mockResolvedValue([
+      skin({ id: "alex", name: "Alex" }),
+      skin({ id: "bob", name: "Bob" }),
+    ]);
+    mocked.applySkin.mockResolvedValue(undefined);
+    window.localStorage.setItem("cirrus.appliedSkin", "bob");
+    window.localStorage.setItem("cirrus.previousSkin", "alex");
+    render(<App />);
+    await settled();
+    goTo("Character");
+    const restore = await screen.findByRole("button", { name: "Restore previous skin" });
+    fireEvent.click(restore);
+    await waitFor(() => expect(mocked.applySkin).toHaveBeenCalledWith("alex"));
+    expect(await screen.findByText("Restored “Alex”.")).toBeTruthy();
+  });
+
   it("shows why a skin could not be applied", async () => {
     signedIn();
     mocked.listSkins.mockResolvedValue([skin()]);
     mocked.applySkin.mockRejectedValue(new Error("Minecraft rejected the skin."));
     render(<App />);
     await settled();
-    goTo("Skins");
+    goTo("Character");
     const apply = await screen.findByRole("button", { name: "Apply to my account" });
     await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(apply);
@@ -1767,8 +1811,29 @@ describe("Version selection", () => {
     expect(options.find((o) => o.value === "1.21.11")?.disabled).toBe(false);
     expect(Array.from(select.querySelectorAll("optgroup")).map((g) => g.label)).toEqual([
       "Releases",
-      "Snapshots (not supported)",
+      "Snapshots (not installable)",
     ]);
+  });
+
+  it("filters the picker by text and by version type", async () => {
+    mocked.listVersionCatalog.mockResolvedValue([
+      { id: "1.21.11", kind: "release", released: null, supported: true, javaMajor: 21 },
+      { id: "1.21.1", kind: "release", released: null, supported: true, javaMajor: 21 },
+      { id: "25w45a", kind: "snapshot", released: null, supported: false, javaMajor: 21 },
+    ]);
+    render(<App />);
+    goTo("Versions");
+    await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
+    fireEvent.change(screen.getByLabelText("Filter versions"), { target: { value: "25w" } });
+    expect(await screen.findByText(/Showing 1 of 3 versions/)).toBeTruthy();
+    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
+    // The chosen version stays pinned so the select never goes blank.
+    expect(Array.from(select.options).some((o) => o.value === "1.21.11")).toBe(true);
+    expect(Array.from(select.options).some((o) => o.value === "1.21.1")).toBe(false);
+    expect(Array.from(select.options).some((o) => o.value === "25w45a")).toBe(true);
+    fireEvent.click(screen.getByRole("radio", { name: "Releases" }));
+    expect(await screen.findByText(/Showing 0 of 3 versions/)).toBeTruthy();
+    expect(screen.getByText(/Java 21 required/)).toBeTruthy();
   });
 
   it("says whether the version on screen is installed", async () => {
@@ -1808,6 +1873,16 @@ describe("Account switching and removal", () => {
     expect(mocked.authSignOut).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole("button", { name: "Confirm removing Alex" }));
     await waitFor(() => expect(mocked.authSignOut).toHaveBeenCalledWith(alex.id));
+  });
+
+  it("refreshes the skin with a cache-bypassing request", async () => {
+    twoAccounts();
+    render(<App />);
+    await settled();
+    await goToAccounts();
+    const refresh = await screen.findByRole("button", { name: "Refresh skin" });
+    fireEvent.click(refresh);
+    await waitFor(() => expect(mocked.playerAppearance).toHaveBeenLastCalledWith(steve.id, true));
   });
 
   it("draws a clearly labelled default character when the skin cannot be read", async () => {

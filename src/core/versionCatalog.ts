@@ -5,6 +5,8 @@ export interface VersionOption {
   kind: "release" | "snapshot" | "other";
   released: string | null;
   supported: boolean;
+  /** Java major version from Mojang's manifest, when known. */
+  javaMajor: number | null;
 }
 
 export interface VersionGroups {
@@ -24,6 +26,7 @@ export function optionOf(entry: VersionEntry): VersionOption {
     kind: kindOf(entry.kind),
     released: entry.released ?? null,
     supported: entry.supported,
+    javaMajor: entry.javaMajor ?? null,
   };
 }
 
@@ -51,7 +54,40 @@ function dedupe(list: VersionOption[]): VersionOption[] {
 
 /** Builds catalog entries from the plain release list older backends return. */
 export function fromReleaseIds(ids: string[]): VersionOption[] {
-  return dedupe(ids.filter(Boolean).map((id) => ({ id, kind: "release" as const, released: null, supported: true })));
+  return dedupe(
+    ids.filter(Boolean).map((id) => ({ id, kind: "release" as const, released: null, supported: true, javaMajor: null })),
+  );
+}
+
+export interface VersionFilter {
+  /** Matched against the version id, case-insensitively. */
+  query?: string;
+  kind?: "all" | "release" | "snapshot";
+}
+
+/** Narrows the picker to what the person typed; the chosen version is never hidden by this. */
+export function filterVersions(groups: VersionGroups, filter: VersionFilter): VersionGroups {
+  const q = (filter.query ?? "").trim().toLowerCase();
+  const keep = (v: VersionOption) => q === "" || v.id.toLowerCase().includes(q);
+  return {
+    releases: filter.kind === "snapshot" ? [] : groups.releases.filter(keep),
+    snapshots: filter.kind === "release" ? [] : groups.snapshots.filter(keep),
+  };
+}
+
+/**
+ * Whether the detected Java can start this version. The answer is only given
+ * when both numbers are known; otherwise the UI says nothing rather than guess.
+ */
+export function javaCompatibility(
+  required: number | null | undefined,
+  detected: number | null | undefined,
+): { tone: "good" | "warn"; label: string } | null {
+  if (!required || !detected) return null;
+  if (detected >= required) {
+    return { tone: "good", label: `Java ${required} required · Java ${detected} detected` };
+  }
+  return { tone: "warn", label: `Needs Java ${required}, but Java ${detected} is selected` };
 }
 
 /** What the version picker says about the chosen version. */

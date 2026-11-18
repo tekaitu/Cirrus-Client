@@ -26,6 +26,7 @@ import { useDiscordPresence } from "./hooks/useDiscordPresence";
 import { notify } from "./core/notifications";
 import { Toasts } from "./components/Toasts";
 import { REQUIRED_JAVA_MAJOR } from "./core/java";
+import { writeRecent } from "./core/recent";
 
 /** Which picture sits behind each page. */
 const BACKDROPS: Record<PageId, BackdropId> = {
@@ -139,7 +140,15 @@ export default function App() {
   useEffect(() => {
     if (prevRun.current === runPhase) return;
     prevRun.current = runPhase;
-    if (runPhase === "running") notify({ title: "Minecraft started", body: `Minecraft ${data.selection.version}`, tone: "good" });
+    if (runPhase === "running") {
+      notify({ title: "Minecraft started", body: `Minecraft ${data.selection.version}`, tone: "good" });
+      writeRecent({
+        version: data.selection.version,
+        loader: data.selection.loader,
+        profile: data.selection.profile?.name ?? null,
+        at: Date.now(),
+      });
+    }
     else if (runPhase === "ended") {
       if (runState.phase === "ended" && runState.crash) notify({ title: "Minecraft crashed", body: "Open the crash report from Home or Versions.", tone: "bad" });
       else if (runState.phase === "ended") notify({ title: "Minecraft closed", tone: "info" });

@@ -108,6 +108,8 @@ export type AuthState = "notConfigured" | "signedOut" | "signedIn" | "cancelled"
 export interface AuthProfile {
   id: string;
   name: string;
+  /** True when Minecraft services returned a profile for this account, which only happens when it owns Java Edition. */
+  ownsMinecraft?: boolean;
 }
 
 /** An account signed in on this PC, as the account menu lists it. */
@@ -179,6 +181,8 @@ export interface VersionEntry {
   released: string | null;
   /** True only when this launcher can download and start it. */
   supported: boolean;
+  /** The Java major version Mojang's manifest asks for, when it says. */
+  javaMajor?: number | null;
 }
 
 export interface GameInstallResult {

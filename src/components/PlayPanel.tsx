@@ -6,7 +6,7 @@ import { BrandIcon } from "./BrandIcon";
 import { PackageIcon, PlayArrowIcon, SettingsIcon, StopIcon, TerminalIcon } from "./Icons";
 import { Banner } from "./ui";
 import { InstallProgress } from "./InstallProgress";
-import { ShaderButton } from "./ShaderButton";
+import { Button } from "./Button";
 import { VersionSelector } from "./VersionSelector";
 import type { PageId } from "./Navigation";
 
@@ -258,7 +258,7 @@ export function PlayPanel({
         />
       ) : (
         <div className="hero-actions">
-          <ShaderButton
+          <Button
             variant={action.danger ? "danger" : "primary"}
             size="lg"
             className="lp-go"
@@ -271,16 +271,16 @@ export function PlayPanel({
             }
           >
             {action.label}
-          </ShaderButton>
+          </Button>
           {game.run.phase === "starting" || running ? (
-            <ShaderButton variant="secondary" size="lg" onClick={game.openLog} icon={<TerminalIcon />}>
+            <Button variant="secondary" size="lg" onClick={game.openLog} icon={<TerminalIcon />}>
               View log
-            </ShaderButton>
+            </Button>
           ) : (
             variant === "full" && (
-              <ShaderButton variant="secondary" size="lg" onClick={() => onNavigate("settings")} icon={<SettingsIcon />}>
+              <Button variant="secondary" size="lg" onClick={() => onNavigate("settings")} icon={<SettingsIcon />}>
                 Settings
-              </ShaderButton>
+              </Button>
             )
           )}
         </div>
@@ -289,7 +289,15 @@ export function PlayPanel({
       {variant === "full" && action.hint && !progress && <p className="muted small hero-note">{action.hint}</p>}
 
       {game.installer.phase === "error" && (
-        <Banner tone="bad" title="Game files could not be downloaded">
+        <Banner
+          tone="bad"
+          title="Game files could not be downloaded"
+          actions={
+            <Button variant="secondary" size="sm" onClick={game.install}>
+              Try again
+            </Button>
+          }
+        >
           {game.installer.message}
         </Banner>
       )}

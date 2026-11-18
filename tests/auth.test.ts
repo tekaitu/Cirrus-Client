@@ -20,7 +20,17 @@ describe("accountFromStatus", () => {
     expect(accountFromStatus(base).phase).toBe("signedOut");
     expect(accountFromStatus({ ...base, state: "cancelled" }).phase).toBe("signedOut");
     const signedIn = accountFromStatus({ ...base, state: "signedIn", profile: { id: "x", name: "Steve" } });
-    expect(signedIn).toEqual({ phase: "signedIn", profile: { id: "x", name: "Steve" }, note: null });
+    expect(signedIn).toEqual({
+      phase: "signedIn",
+      profile: { id: "x", name: "Steve", ownsMinecraft: false },
+      note: null,
+    });
+    const owned = accountFromStatus({
+      ...base,
+      state: "signedIn",
+      profile: { id: "x", name: "Steve", ownsMinecraft: true },
+    });
+    expect(owned.phase === "signedIn" && owned.profile.ownsMinecraft).toBe(true);
     expect(accountFromStatus({ ...base, state: "failed", message: "boom" })).toEqual({ phase: "error", message: "boom" });
   });
 

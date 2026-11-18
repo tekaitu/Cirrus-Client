@@ -1,7 +1,11 @@
 import { BrandIcon } from "./BrandIcon";
+import { Button } from "./Button";
 import { useEffect, useState } from "react";
 import type { Account } from "../hooks/useAuth";
 import { SkinHead } from "./SkinHead";
+import { formatUuid } from "../core/auth";
+import { usePlayerAppearance } from "../hooks/useAppearance";
+import { RefreshArrowIcon } from "./Icons";
 import { Banner, Card, Skeleton } from "./ui";
 
 /**
@@ -44,6 +48,8 @@ export function AccountPanel({
   onManage?: () => void;
 }) {
   const { state } = account;
+  const profile = state.phase === "signedIn" ? state.profile : null;
+  const appearance = usePlayerAppearance(profile?.id ?? null);
 
   return (
     <Card title="Account" className="account-card">
@@ -102,20 +108,52 @@ export function AccountPanel({
             <SkinHead uuid={state.profile.id} name={state.profile.name} size={44} />
             <div className="account-identity">
               <p className="account-name">{state.profile.name}</p>
-              <p className="muted small">Minecraft: Java Edition</p>
+              <span className="account-status-line">
+                <span className="dot dot-live" aria-hidden="true" />
+                Microsoft connected
+              </span>
             </div>
           </div>
+          <dl className="account-details">
+            <div>
+              <dt>Player name</dt>
+              <dd>{state.profile.name}</dd>
+            </div>
+            <div>
+              <dt>Ownership</dt>
+              <dd>
+                {state.profile.ownsMinecraft
+                  ? "Minecraft: Java Edition owned"
+                  : "Ownership not reported by this build"}
+              </dd>
+            </div>
+            <div>
+              <dt>Skin model</dt>
+              <dd>{appearance.appearance ? (appearance.appearance.model === "slim" ? "Slim" : "Classic") : "Not loaded"}</dd>
+            </div>
+            <div>
+              <dt>Cape</dt>
+              <dd>{appearance.appearance?.cape ? "Equipped on your account" : "None equipped"}</dd>
+            </div>
+            <div>
+              <dt>Minecraft UUID</dt>
+              <dd className="account-uuid">{formatUuid(state.profile.id)}</dd>
+            </div>
+          </dl>
           {account.accounts.length > 1 && (
             <p className="muted small">{account.accounts.length} accounts signed in on this PC</p>
           )}
           {state.note && <p className="muted small">{state.note}</p>}
           <div className="row">
-            <button type="button" className="btn" onClick={() => account.signIn()}>
+            <Button size="sm" icon={<RefreshArrowIcon />} loading={appearance.loading} onClick={appearance.reload}>
+              Refresh profile
+            </Button>
+            <Button size="sm" onClick={() => account.signIn()}>
               Add another account
-            </button>
-            <button type="button" className="btn btn-quiet" onClick={() => account.signOut()}>
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => account.signOut()}>
               Sign out
-            </button>
+            </Button>
           </div>
         </>
       )}
