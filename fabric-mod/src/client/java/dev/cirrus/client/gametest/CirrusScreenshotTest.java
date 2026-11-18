@@ -48,6 +48,22 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
                 context.takeScreenshot(entry.getKey() + "-" + combo[0] + "x" + combo[1] + "-gui" + scale);
             }
         }
+        // Light theme and an enabled HUD element, at the most common setup.
+        context.getInput().resizeWindow(1280, 720);
+        context.runOnClient(mc -> {
+            mc.options.guiScale().set(2);
+            mc.resizeDisplay();
+            var cfg = dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath());
+            dev.cirrus.client.ui.CirrusTheme.set(cfg, dev.cirrus.client.ui.CirrusTheme.LIGHT);
+            cfg.put("enabled.local_status", "true");
+        });
+        context.waitTicks(5);
+        for (Map.Entry<String, Supplier<Screen>> entry : screens.entrySet()) {
+            context.setScreen(entry.getValue());
+            context.waitTicks(25);
+            context.takeScreenshot("light-" + entry.getKey() + "-1280x720-gui2");
+        }
+        context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
     }
