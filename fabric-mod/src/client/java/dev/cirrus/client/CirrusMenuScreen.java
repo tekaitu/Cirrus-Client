@@ -29,14 +29,14 @@ public final class CirrusMenuScreen extends CirrusScreen {
     @Override protected void init() {
         boolean small = compact();
         railX = 14;
-        railW = Math.max(small ? 64 : 78, Math.min(108, width / 5));
+        railW = Math.max(small ? 90 : 92, Math.min(112, width / 5));
         cx = railX + railW + 8;
         cw = width - 14 - cx;
         cardH = small ? 40 : 48;
         cardGap = small ? 4 : 6;
         int top = 14;
         int footerH = 22;
-        int searchY = top + 28;
+        int searchY = top + 31;
         listTop = searchY + 26;
         listBottom = height - 14 - footerH - 6;
 
@@ -103,13 +103,13 @@ public final class CirrusMenuScreen extends CirrusScreen {
         CirrusUi.card(g, railX, 14, railW, height - 28, 12, t.surface, t.border);
         boolean small = compact();
         int mark = small ? 16 : 22;
-        CirrusUi.mark(g, railX + 10, 14 + 8, mark);
+        CirrusUi.mark(g, railX + 10, 14 + 8, mark, t);
         // header
         CirrusUi.headingText(g, font, "MOD LIBRARY", cx + 2, 14 + 8, t.cyan);
         CirrusUi.smallText(g, font, category.label + "  ·  " + entries().size() + " available", cx + 2, 14 + 8 + 14, t.muted, false);
         // search field
-        CirrusUi.card(g, cx, 14 + 28, cw, 22, 8, t.surface, search != null && search.isFocused() ? t.cyan : t.border);
-        CirrusUi.icon(g, cx + 6, 14 + 28 + 4, 14, CirrusUi.ICON_SEARCH, t.cyan);
+        CirrusUi.card(g, cx, 14 + 31, cw, 22, 8, t.surface, search != null && search.isFocused() ? t.cyan : t.border);
+        CirrusUi.icon(g, cx + 6, 14 + 31 + 4, 14, CirrusUi.ICON_SEARCH, t.cyan);
 
         // list
         var list = entries();

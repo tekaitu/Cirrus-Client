@@ -32,8 +32,8 @@ public final class CirrusUi {
     public static void backdrop(GuiGraphics g, int width, int height, CirrusTheme t) {
         CirrusAssetTextures.drawBackdrop(g, width, height);
         g.fill(0, 0, width, height, t.overlay);
-        g.fillGradient(0, 0, width, Math.max(1, height / 3), t.highlight, 0x00000000);
-        g.fillGradient(0, height * 2 / 3, width, height, 0x00000000, t.shadow);
+        g.fillGradient(0, 0, width, Math.max(1, height / 3), t.highlight, Gfx.withAlpha(t.highlight, 0));
+        g.fillGradient(0, height * 2 / 3, width, height, Gfx.withAlpha(t.shadow, 0), t.shadow);
     }
 
     public static void dashboardBackdrop(GuiGraphics g, int width, int height, CirrusTheme t) {
@@ -103,9 +103,9 @@ public final class CirrusUi {
     public static void text(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, body(value), x, y + NUDGE, color, shadow); }
     public static void smallText(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, small(value), x, y + NUDGE, color, shadow); }
     public static void headingText(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawString(f, heading(value), x, y, color, false); }
-    public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, body(value), x, y + NUDGE, color); }
-    public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, small(value), x, y + NUDGE, color); }
-    public static void centeredHeading(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, heading(value), x, y, color); }
+    public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = body(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
+    public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = small(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
+    public static void centeredHeading(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = heading(value); g.drawString(f, c, x - f.width(c) / 2, y, color, false); }; }
     public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { g.drawString(f, small(value), right - smallWidth(f, value), y + NUDGE, color, false); }
 
     // ---- icons and brand ------------------------------------------------------------------------------------------
@@ -121,13 +121,16 @@ public final class CirrusUi {
     }
 
     /** Just the cloud mark, for narrow rails. */
-    public static void mark(GuiGraphics g, int x, int y, int size) {
-        CirrusAssetTextures.drawMark(g, x, y, Math.max(1, (size * 640 + 236) / 473), size);
+    public static void mark(GuiGraphics g, int x, int y, int size, CirrusTheme t) {
+        CirrusAssetTextures.drawMark(g, x, y, Math.max(1, (size * 640 + 236) / 473), size, markColor(t));
     }
+
+    /** The mark art is white; on light themes it is tinted with the accent so it stays visible. */
+    private static int markColor(CirrusTheme t) { return t == CirrusTheme.LIGHT ? t.accent : 0xFFFFFFFF; }
 
     public static void brand(GuiGraphics g, int x, int y, int markSize, CirrusTheme t) {
         int markWidth = Math.max(1, (markSize * 640 + 236) / 473);
-        CirrusAssetTextures.drawMark(g, x, y, markWidth, markSize);
+        CirrusAssetTextures.drawMark(g, x, y, markWidth, markSize, markColor(t));
         headingText(g, Minecraft.getInstance().font, "Cirrus Client", x + markWidth + 8, y + (markSize - LINE) / 2, t.text);
     }
 

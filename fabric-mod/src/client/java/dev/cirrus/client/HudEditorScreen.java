@@ -38,7 +38,7 @@ public final class HudEditorScreen extends CirrusScreen {
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
         CirrusUi.panel(g, 6, 6, width - 12, height - 12, 16, t);
         CirrusUi.card(g, 14, 14, railW, height - 28, 12, t.surface, t.border);
-        CirrusUi.mark(g, 24, 14 + 8, compact() ? 14 : 18);
+        CirrusUi.mark(g, 24, 14 + 8, compact() ? 14 : 18, t);
         CirrusUi.headingText(g, font, "HUD ELEMENTS", 22, 14 + 32, t.cyan);
         int i = 0;
         for (HudElement e : HudElementRegistry.all()) {

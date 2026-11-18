@@ -15,7 +15,7 @@ public final class CirrusDashboardScreen extends CirrusScreen {
 
     @Override protected void init() {
         railX = 14;
-        railW = Math.max(compact() ? 84 : 112, Math.min(132, width / 4));
+        railW = Math.max(compact() ? 90 : 112, Math.min(132, width / 4));
         cx = railX + railW + 8;
         cw = width - 14 - cx;
         int y = 14 + (compact() ? 32 : 40), rowH = 20, gap = compact() ? 3 : 5;
@@ -36,7 +36,7 @@ public final class CirrusDashboardScreen extends CirrusScreen {
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
         CirrusUi.panel(g, 6, 6, width - 12, height - 12, 16, t);
         CirrusUi.card(g, railX, 14, railW, height - 28, 12, t.surface, t.border);
-        CirrusUi.mark(g, railX + 10, 14 + 8, compact() ? 16 : 22);
+        CirrusUi.mark(g, railX + 10, 14 + 8, compact() ? 16 : 22, t);
         CirrusUi.headingText(g, font, "DASHBOARD", cx + 2, 14 + 8, t.cyan);
         CirrusUi.smallText(g, font, "Everything about this session at a glance", cx + 2, 14 + 8 + 14, t.muted, false);
         CirrusUi.card(g, cx, infoY, cw, infoH, 12, t.surface, t.border);

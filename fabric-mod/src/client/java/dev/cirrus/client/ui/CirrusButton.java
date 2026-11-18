@@ -45,7 +45,7 @@ public final class CirrusButton extends Button {
 
         Gfx.fillRound(g, x, y + 1, w, h, radius, Gfx.scaleAlpha(t.shadow, 0.35f + 0.3f * hover));
         Gfx.fillRound(g, x, y, w, h, radius, fill);
-        if (w > radius * 2) g.fillGradient(x + (int) radius, y + 1, x + w - (int) radius, y + 1 + h / 2, Gfx.scaleAlpha(t.highlight, 0.7f), 0x00000000);
+        if (w > radius * 2) g.fillGradient(x + (int) radius, y + 1, x + w - (int) radius, y + 1 + h / 2, Gfx.scaleAlpha(t.highlight, 0.7f), Gfx.withAlpha(t.highlight, 0));
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
         if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.cyan);
 
@@ -54,12 +54,12 @@ public final class CirrusButton extends Button {
         int iconColor = !active ? t.muted : (hover > 0.5f || primary ? t.cyan : t.muted);
         int ty = y + (h - CirrusUi.LINE) / 2;
         String label = getMessage().getString();
-        int pad = 8;
+        int pad = w < 90 ? 6 : 8;
         if (style == Style.ICON || (iconKind >= 0 && label.isEmpty())) {
             int is = Math.min(16, h - 4);
             CirrusUi.icon(g, x + (w - is) / 2, y + (h - is) / 2, is, iconKind, iconColor);
         } else if (style == Style.NAV && iconKind >= 0) {
-            int is = Math.min(14, h - 6);
+            int is = w < 90 ? 12 : Math.min(14, h - 6);
             CirrusUi.icon(g, x + pad, y + (h - is) / 2, is, iconKind, iconColor);
             String fitted = CirrusUi.fitBody(font, label, w - pad * 2 - is - 6);
             CirrusUi.text(g, font, fitted, x + pad + is + 6, ty, textColor, false);

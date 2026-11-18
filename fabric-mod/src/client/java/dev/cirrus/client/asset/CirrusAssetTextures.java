@@ -80,8 +80,8 @@ public final class CirrusAssetTextures {
         Gfx.region(g,texture("empty-library"),x,y,width,height,0,0,640,384,640,384,0xFFFFFFFF);
     }
 
-    public static void drawMark(GuiGraphics g,int x,int y,int width,int height) {
-        Gfx.region(g,mark(),x,y,width,height,0,0,640,473,640,473,0xFFFFFFFF);
+    public static void drawMark(GuiGraphics g,int x,int y,int width,int height,int color) {
+        Gfx.region(g,mark(),x,y,width,height,0,0,640,473,640,473,color);
     }
 
     private static final int ICONS_WIDTH=1024;
