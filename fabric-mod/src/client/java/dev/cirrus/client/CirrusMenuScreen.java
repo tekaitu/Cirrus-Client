@@ -63,6 +63,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         // search
         search = new EditBox(font, cx + 24, searchY + 5, Math.max(40, cw - 32), 12, Component.literal("Search mods"));
         search.setBordered(false);
+        search.setTextShadow(false);
         search.addFormatter((value, cursor) -> CirrusUi.formatSearch(value));
         search.setHint(CirrusUi.small("Search mods…"));
         search.setValue(query);

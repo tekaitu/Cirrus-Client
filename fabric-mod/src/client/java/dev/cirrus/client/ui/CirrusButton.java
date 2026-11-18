@@ -50,7 +50,7 @@ public final class CirrusButton extends Button {
         if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.cyan);
 
         Font font = mc.font;
-        int textColor = !active ? t.muted : Gfx.mix(t.text, 0xFFFFFFFF, hover * 0.4f);
+        int textColor = !active ? t.muted : primary ? 0xFFFFFFFF : Gfx.mix(t.text, 0xFFFFFFFF, hover * 0.4f);
         int iconColor = !active ? t.muted : (hover > 0.5f || primary ? t.cyan : t.muted);
         int ty = y + (h - CirrusUi.LINE) / 2;
         String label = getMessage().getString();
