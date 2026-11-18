@@ -20,7 +20,7 @@ public final class PingMod extends HudMod {
     public void render(GuiGraphics g, int x, int y, float tick, CirrusConfig c) {
         Minecraft mc = Minecraft.getInstance();
         CirrusTheme t = CirrusTheme.current(c);
-        int ping = latency(mc);
+        int ping = mc.player == null ? 42 : latency(mc); // sample value in the editor
         CirrusUi.hudPanel(g, x, y, width(), height(), 7, t);
         CirrusUi.smallText(g, mc.font, "PING", x + 8, y + 6, t.muted, false);
         String value = ping < 0 ? "--" : ping + " ms";
