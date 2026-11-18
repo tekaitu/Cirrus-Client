@@ -46,8 +46,7 @@ public final class CirrusUi {
         if (w <= 0 || h <= 0) return;
         Gfx.shadow(g, x, y, w, h, radius, 6, t.shadow);
         Gfx.fillRound(g, x, y, w, h, radius, t.panel);
-        int sheen = Math.max(0, Math.min(h / 3, 26));
-        if (sheen > 2 && w > radius * 2) g.fillGradient(x + radius, y + 1, x + w - radius, y + 1 + sheen, t.highlight, 0x00000000);
+        if (w > radius * 2) Gfx.hairline(g, x + radius, y + 1, w - radius * 2, Gfx.scaleAlpha(t.highlight, 2.2f));
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 

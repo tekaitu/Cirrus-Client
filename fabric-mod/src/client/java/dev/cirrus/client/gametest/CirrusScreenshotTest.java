@@ -64,6 +64,17 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("light-" + entry.getKey() + "-1280x720-gui2");
         }
         context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
+        // In a real world: the HUD element, then the pause menu with the Cirrus entry point.
+        try (var singleplayer = context.worldBuilder().create()) {
+            singleplayer.getClientWorld().waitForChunksRender();
+            context.waitTicks(20);
+            context.takeScreenshot("world-hud");
+            context.getInput().pressKey(256); // Escape opens the pause menu
+            context.waitTicks(20);
+            context.takeScreenshot("world-pause");
+            context.getInput().pressKey(256);
+            context.waitTicks(5);
+        }
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
     }

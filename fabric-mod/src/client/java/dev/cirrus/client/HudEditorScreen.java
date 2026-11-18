@@ -58,7 +58,7 @@ public final class HudEditorScreen extends CirrusScreen {
         if (!any) CirrusUi.centeredSmall(g, font, "Switch an element ON in the list to place it here.", (14 + railW + width) / 2, height / 2 - 4, t.muted);
         String hint = selected.isEmpty() ? "Click an element to select it, then drag it into place." : "Drag to move. Click the canvas to place the selected element.";
         int hx = 14 + railW + 12;
-        CirrusUi.smallText(g, font, CirrusUi.fitSmall(font, hint, width - hx - 16), hx, height - 26, t.muted, true);
+        CirrusUi.smallText(g, font, CirrusUi.fitSmall(font, hint, width - hx - 16), hx, height - 26, t.muted, false);
     }
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {

@@ -52,6 +52,18 @@ public final class Gfx {
         }
     }
 
+    /** One real-pixel horizontal highlight line (used for the glass top edge). */
+    public static void hairline(GuiGraphics g, float x, float y, float w, int color) {
+        int s = scale();
+        int px = Math.round(x * s), py = Math.round(y * s), pw = Math.round((x + w) * s) - px;
+        if (pw <= 0) return;
+        var pose = g.pose();
+        pose.pushMatrix();
+        pose.scale(1f / s, 1f / s);
+        g.fill(px, py, px + pw, py + 1, color);
+        pose.popMatrix();
+    }
+
     private static void draw(GuiGraphics g, float x, float y, float w, float h, float radius, float stroke, int color) {
         if (w <= 0 || h <= 0 || alpha(color) == 0) return;
         int s = scale();

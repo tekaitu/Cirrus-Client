@@ -29,7 +29,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
     @Override protected void init() {
         boolean small = compact();
         railX = 14;
-        railW = Math.max(small ? 90 : 92, Math.min(112, width / 5));
+        railW = Math.max(small ? 100 : 100, Math.min(112, width / 5));
         cx = railX + railW + 8;
         cw = width - 14 - cx;
         cardH = small ? 40 : 48;

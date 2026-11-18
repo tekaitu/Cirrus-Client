@@ -15,7 +15,7 @@ public final class CirrusDashboardScreen extends CirrusScreen {
 
     @Override protected void init() {
         railX = 14;
-        railW = Math.max(compact() ? 90 : 112, Math.min(132, width / 4));
+        railW = Math.max(compact() ? 100 : 112, Math.min(132, width / 4));
         cx = railX + railW + 8;
         cw = width - 14 - cx;
         int y = 14 + (compact() ? 32 : 40), rowH = 20, gap = compact() ? 3 : 5;
