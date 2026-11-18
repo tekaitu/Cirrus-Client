@@ -64,21 +64,10 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("light-" + entry.getKey() + "-1280x720-gui2");
         }
         context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
-        // In a real world: the HUD element, then the pause menu with the Cirrus entry point.
-        context.runOnClient(mc -> {
-            mc.options.renderDistance().set(2);
-            mc.options.simulationDistance().set(5);
-        });
-        try (var singleplayer = context.worldBuilder().create()) {
-            singleplayer.getClientWorld().waitForChunksRender();
-            context.waitTicks(20);
-            context.takeScreenshot("world-hud");
-            context.getInput().pressKey(256); // Escape opens the pause menu
-            context.waitTicks(20);
-            context.takeScreenshot("world-pause");
-            context.getInput().pressKey(256);
-            context.waitTicks(5);
-        }
+        // Pause menu (shows the Cirrus entry point). A full world is too slow to load on the CI software renderer.
+        context.setScreen(() -> new net.minecraft.client.gui.screens.PauseScreen(true));
+        context.waitTicks(25);
+        context.takeScreenshot("pause-menu-1280x720-gui2");
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
     }

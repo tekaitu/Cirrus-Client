@@ -19,7 +19,7 @@ public final class LocalStatusMod implements CirrusMod, HudElement {
     public int width() { return 132; }
     public int height() { return 30; }
     public void render(GuiGraphics g, int x, int y, float tick, CirrusConfig c) {
-        Minecraft mc = Minecraft.getInstance(); if (mc.player == null || mc.level == null) return;
+        Minecraft mc = Minecraft.getInstance(); if ((mc.player == null || mc.level == null) && !(mc.screen instanceof dev.cirrus.client.HudEditorScreen)) return;
         var theme = CirrusTheme.current(c);
         CirrusUi.panel(g,x,y,width(),height(),8,theme);
         CirrusUi.headingText(g,mc.font,"CIRRUS",x+8,y+4,theme.text);
