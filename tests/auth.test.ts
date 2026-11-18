@@ -4,7 +4,15 @@ import { CLIENT_ID_PATTERN, hasErrors, validateDraft } from "../src/core/setting
 import type { AuthStatus } from "../src/api/types";
 import { settingsState } from "./helpers/fixtures";
 
-const base: AuthStatus = { state: "signedOut", configured: true, savedLogin: false, profile: null, message: null };
+const base: AuthStatus = {
+  state: "signedOut",
+  configured: true,
+  savedLogin: false,
+  profile: null,
+  message: null,
+  accounts: [],
+  activeId: null,
+};
 
 describe("accountFromStatus", () => {
   it("maps every backend state", () => {
@@ -12,7 +20,17 @@ describe("accountFromStatus", () => {
     expect(accountFromStatus(base).phase).toBe("signedOut");
     expect(accountFromStatus({ ...base, state: "cancelled" }).phase).toBe("signedOut");
     const signedIn = accountFromStatus({ ...base, state: "signedIn", profile: { id: "x", name: "Steve" } });
-    expect(signedIn).toEqual({ phase: "signedIn", profile: { id: "x", name: "Steve" }, note: null });
+    expect(signedIn).toEqual({
+      phase: "signedIn",
+      profile: { id: "x", name: "Steve", ownsMinecraft: false },
+      note: null,
+    });
+    const owned = accountFromStatus({
+      ...base,
+      state: "signedIn",
+      profile: { id: "x", name: "Steve", ownsMinecraft: true },
+    });
+    expect(owned.phase === "signedIn" && owned.profile.ownsMinecraft).toBe(true);
     expect(accountFromStatus({ ...base, state: "failed", message: "boom" })).toEqual({ phase: "error", message: "boom" });
   });
 

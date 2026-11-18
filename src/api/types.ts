@@ -40,6 +40,11 @@ export interface Settings {
   javaPath: string | null;
   memoryMb: number;
   gameDir: string;
+  /** Window size Minecraft opens with. */
+  windowWidth: number;
+  windowHeight: number;
+  /** Extra JVM options, separated by spaces. */
+  jvmArgs: string;
   reduceMotion: boolean;
   /** Azure Application (client) ID for Microsoft sign-in; public, not a secret. */
   msClientId: string | null;
@@ -58,7 +63,7 @@ export interface SettingsState {
 }
 
 export interface FieldError {
-  field: "memoryMb" | "javaPath" | "gameDir" | "msClientId";
+  field: "memoryMb" | "javaPath" | "gameDir" | "msClientId" | "windowWidth" | "windowHeight" | "jvmArgs";
   message: string;
 }
 
@@ -103,6 +108,14 @@ export type AuthState = "notConfigured" | "signedOut" | "signedIn" | "cancelled"
 export interface AuthProfile {
   id: string;
   name: string;
+  /** True when Minecraft services returned a profile for this account, which only happens when it owns Java Edition. */
+  ownsMinecraft?: boolean;
+}
+
+/** An account signed in on this PC, as the account menu lists it. */
+export interface AccountRef {
+  id: string;
+  name: string;
 }
 
 /** Account state from the backend. Tokens never cross into the interface. */
@@ -113,6 +126,10 @@ export interface AuthStatus {
   savedLogin: boolean;
   profile: AuthProfile | null;
   message: string | null;
+  /** Every account signed in on this PC (older backends may leave this out). */
+  accounts: AccountRef[];
+  /** The account the live session belongs to. */
+  activeId: string | null;
 }
 
 /** What the person must do on the Microsoft page to finish signing in. */
@@ -147,9 +164,25 @@ export interface Profile {
 
 export interface GameProgress {
   stage: "metadata" | "downloading" | "finishing";
+  /** Files finished and the number of files to fetch. */
   done: number;
   total: number;
+  /** Bytes finished and the size of the whole download, when every size is known. */
+  bytesDone?: number;
+  bytesTotal?: number;
   message: string;
+}
+
+/** One entry of Mojang's version list, as the launcher's catalog reports it. */
+export interface VersionEntry {
+  id: string;
+  /** "release", "snapshot", "old_beta" or "old_alpha". */
+  kind: string;
+  released: string | null;
+  /** True only when this launcher can download and start it. */
+  supported: boolean;
+  /** The Java major version Mojang's manifest asks for, when it says. */
+  javaMajor?: number | null;
 }
 
 export interface GameInstallResult {
@@ -229,6 +262,19 @@ export interface InstalledMod {
 }
 
 export type SkinModel = "classic" | "slim";
+
+/** A player's real Minecraft look: skin, arm model and their own cape. */
+export interface PlayerAppearance {
+  id: string;
+  name: string;
+  model: SkinModel;
+  /** The skin PNG as a data address. */
+  skin: string;
+  /** The account's own cape as a data address, when it has one equipped. */
+  cape: string | null;
+  /** True for a 64 x 32 skin, which uses the pre-1.8 body layout. */
+  legacy?: boolean;
+}
 
 export interface SkinEntry {
   id: string;

@@ -7,15 +7,21 @@ export interface MemoryLimits {
   max: number;
 }
 
-export type SettingsErrors = Partial<Record<"memoryMb" | "javaPath" | "gameDir" | "msClientId", string>>;
+export type SettingsErrors = Partial<
+  Record<"memoryMb" | "javaPath" | "gameDir" | "msClientId" | "windowWidth" | "windowHeight" | "jvmArgs", string>
+>;
 
 export const MEMORY_STEP_MB = 256;
+export const MIN_WINDOW_WIDTH = 640;
+export const MIN_WINDOW_HEIGHT = 480;
+export const MAX_WINDOW_SIZE = 7680;
+export const MAX_JVM_ARGS_CHARS = 2000;
 
 /** Trim text fields and turn a blank Java path into null ("detect automatically"). */
 export function normalizeDraft(s: Settings): Settings {
   const javaPath = s.javaPath?.trim() ? s.javaPath.trim() : null;
   const msClientId = s.msClientId?.trim() ? s.msClientId.trim() : null;
-  return { ...s, javaPath, msClientId, gameDir: s.gameDir.trim() };
+  return { ...s, javaPath, msClientId, gameDir: s.gameDir.trim(), jvmArgs: s.jvmArgs.trim() };
 }
 
 export function settingsEqual(a: Settings, b: Settings): boolean {
@@ -23,6 +29,9 @@ export function settingsEqual(a: Settings, b: Settings): boolean {
     a.javaPath === b.javaPath &&
     a.memoryMb === b.memoryMb &&
     a.gameDir === b.gameDir &&
+    a.windowWidth === b.windowWidth &&
+    a.windowHeight === b.windowHeight &&
+    a.jvmArgs === b.jvmArgs &&
     a.reduceMotion === b.reduceMotion &&
     a.msClientId === b.msClientId
   );
@@ -53,6 +62,15 @@ export function validateDraft(s: Settings, limits: MemoryLimits): SettingsErrors
     errors.gameDir = "Game directory is required.";
   } else if (!WINDOWS_ABSOLUTE.test(s.gameDir.trim()) && !s.gameDir.trim().startsWith("/")) {
     errors.gameDir = "Use a full path, for example C:\\Users\\you\\CirrusClient.";
+  }
+  if (!Number.isFinite(s.windowWidth) || s.windowWidth < MIN_WINDOW_WIDTH || s.windowWidth > MAX_WINDOW_SIZE) {
+    errors.windowWidth = `Window width must be between ${MIN_WINDOW_WIDTH} and ${MAX_WINDOW_SIZE} pixels.`;
+  }
+  if (!Number.isFinite(s.windowHeight) || s.windowHeight < MIN_WINDOW_HEIGHT || s.windowHeight > MAX_WINDOW_SIZE) {
+    errors.windowHeight = `Window height must be between ${MIN_WINDOW_HEIGHT} and ${MAX_WINDOW_SIZE} pixels.`;
+  }
+  if (s.jvmArgs.length > MAX_JVM_ARGS_CHARS) {
+    errors.jvmArgs = `Extra JVM options can be at most ${MAX_JVM_ARGS_CHARS} characters.`;
   }
   const id = s.msClientId?.trim();
   if (id && !CLIENT_ID_PATTERN.test(id)) {

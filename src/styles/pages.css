@@ -351,3 +351,57 @@ button.vc-main { cursor: pointer; }
 .hdr .hdr-tool, .hdr .hdr-win button, .hdr .hdr-account { color: rgb(255 255 255 / 0.85); }
 .hdr .hdr-tool:hover, .hdr .hdr-win button:hover { color: #fff; background: rgb(255 255 255 / 0.12); }
 .hdr .hdr-win .hdr-win-close:hover { background: #d0393a; }
+
+/* ==========================================================================
+   v0.3.1: Minecraft identity, official branding, cape picker
+   ========================================================================== */
+
+/* Header: the transparent cloud mark, with no tile, plate or black box behind it.
+   The artwork keeps its own proportions (width follows the height attribute). */
+.hdr-brand { gap: 9px; padding: 5px 10px 5px 5px; }
+.hdr-brand .logo-mark { display: block; width: auto; border-radius: 0; filter: drop-shadow(0 1px 7px rgb(0 0 0 / 0.45)); }
+@media (max-width: 880px) { .hdr-brand .logo-mark { max-height: 28px; } }
+
+/* Official Minecraft wordmark: wide, never squeezed into a square. */
+.brand-icon-wordmark { display: block; width: auto; max-width: 160px; object-fit: contain; }
+
+/* Account hero used by the account menu */
+.account-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 12px; }
+.account-hero-brand { display: flex; align-items: center; padding: 2px 0 6px; color: var(--text); }
+.account-hero .account-name { margin: 0; font-size: 1rem; font-weight: 700; }
+.account-identity { min-width: 0; }
+.account-identity .account-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Saved accounts on the Accounts page */
+.account-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.account-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 12px; background: rgb(255 255 255 / 0.03); }
+.account-list li.on { border-color: rgb(var(--accent-rgb) / 0.5); background: var(--accent-soft); }
+.account-list-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.account-list-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-list .btn { flex: none; }
+
+/* Skin preview: subject switch and cape choice */
+.skin-subject { margin-bottom: 12px; }
+.skin-model-value { margin: 4px 0 0; font-weight: 650; }
+.cape-field { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 16px; }
+.cape-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.cape-option { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: rgb(255 255 255 / 0.03); color: var(--text); text-align: left; cursor: pointer; transition: border-color var(--fast), background var(--fast); }
+.cape-option:hover { border-color: var(--border-strong); }
+.cape-option-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 0.45); }
+.cape-option-name { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 650; }
+.cape-options .badge { font-size: 0.62rem; }
+
+/* The cape is a plane hanging from the shoulders inside the 3D figure. */
+.skin-cape-anchor { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+.skin-cape-sway { display: block; transform-origin: top center; transform-style: preserve-3d; animation: cape-sway 6s ease-in-out infinite alternate; }
+.skin-cape { display: block; image-rendering: pixelated; background-repeat: no-repeat; transform: rotateY(180deg); backface-visibility: visible; }
+@keyframes cape-sway {
+  from { transform: rotateX(-2.5deg) rotateZ(-1deg); }
+  to { transform: rotateX(3deg) rotateZ(1.2deg); }
+}
+:root[data-reduce-motion="true"] .skin-cape-sway { animation: none; }
+
+/* The single-colour brand icons paint currentColor into their mask; the official
+   full-colour files are images, so they must not inherit that pale plate. */
+.brand-icon.brand-icon-colour,
+.brand-icon.brand-icon-wordmark { background: transparent; }

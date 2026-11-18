@@ -44,10 +44,7 @@ export function useAppData(): AppData {
     onNoSettingsChange: java.reload,
   });
 
-  const account = useAuth(
-    s.status === "ready" ? (s.data.settings.msClientId ?? null) : null,
-    s.status !== "loading",
-  );
+  const account = useAuth(s.status !== "loading");
 
   const profiles = useResource<Profile[]>(() => api.listProfiles());
   const selection = useSelection(profiles.state.status === "ready" ? profiles.state.data : null);

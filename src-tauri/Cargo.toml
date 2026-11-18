@@ -1,6 +1,6 @@
 [package]
 name = "cirrus-client"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Cirrus Client"]
 description = "Cirrus Client: a Windows launcher for Minecraft Java 1.21.11 (interface and diagnostics build)"
 edition = "2021"

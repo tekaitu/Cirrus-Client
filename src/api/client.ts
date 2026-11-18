@@ -5,6 +5,7 @@ import type {
   SkinModel,
   AppInfo,
   AuthStatus,
+  PlayerAppearance,
   DiscordPresence,
   DeviceCodeInfo,
   GameExit,
@@ -26,6 +27,7 @@ import type {
   Settings,
   SettingsState,
   SystemInfo,
+  VersionEntry,
 } from "./types";
 
 export function errorMessage(e: unknown): string {
@@ -74,7 +76,10 @@ export const api = {
   authSignIn: () => call<AuthStatus>("auth_sign_in"),
   authSignInWindow: () => call<AuthStatus>("auth_sign_in_window"),
   authCancel: () => call<boolean>("auth_cancel"),
-  authSignOut: () => call<AuthStatus>("auth_sign_out"),
+  /** Makes another saved account active and renews its session. */
+  authSwitch: (id: string) => call<AuthStatus>("auth_switch", { id }),
+  /** Signs out one account, or the active one when no id is given. */
+  authSignOut: (id?: string | null) => call<AuthStatus>("auth_sign_out", { id: id ?? null }),
   openMicrosoftLink: (url: string) => call<void>("open_microsoft_link", { url }),
   onAuthDeviceCode: async (handler: (info: DeviceCodeInfo) => void): Promise<() => void> => {
     if (!insideTauri()) return () => {};
@@ -83,6 +88,8 @@ export const api = {
   listInstances: () => call<InstanceSummary[]>("list_instances"),
   gameStatus: (version: string, loader: string) => call<GameStatus>("game_status", { version, loader }),
   listGameVersions: () => call<string[]>("list_game_versions"),
+  /** Mojang's full list, including snapshots and releases this build cannot install. */
+  listVersionCatalog: () => call<VersionEntry[]>("list_game_version_catalog"),
   installGame: (version: string, loader: string) => call<GameInstallResult>("install_game", { version, loader }),
   cancelGameInstall: () => call<boolean>("cancel_game_install"),
   launchGame: (
@@ -108,6 +115,10 @@ export const api = {
   removeSkin: (id: string) => call<void>("remove_skin", { id }),
   applySkin: (id: string) => call<void>("apply_skin", { id }),
   playerSkin: (player: string) => call<string | null>("player_skin", { player }),
+  /** Full skin, arm model and own cape of a player, as data addresses. */
+  /** `force` bypasses the five-minute skin cache so Refresh really asks Mojang again. */
+  playerAppearance: (player: string, force = false) =>
+    call<PlayerAppearance>("player_appearance", { player, force }),
   quitApp: () => call<void>("quit_app"),
   curseforgeAvailable: () => call<boolean>("curseforge_available"),
   searchMods: (provider: ModProvider, query: string, version: string, offset: number, category?: string, sort?: string) =>

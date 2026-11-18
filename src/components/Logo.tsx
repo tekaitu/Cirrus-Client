@@ -2,17 +2,19 @@
  * Cirrus Client artwork. The files live in public/brand/ and are built from the
  * original images in branding/source/ by branding/make_brand.py, so the in-app
  * logo, the window icon and the EXE icon always match.
+ *
+ * The header uses the transparent cloud mark, never the square app tile: the
+ * tile's dark background would show as a black rectangle on the launcher.
  */
 
-/** The emblem on its rounded black tile (also the app icon). */
+/** The cloud-and-stars mark, white on transparent. Height is in pixels; the width follows the artwork. */
 export function LogoMark({ size = 40 }: { size?: number }) {
   return (
     <img
       className="logo-mark"
-      src="/brand/icon.png"
-      width={size}
+      src="/brand/mark.png"
       height={size}
-      alt="Cirrus Client logo"
+      alt="Cirrus Client"
       draggable={false}
     />
   );

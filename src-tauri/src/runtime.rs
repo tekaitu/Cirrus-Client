@@ -702,7 +702,6 @@ pub fn install_java(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write as _;
     use std::net::TcpListener;
     use std::sync::atomic::AtomicUsize;
 

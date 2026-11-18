@@ -8,7 +8,7 @@ import { AppBackground, type BackdropId } from "./components/Scene";
 import { CloseIcon } from "./components/Icons";
 import { TopNav, type PageId } from "./components/Navigation";
 import { LICENSE_VERSION } from "./content/license";
-import { api, errorMessage } from "./api/client";
+import { api } from "./api/client";
 import { useAppData } from "./hooks/useAppData";
 import { DiagnosticsPage } from "./pages/Diagnostics";
 import { HomePage } from "./pages/Home";
@@ -24,6 +24,9 @@ import { pageForShortcut } from "./core/shortcuts";
 import { readDiscordEnabled, writeDiscordEnabled } from "./core/discord";
 import { useDiscordPresence } from "./hooks/useDiscordPresence";
 import { notify } from "./core/notifications";
+import { Toasts } from "./components/Toasts";
+import { REQUIRED_JAVA_MAJOR } from "./core/java";
+import { writeRecent } from "./core/recent";
 
 /** Which picture sits behind each page. */
 const BACKDROPS: Record<PageId, BackdropId> = {
@@ -96,6 +99,39 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Sign-in results and an expired login get a notification of their own.
+  const accountPhase = data.account.state.phase;
+  const prevAccount = useRef(accountPhase);
+  useEffect(() => {
+    const was = prevAccount.current;
+    prevAccount.current = accountPhase;
+    const state = data.account.state;
+    if (state.phase === "signedIn" && (was === "starting" || was === "waiting")) {
+      notify({ title: "Signed in to Minecraft", body: state.profile.name, tone: "good" });
+    } else if (state.phase === "signedOut" && was !== "signedOut" && state.message?.trim()) {
+      notify({ title: "Microsoft sign-in expired", body: state.message, tone: "warn" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountPhase]);
+
+  // Java missing is worth saying once, when the scan has finished and nothing is installing.
+  const javaMissing =
+    data.java.status === "ready" && !data.java.data.selected && data.installer.state.phase !== "running";
+  const saidJavaMissing = useRef(false);
+  useEffect(() => {
+    if (!javaMissing) {
+      saidJavaMissing.current = false;
+      return;
+    }
+    if (saidJavaMissing.current) return;
+    saidJavaMissing.current = true;
+    notify({
+      title: `Java ${REQUIRED_JAVA_MAJOR} is needed`,
+      body: "Set up & play can install it for you, or pick a Java in Settings.",
+      tone: "warn",
+    });
+  }, [javaMissing]);
+
   const runPhase = data.game.run.phase;
 
   // Tell the bell about the things that matter: the game starting, ending or crashing.
@@ -104,7 +140,15 @@ export default function App() {
   useEffect(() => {
     if (prevRun.current === runPhase) return;
     prevRun.current = runPhase;
-    if (runPhase === "running") notify({ title: "Minecraft started", body: `Minecraft ${data.selection.version}`, tone: "good" });
+    if (runPhase === "running") {
+      notify({ title: "Minecraft started", body: `Minecraft ${data.selection.version}`, tone: "good" });
+      writeRecent({
+        version: data.selection.version,
+        loader: data.selection.loader,
+        profile: data.selection.profile?.name ?? null,
+        at: Date.now(),
+      });
+    }
     else if (runPhase === "ended") {
       if (runState.phase === "ended" && runState.crash) notify({ title: "Minecraft crashed", body: "Open the crash report from Home or Versions.", tone: "bad" });
       else if (runState.phase === "ended") notify({ title: "Minecraft closed", tone: "info" });
@@ -138,21 +182,6 @@ export default function App() {
     loader: data.selection.loader,
   });
 
-  /** Saves the pasted Azure app ID so sign-in can start right away. Returns an error message or null. */
-  const saveClientId = async (id: string): Promise<string | null> => {
-    if (data.settings.status !== "ready") return "Settings are not loaded yet. Try again in a moment.";
-    try {
-      const outcome = await api.saveSettings({ ...data.settings.data.settings, msClientId: id });
-      if (outcome.ok && outcome.state) {
-        data.applySettings(outcome.state);
-        return null;
-      }
-      return outcome.errors[0]?.message ?? "The app ID could not be saved.";
-    } catch (e) {
-      return errorMessage(e);
-    }
-  };
-
   return (
     <div className="layout">
       <AppBackground id={BACKDROPS[page]} />
@@ -175,7 +204,7 @@ export default function App() {
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
           {page === "skins" && <SkinsPage data={data} />}
           {page === "servers" && <ServersPage />}
-          {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} onSaveClientId={saveClientId} />}
+          {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} />}
           {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} discord={{ enabled: discordOn, onToggle: toggleDiscord }} />}
           {page === "about" && <AboutPage data={data} onLicense={() => setLicenseOpen(true)} />}
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
@@ -189,17 +218,13 @@ export default function App() {
       {accepted && <SignInDialog account={data.account} />}
       {accepted && <GameDialog data={data} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}
+      <Toasts />
       {accountOpen && (
         <div className="popover" role="dialog" aria-label="Account">
           <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>
             <CloseIcon />
           </button>
-          <AccountPanel
-            account={data.account}
-            onNavigate={navigate}
-            onSaveClientId={saveClientId}
-            onManage={() => navigate("accounts")}
-          />
+          <AccountPanel account={data.account} onManage={() => navigate("accounts")} />
         </div>
       )}
     </div>

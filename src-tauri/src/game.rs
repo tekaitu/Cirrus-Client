@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -55,8 +55,13 @@ impl GameError {
 pub struct GameProgress {
     /// "metadata" | "downloading" | "finishing"
     pub stage: &'static str,
+    /// Files finished, and how many files there are in total.
     pub done: u64,
     pub total: u64,
+    /// Bytes finished and the size of everything to fetch. Both stay 0 when the
+    /// sizes are not all known, so the interface never invents a speed.
+    pub bytes_done: u64,
+    pub bytes_total: u64,
     pub message: String,
 }
 
@@ -117,6 +122,62 @@ pub fn releases_from_manifest(manifest: &Value) -> Vec<String> {
                 .filter_map(|v| v.get("id").and_then(Value::as_str))
                 .filter(|id| supported_release(id))
                 .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// One entry of Mojang's version list, including the ones this launcher cannot install.
+/// Snapshots are listed so they can be shown as "not supported" instead of silently missing.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct VersionEntry {
+    pub id: String,
+    /// "release" | "snapshot" | "old_beta" | "old_alpha"
+    pub kind: String,
+    /// Mojang's release time, newest first in the list.
+    pub released: Option<String>,
+    /// True only when the launcher can actually download and start it.
+    pub supported: bool,
+    /// The Java major version this release asks for in Mojang's manifest.
+    pub java_major: Option<u32>,
+}
+
+/// Every version Mojang lists, newest first, each marked as installable or not.
+pub fn list_catalog() -> Result<Vec<VersionEntry>, GameError> {
+    let c = client().map_err(GameError::Failed)?;
+    let manifest = parse_json(&fetch_text(&c, MANIFEST_URL)?, "Minecraft version list")?;
+    Ok(catalog_from_manifest(&manifest))
+}
+
+pub fn catalog_from_manifest(manifest: &Value) -> Vec<VersionEntry> {
+    manifest
+        .get("versions")
+        .and_then(Value::as_array)
+        .map(|list| {
+            list.iter()
+                .filter_map(|v| {
+                    let id = v.get("id").and_then(Value::as_str)?.to_string();
+                    if id.is_empty() {
+                        return None;
+                    }
+                    let kind = v
+                        .get("type")
+                        .and_then(Value::as_str)
+                        .unwrap_or("release")
+                        .to_string();
+                    Some(VersionEntry {
+                        supported: kind == "release" && supported_release(&id),
+                        released: v.get("releaseTime").and_then(Value::as_str).map(str::to_string),
+                        java_major: v
+                            .get("javaVersion")
+                            .and_then(|j| j.get("majorVersion"))
+                            .and_then(Value::as_u64)
+                            .and_then(|n| u32::try_from(n).ok()),
+                        kind,
+                        id,
+                    })
+                })
                 .collect()
         })
         .unwrap_or_default()
@@ -603,6 +664,13 @@ fn run_downloads(
     on_progress: ProgressFn<'_>,
 ) -> Result<(), GameError> {
     let total = downloads.len();
+    let sizes_known = downloads.iter().all(|d| d.size.is_some());
+    let bytes_total: u64 = if sizes_known {
+        downloads.iter().filter_map(|d| d.size).sum()
+    } else {
+        0
+    };
+    let bytes_done = AtomicU64::new(0);
     let next = AtomicUsize::new(0);
     let done = AtomicUsize::new(0);
     let failure: Mutex<Option<GameError>> = Mutex::new(None);
@@ -621,11 +689,15 @@ fn run_downloads(
                 match download_file(c, &downloads[i], cancel) {
                     Ok(()) => {
                         let n = done.fetch_add(1, Ordering::SeqCst) + 1;
+                        let bytes = bytes_done.fetch_add(downloads[i].size.unwrap_or(0), Ordering::SeqCst)
+                            + downloads[i].size.unwrap_or(0);
                         if n % 8 == 0 || n == total {
                             on_progress(GameProgress {
                                 stage: "downloading",
                                 done: n as u64,
                                 total: total as u64,
+                                bytes_done: bytes,
+                                bytes_total,
                                 message: format!("Downloading game files ({n} of {total})"),
                             });
                         }
@@ -660,7 +732,7 @@ pub fn install(
     on_progress: ProgressFn<'_>,
 ) -> Result<InstallInfo, GameError> {
     let meta = |message: &str| {
-        on_progress(GameProgress { stage: "metadata", done: 0, total: 0, message: message.to_string() })
+        on_progress(GameProgress { stage: "metadata", done: 0, total: 0, bytes_done: 0, bytes_total: 0, message: message.to_string() })
     };
     fs::create_dir_all(root).map_err(|e| GameError::failed(format!("Could not create the game folder: {e}")))?;
     let c = client().map_err(GameError::Failed)?;
@@ -758,11 +830,20 @@ pub fn install(
         stage: "downloading",
         done: 0,
         total: downloads.len() as u64,
+        bytes_done: 0,
+        bytes_total: 0,
         message: format!("Downloading game files (0 of {})", downloads.len()),
     });
     run_downloads(&c, &downloads, cancel, on_progress)?;
 
-    on_progress(GameProgress { stage: "finishing", done: 0, total: 0, message: "Finishing…".to_string() });
+    on_progress(GameProgress {
+        stage: "finishing",
+        done: 0,
+        total: 0,
+        bytes_done: 0,
+        bytes_total: 0,
+        message: "Finishing…".to_string(),
+    });
     write_atomic(&vanilla_json_path(root, mc), &version_text)?;
     if fabric_wanted {
         write_atomic(&fabric_json_path(root, &profile_id), &fabric_text)?;
@@ -946,6 +1027,27 @@ pub struct LaunchSpec {
     pub cwd: PathBuf,
 }
 
+/// Everything the saved settings contribute to a launch: memory, window size and
+/// the person's own JVM options.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LaunchOptions {
+    pub memory_mb: u32,
+    pub window_width: u32,
+    pub window_height: u32,
+    pub jvm_args: Vec<String>,
+}
+
+impl Default for LaunchOptions {
+    fn default() -> Self {
+        LaunchOptions {
+            memory_mb: 4096,
+            window_width: 1280,
+            window_height: 720,
+            jvm_args: Vec::new(),
+        }
+    }
+}
+
 fn read_json(path: &Path, what: &str) -> Result<Value, String> {
     let text = fs::read_to_string(path).map_err(|e| format!("Could not read the {what}: {e}. Try installing the game files again."))?;
     serde_json::from_str(&text).map_err(|e| format!("The {what} is damaged ({e}). Try installing the game files again."))
@@ -956,7 +1058,7 @@ pub fn build_launch(
     root: &Path,
     info: &InstallInfo,
     java: &Path,
-    memory_mb: u32,
+    options: &LaunchOptions,
     player: &Player,
     launcher_version: &str,
     instance_id: Option<&str>,
@@ -1026,10 +1128,20 @@ pub fn build_launch(
         jvm.push("${classpath}".to_string());
     }
 
-    let mut args = vec![format!("-Xmx{memory_mb}M")];
+    let mut args = vec![format!("-Xmx{}M", options.memory_mb)];
+    // The person's own options come after the memory limit so they never drop
+    // the -Xmx line Minecraft needs.
+    args.extend(options.jvm_args.iter().cloned());
     args.extend(jvm.iter().map(|a| substitute(a, &vars)));
     args.push(main_class);
     args.extend(game.iter().map(|a| substitute(a, &vars)));
+    // A window size is only added for values the settings check already accepted.
+    if options.window_width > 0 && options.window_height > 0 {
+        args.push("--width".to_string());
+        args.push(options.window_width.to_string());
+        args.push("--height".to_string());
+        args.push(options.window_height.to_string());
+    }
 
     Ok(LaunchSpec { program: java.to_path_buf(), args, cwd: instance })
 }
@@ -1285,7 +1397,16 @@ mod tests {
         }
 
         let player = Player::offline("Steve").unwrap();
-        let spec = build_launch(root, &info, Path::new("java.exe"), 3072, &player, "0.1.0", None).unwrap();
+        let spec = build_launch(
+            root,
+            &info,
+            Path::new("java.exe"),
+            &LaunchOptions { memory_mb: 3072, ..LaunchOptions::default() },
+            &player,
+            "0.1.0",
+            None,
+        )
+        .unwrap();
         assert_eq!(spec.args[0], "-Xmx3072M");
         let main_at = spec.args.iter().position(|a| a == "net.fabricmc.loader.impl.launch.knot.KnotClient").unwrap();
         let cp_at = spec.args.iter().position(|a| a == "-cp").unwrap();
@@ -1321,8 +1442,21 @@ mod tests {
             write_atomic(&root.join("libraries").join(&lib.rel_path), "x").unwrap();
         }
         let player = Player::offline("Alex").unwrap();
-        let spec = build_launch(root, &info, Path::new("java.exe"), 2048, &player, "0.1.0", None).unwrap();
+        let spec = build_launch(
+            root,
+            &info,
+            Path::new("java.exe"),
+            &LaunchOptions { memory_mb: 2048, ..LaunchOptions::default() },
+            &player,
+            "0.1.0",
+            None,
+        )
+        .unwrap();
         assert!(spec.args.contains(&"net.minecraft.client.main.Main".to_string()));
+        // The saved window size and JVM options reach the game.
+        let at = spec.args.iter().position(|a| a == "--width").unwrap();
+        assert_eq!(spec.args[at + 1], "1280");
+        assert_eq!(spec.args[at + 3], "720");
         assert!(!spec.args.iter().any(|a| a.contains("fabric")));
     }
 
@@ -1341,6 +1475,41 @@ mod tests {
     }
 
     #[test]
+    fn the_catalog_marks_snapshots_and_old_releases_as_not_supported() {
+        let manifest = json!({"versions":[
+            {"id":"1.21.11","type":"release","releaseTime":"2025-12-02T10:00:00+00:00"},
+            {"id":"25w45a","type":"snapshot","releaseTime":"2025-11-05T10:00:00+00:00"},
+            {"id":"1.20.4","type":"release","releaseTime":"2023-12-07T10:00:00+00:00"}]});
+        let list = catalog_from_manifest(&manifest);
+        assert_eq!(list.len(), 3);
+        assert_eq!(list[0].id, "1.21.11");
+        assert!(list[0].supported);
+        assert_eq!(list[0].kind, "release");
+        assert_eq!(list[0].released.as_deref(), Some("2025-12-02T10:00:00+00:00"));
+        assert_eq!(list[1].kind, "snapshot");
+        assert!(!list[1].supported, "snapshots are listed but not installable");
+        assert!(!list[2].supported, "1.20.4 needs an older Java");
+    }
+
+    #[test]
+    fn the_catalog_reports_the_java_version_from_the_manifest() {
+        let manifest = json!({"versions":[
+            {"id":"1.21.11","type":"release","javaVersion":{"majorVersion":21}},
+            {"id":"1.16.5","type":"release","javaVersion":{"majorVersion":8}},
+            {"id":"1.21.4","type":"release"}]});
+        let list = catalog_from_manifest(&manifest);
+        assert_eq!(list[0].java_major, Some(21));
+        assert_eq!(list[1].java_major, Some(8));
+        assert_eq!(list[2].java_major, None);
+    }
+
+    #[test]
+    fn the_catalog_skips_entries_without_an_id() {
+        let manifest = json!({"versions":[{"type":"release"},{"id":"","type":"release"}]});
+        assert!(catalog_from_manifest(&manifest).is_empty());
+    }
+
+    #[test]
     fn launch_reports_a_missing_library() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -1349,7 +1518,16 @@ mod tests {
         write_atomic(&vanilla_json_path(root, mc), &vanilla().to_string()).unwrap();
         write_atomic(&fabric_json_path(root, &info.profile_id), &fabric().to_string()).unwrap();
         let player = Player::offline("Steve").unwrap();
-        let err = build_launch(root, &info, Path::new("java.exe"), 2048, &player, "0.1.0", None).unwrap_err();
+        let err = build_launch(
+            root,
+            &info,
+            Path::new("java.exe"),
+            &LaunchOptions { memory_mb: 2048, ..LaunchOptions::default() },
+            &player,
+            "0.1.0",
+            None,
+        )
+        .unwrap_err();
         assert!(err.contains("missing"));
     }
 

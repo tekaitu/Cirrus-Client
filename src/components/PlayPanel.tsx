@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { exitText, gameProgressView, usernameError, type LoaderId, type PlayMode } from "../core/game";
+import { exitText, gameProgressView, usernameError, type PlayMode } from "../core/game";
 import { REQUIRED_JAVA_MAJOR } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
 import { BrandIcon } from "./BrandIcon";
 import { PackageIcon, PlayArrowIcon, SettingsIcon, StopIcon, TerminalIcon } from "./Icons";
 import { Banner } from "./ui";
+import { InstallProgress } from "./InstallProgress";
+import { Button } from "./Button";
+import { VersionSelector } from "./VersionSelector";
 import type { PageId } from "./Navigation";
 
 function read(key: string): string | null {
@@ -40,6 +43,8 @@ export function PlayPanel({
   const [name, setName] = useState(() => read("unlimited.username") ?? "");
   const [touched, setTouched] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
+  // When the current download started, so the panel can show a real elapsed time and average speed.
+  const [installStartedAt, setInstallStartedAt] = useState(0);
   // Each setup step is tried once per click, so a step that "succeeds" without changing anything cannot repeat forever.
   const tried = useRef({ java: false, game: false });
 
@@ -61,6 +66,11 @@ export function PlayPanel({
   const gamePhase = game.installer.phase;
   const installing = gamePhase === "running" || javaPhase === "running";
   const needsSetup = !javaLoading && game.status !== null && (!java || !game.status.installed);
+
+  useEffect(() => {
+    if (gamePhase === "running") setInstallStartedAt((at) => (at === 0 ? Date.now() : at));
+    else if (gamePhase === "idle" || gamePhase === "error" || gamePhase === "cancelled") setInstallStartedAt(0);
+  }, [gamePhase]);
 
   // "Set up & play": install Java, then the game files, then start, one step after another.
   // `auto` is the real switch; it is cleared before the game starts, so this can never repeat.
@@ -137,6 +147,7 @@ export function PlayPanel({
     action = { label: "Play", disabled: true, hint: "Game status is only available in the desktop app." };
   }
 
+  const gameProgress = game.installer.phase === "running" ? game.installer.progress : null;
   const progress = game.installer.phase === "running" ? gameProgressView(game.installer.progress) : null;
   const cancelAll = () => {
     setAutoPlay(false);
@@ -177,41 +188,7 @@ export function PlayPanel({
         </div>
       )}
       {variant === "full" && (<>
-      <div className="pick-row">
-        <label className="pick">
-          <span>Minecraft version</span>
-          <select
-            aria-label="Minecraft version"
-            value={selection.version}
-            disabled={running || installing}
-            onChange={(e) => selection.setVersion(e.target.value)}
-          >
-            {selection.versions.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="pick">
-          <span id="loader-label">Loader</span>
-          <div className="seg" role="radiogroup" aria-labelledby="loader-label">
-            {(["fabric", "vanilla"] as LoaderId[]).map((l) => (
-              <button
-                key={l}
-                type="button"
-                role="radio"
-                aria-checked={selection.loader === l}
-                className={selection.loader === l ? "seg-on" : ""}
-                disabled={running || installing}
-                onClick={() => selection.setLoader(l)}
-              >
-                {l === "fabric" ? "Fabric" : "Vanilla"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <VersionSelector data={data} disabled={running || installing} />
       <details className="why-optifine">
         <summary>Why is there no OptiFine?</summary>
         <p className="muted small">
@@ -273,41 +250,37 @@ export function PlayPanel({
 
       <div className="play-dock">
       {progress ? (
-        <div className="install-inline" role="status" aria-live="polite">
-          <p className="small">
-            {game.installer.phase === "running" && game.installer.cancelling ? "Cancelling…" : progress.label}
-          </p>
-          <progress
-            aria-label="Game download progress"
-            max={100}
-            {...(progress.percent !== null ? { value: progress.percent } : {})}
-          />
-          <button type="button" className="btn btn-pill" onClick={cancelAll}>
-            Cancel
-          </button>
-        </div>
+        <InstallProgress
+          progress={gameProgress}
+          startedAt={installStartedAt || Date.now()}
+          cancelling={game.installer.phase === "running" && game.installer.cancelling}
+          onCancel={cancelAll}
+        />
       ) : (
         <div className="hero-actions">
-          <button
-            type="button"
-            className={`btn btn-pill lp-go ${action.danger ? "btn-danger" : "btn-primary btn-glow"}`}
+          <Button
+            variant={action.danger ? "danger" : "primary"}
+            size="lg"
+            className="lp-go"
             disabled={action.disabled}
+            loading={game.run.phase === "starting"}
+            loadingLabel="Starting…"
             onClick={action.onClick}
+            icon={
+              action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <BrandIcon name="microsoft" size={20} /> : <PlayArrowIcon />
+            }
           >
-            {action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <BrandIcon name="microsoft" size={20} /> : !action.disabled && <PlayArrowIcon />}
             {action.label}
-          </button>
+          </Button>
           {game.run.phase === "starting" || running ? (
-            <button type="button" className="btn btn-pill" onClick={game.openLog}>
-              <TerminalIcon />
+            <Button variant="secondary" size="lg" onClick={game.openLog} icon={<TerminalIcon />}>
               View log
-            </button>
+            </Button>
           ) : (
             variant === "full" && (
-              <button type="button" className="btn btn-pill" onClick={() => onNavigate("settings")}>
-                <SettingsIcon />
+              <Button variant="secondary" size="lg" onClick={() => onNavigate("settings")} icon={<SettingsIcon />}>
                 Settings
-              </button>
+              </Button>
             )
           )}
         </div>
@@ -316,7 +289,15 @@ export function PlayPanel({
       {variant === "full" && action.hint && !progress && <p className="muted small hero-note">{action.hint}</p>}
 
       {game.installer.phase === "error" && (
-        <Banner tone="bad" title="Game files could not be downloaded">
+        <Banner
+          tone="bad"
+          title="Game files could not be downloaded"
+          actions={
+            <Button variant="secondary" size="sm" onClick={game.install}>
+              Try again
+            </Button>
+          }
+        >
           {game.installer.message}
         </Banner>
       )}

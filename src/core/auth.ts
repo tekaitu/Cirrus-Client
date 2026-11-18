@@ -18,7 +18,12 @@ export function accountFromStatus(s: AuthStatus): AccountState {
       return { phase: "notConfigured" };
     case "signedIn":
       return s.profile
-        ? { phase: "signedIn", profile: s.profile, note: s.message }
+        ? {
+            phase: "signedIn",
+            // Older backends do not send the flag; do not invent ownership for them.
+            profile: { ...s.profile, ownsMinecraft: s.profile.ownsMinecraft === true },
+            note: s.message,
+          }
         : { phase: "error", message: "Signed in, but no profile was returned." };
     case "failed":
       return { phase: "error", message: s.message ?? "Sign-in failed." };

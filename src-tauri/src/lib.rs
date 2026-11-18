@@ -1,3 +1,4 @@
+pub mod accounts;
 pub mod auth;
 pub mod crashlog;
 pub mod discord;
@@ -287,12 +288,26 @@ fn cancel_java_install(state: State<'_, InstallState>) -> bool {
 struct AuthStatus {
     /// "notConfigured" | "signedOut" | "signedIn" | "cancelled" | "failed"
     state: &'static str,
-    /// True when Settings holds a valid Azure client ID.
+    /// True when this build has a usable Microsoft application ID.
     configured: bool,
-    /// True when a login is saved in Windows Credential Manager (or was just made).
+    /// True when at least one login is saved in Windows Credential Manager.
     saved_login: bool,
+    /// The account whose session is live right now. The interface shows this
+    /// name and skin, never the profile id.
     profile: Option<auth::Profile>,
     message: Option<String>,
+    /// Every account signed in on this PC, newest first.
+    accounts: Vec<accounts::Account>,
+    /// Which of them the session belongs to.
+    active_id: Option<String>,
+}
+
+/// `accounts.json` sits next to settings.json in the app config folder.
+fn accounts_path(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_config_dir()
+        .map(|dir| accounts::accounts_file(&dir))
+        .map_err(|e| format!("Could not find the account folder: {e}"))
 }
 
 /// The Settings override if there is one, otherwise the app ID built into this build.
@@ -310,17 +325,21 @@ fn client_id_from_settings(app: &AppHandle) -> Option<String> {
 }
 
 fn status(
+    app: &AppHandle,
     state: &'static str,
     configured: bool,
     profile: Option<auth::Profile>,
     message: Option<String>,
 ) -> AuthStatus {
+    let known = accounts_path(app).map(|path| accounts::load(&path)).unwrap_or_default();
     AuthStatus {
         state,
         configured,
-        saved_login: profile.is_some(),
+        saved_login: !known.accounts.is_empty() || auth::KeyringStore::default().legacy_saved(),
         profile,
         message,
+        accounts: known.accounts,
+        active_id: known.active,
     }
 }
 
@@ -330,13 +349,9 @@ fn auth_status(app: AppHandle, state: State<'_, AuthState>) -> AuthStatus {
     let configured = client_id_from_settings(&app).is_some();
     let session = state.session.lock().ok().and_then(|s| s.as_ref().map(|s| s.profile.clone()));
     match session {
-        Some(profile) => status("signedIn", configured, Some(profile), None),
-        None if configured => {
-            let mut s = status("signedOut", true, None, None);
-            s.saved_login = matches!(auth::KeyringStore.load(), Ok(Some(_)));
-            s
-        }
-        None => status("notConfigured", false, None, None),
+        Some(profile) => status(&app, "signedIn", configured, Some(profile), None),
+        None if configured => status(&app, "signedOut", true, None, None),
+        None => status(&app, "notConfigured", false, None, None),
     }
 }
 
@@ -344,28 +359,82 @@ fn auth_status(app: AppHandle, state: State<'_, AuthState>) -> AuthStatus {
 #[tauri::command]
 async fn auth_restore(app: AppHandle, state: State<'_, AuthState>) -> Result<AuthStatus, String> {
     let Some(client_id) = client_id_from_settings(&app) else {
-        return Ok(status("notConfigured", false, None, None));
+        return Ok(status(&app, "notConfigured", false, None, None));
+    };
+    let path = accounts_path(&app)?;
+    let known = accounts::load(&path);
+    let target = known.active.clone().or_else(|| known.accounts.first().map(|a| a.id.clone()));
+    // A known account restores from its own Credential Manager entry. With no
+    // list yet, the single entry written by an older version is used once and
+    // then copied to the account it belongs to.
+    let legacy = target.is_none();
+    let store = match &target {
+        Some(id) => auth::KeyringStore::for_account(id),
+        None => auth::KeyringStore::default(),
     };
     let result = tauri::async_runtime::spawn_blocking(move || {
-        auth::restore(&auth::Endpoints::production(), &client_id, &auth::KeyringStore)
+        auth::restore(&auth::Endpoints::production(), &client_id, &store)
     })
     .await
     .map_err(|e| format!("Sign-in check stopped unexpectedly: {e}"))?;
     Ok(match result {
-        Ok(Some(session)) => {
-            let profile = session.profile.clone();
-            if let Ok(mut slot) = state.session.lock() {
-                *slot = Some(session);
-            }
-            status("signedIn", true, Some(profile), None)
-        }
-        Ok(None) => status("signedOut", true, None, None),
+        Ok(Some(session)) => adopt_session(&app, &state, &path, session, legacy)?,
+        Ok(None) if legacy => status(&app, "signedOut", true, None, None),
+        Ok(None) => status(
+            &app,
+            "signedOut",
+            true,
+            None,
+            Some("This account's saved sign-in is missing. Sign in again to keep using it.".to_string()),
+        ),
         Err(e) => {
-            let mut s = status("signedOut", true, None, Some(e.to_string()));
-            s.saved_login = matches!(e, auth::AuthError::Failed(_));
-            s
+            // A revoked or expired login is deleted so it cannot fail again on every
+            // start; a network problem leaves it in place for the next attempt.
+            if matches!(e, auth::AuthError::Rejected(_)) {
+                match target.as_deref() {
+                    Some(id) => {
+                        let _ = auth::KeyringStore::for_account(id).clear();
+                    }
+                    None => {
+                        let _ = auth::KeyringStore::default().clear();
+                    }
+                }
+            }
+            status(&app, "signedOut", true, None, Some(e.to_string()))
         }
     })
+}
+
+/// Keeps a successful session: the token under this account's own entry, the
+/// name in accounts.json, and the live session in memory. The interface never
+/// receives the token, only the profile.
+fn adopt_session(
+    app: &AppHandle,
+    state: &State<'_, AuthState>,
+    path: &std::path::Path,
+    session: auth::Session,
+    clear_legacy: bool,
+) -> Result<AuthStatus, String> {
+    let id = session.profile.id.clone();
+    let name = session.profile.name.clone();
+    let saved = match session.refresh_token.as_deref() {
+        Some(token) => auth::KeyringStore::for_account(&id).save(token).is_ok(),
+        None => false,
+    };
+    if clear_legacy {
+        let _ = auth::KeyringStore::default().clear();
+    }
+    accounts::upsert(path, &id, &name)?;
+    let profile = session.profile.clone();
+    if let Ok(mut slot) = state.session.lock() {
+        *slot = Some(session);
+    }
+    let note = if saved {
+        None
+    } else {
+        Some("Signed in, but the login could not be saved. You will need to sign in again next time.".to_string())
+    };
+    Ok(status(app, "signedIn", true, Some(profile), note))
 }
 
 /// Interactive device-code sign-in. Emits `auth-device-code` with the code to show,
@@ -374,10 +443,11 @@ async fn auth_restore(app: AppHandle, state: State<'_, AuthState>) -> Result<Aut
 async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<AuthStatus, String> {
     let Some(client_id) = client_id_from_settings(&app) else {
         return Ok(status(
+            &app,
             "notConfigured",
             false,
             None,
-            Some("Enter your Azure Application (client) ID in Settings first.".to_string()),
+            Some("Sign-in is not available in this build of Cirrus Client.".to_string()),
         ));
     };
     let cancel = Arc::new(AtomicBool::new(false));
@@ -391,7 +461,12 @@ async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<Aut
     let emitter = app.clone();
     let flag = cancel.clone();
     let worker = tauri::async_runtime::spawn_blocking(move || {
-        auth::sign_in(&auth::Endpoints::production(), &client_id, &auth::KeyringStore, &flag, &move |info| {
+        // The Minecraft profile (and so the account id) is only known once the
+        // exchange finishes, so this first save goes to the unscoped entry old
+        // versions used. `adopt_session` immediately copies it to the account's
+        // own entry and clears the unscoped one.
+        let store = auth::KeyringStore::default();
+        auth::sign_in(&auth::Endpoints::production(), &client_id, &store, &flag, &move |info| {
             let _ = emitter.emit(AUTH_CODE_EVENT, info.clone());
         })
     })
@@ -400,21 +475,11 @@ async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<Aut
         *slot = None;
     }
     let result = worker.map_err(|e| format!("Sign-in stopped unexpectedly: {e}"))?;
+    let path = accounts_path(&app)?;
     Ok(match result {
-        Ok(session) => {
-            let profile = session.profile.clone();
-            let note = if session.persisted {
-                None
-            } else {
-                Some("Signed in, but the login could not be saved, so you will need to sign in again next time.".to_string())
-            };
-            if let Ok(mut slot) = state.session.lock() {
-                *slot = Some(session);
-            }
-            status("signedIn", true, Some(profile), note)
-        }
-        Err(auth::AuthError::Cancelled) => status("cancelled", true, None, None),
-        Err(e) => status("failed", true, None, Some(e.to_string())),
+        Ok(session) => adopt_session(&app, &state, &path, session, true)?,
+        Err(auth::AuthError::Cancelled) => status(&app, "cancelled", true, None, None),
+        Err(e) => status(&app, "failed", true, None, Some(e.to_string())),
     })
 }
 
@@ -424,10 +489,11 @@ async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<Aut
 async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Result<AuthStatus, String> {
     let Some(client_id) = client_id_from_settings(&app) else {
         return Ok(status(
+            &app,
             "notConfigured",
             false,
             None,
-            Some("Sign-in is not set up in this build of Cirrus Client.".to_string()),
+            Some("Sign-in is not available in this build of Cirrus Client.".to_string()),
         ));
     };
     let cancel = Arc::new(AtomicBool::new(false));
@@ -441,10 +507,14 @@ async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Res
     let handle = app.clone();
     let flag = cancel.clone();
     let worker = tauri::async_runtime::spawn_blocking(move || {
+        // As in `auth_sign_in`: no profile id exists yet, so the token is first
+        // written to the unscoped entry and then moved to the account entry by
+        // `adopt_session`.
+        let store = auth::KeyringStore::default();
         auth::sign_in_window(
             &auth::Endpoints::production(),
             &client_id,
-            &auth::KeyringStore,
+            &store,
             &flag,
             &|url| show_login_window(&handle, url, &flag),
         )
@@ -454,21 +524,11 @@ async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Res
         *slot = None;
     }
     let result = worker.map_err(|e| format!("Sign-in stopped unexpectedly: {e}"))?;
+    let path = accounts_path(&app)?;
     Ok(match result {
-        Ok(session) => {
-            let profile = session.profile.clone();
-            let note = if session.persisted {
-                None
-            } else {
-                Some("Signed in, but the login could not be saved, so you will need to sign in again next time.".to_string())
-            };
-            if let Ok(mut slot) = state.session.lock() {
-                *slot = Some(session);
-            }
-            status("signedIn", true, Some(profile), note)
-        }
-        Err(auth::AuthError::Cancelled) => status("cancelled", true, None, None),
-        Err(e) => status("failed", true, None, Some(e.to_string())),
+        Ok(session) => adopt_session(&app, &state, &path, session, true)?,
+        Err(auth::AuthError::Cancelled) => status(&app, "cancelled", true, None, None),
+        Err(e) => status(&app, "failed", true, None, Some(e.to_string())),
     })
 }
 
@@ -533,16 +593,69 @@ fn auth_cancel(state: State<'_, AuthState>) -> bool {
     }
 }
 
+/// Switches to another saved account. The session is renewed from that
+/// account's own token before it becomes active, so the name in the header and
+/// the account the game launches with can never disagree.
 #[tauri::command]
-fn auth_sign_out(app: AppHandle, state: State<'_, AuthState>) -> AuthStatus {
-    if let Ok(mut slot) = state.session.lock() {
-        *slot = None;
+async fn auth_switch(app: AppHandle, state: State<'_, AuthState>, id: String) -> Result<AuthStatus, String> {
+    let Some(client_id) = client_id_from_settings(&app) else {
+        return Ok(status(&app, "notConfigured", false, None, None));
+    };
+    let path = accounts_path(&app)?;
+    let known = accounts::load(&path);
+    if !known.accounts.iter().any(|a| a.id == id) {
+        return Err("That account is not signed in on this PC.".to_string());
     }
+    accounts::set_active(&path, &id)?;
+    let store = auth::KeyringStore::for_account(&id);
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        auth::restore(&auth::Endpoints::production(), &client_id, &store)
+    })
+    .await
+    .map_err(|e| format!("Switching accounts stopped unexpectedly: {e}"))?;
+    Ok(match result {
+        Ok(Some(session)) => adopt_session(&app, &state, &path, session, false)?,
+        Ok(None) => status(
+            &app,
+            "signedOut",
+            true,
+            None,
+            Some("That account has no saved sign-in left. Sign in again to use it.".to_string()),
+        ),
+        Err(e) => status(&app, "signedOut", true, None, Some(e.to_string())),
+    })
+}
+
+/// Signs out one account (`id`), or the active account when no id is given.
+/// Only that account's token and list entry are removed; other accounts stay.
+#[tauri::command]
+fn auth_sign_out(app: AppHandle, state: State<'_, AuthState>, id: Option<String>) -> AuthStatus {
     let configured = client_id_from_settings(&app).is_some();
-    match auth::sign_out(&auth::KeyringStore) {
-        Ok(()) => status(if configured { "signedOut" } else { "notConfigured" }, configured, None, None),
-        Err(e) => status("failed", configured, None, Some(e)),
+    let path = accounts_path(&app).ok();
+    let known = path.as_ref().map(|p| accounts::load(p)).unwrap_or_default();
+    let target = id.or_else(|| known.active.clone());
+    let session_id = state.session.lock().ok().and_then(|s| s.as_ref().map(|s| s.profile.id.clone()));
+    if let Some(target) = target.as_deref() {
+        let _ = auth::KeyringStore::for_account(target).clear();
+        if let Some(path) = &path {
+            let _ = accounts::remove(path, target);
+        }
+    } else {
+        let _ = auth::KeyringStore::default().clear();
     }
+    // Signing out the account that is actually in use (or the only one left)
+    // ends the live session; removing another account must not.
+    let ends_session = match (&target, &session_id) {
+        (Some(target), Some(session)) => target == session,
+        (_, None) => false,
+        (None, _) => true,
+    };
+    if ends_session {
+        if let Ok(mut slot) = state.session.lock() {
+            *slot = None;
+        }
+    }
+    status(&app, if configured { "signedOut" } else { "notConfigured" }, configured, None, None)
 }
 
 /// Open the Microsoft sign-in page in the default browser. Only Microsoft
@@ -723,6 +836,23 @@ async fn list_game_versions() -> Result<Vec<String>, String> {
     })
 }
 
+/// Mojang's whole version list, with snapshots and older releases marked as not
+/// installable. Falls back to the built-in target when Mojang cannot be reached.
+#[tauri::command]
+async fn list_game_version_catalog() -> Result<Vec<game::VersionEntry>, String> {
+    let fetched = tauri::async_runtime::spawn_blocking(game::list_catalog).await;
+    Ok(match fetched {
+        Ok(Ok(list)) if !list.is_empty() => list,
+        _ => vec![game::VersionEntry {
+            id: TARGET_MINECRAFT.to_string(),
+            kind: "release".to_string(),
+            released: None,
+            supported: true,
+            java_major: None,
+        }],
+    })
+}
+
 #[tauri::command]
 fn game_status(
     app: AppHandle,
@@ -817,17 +947,67 @@ async fn apply_skin(app: AppHandle, auth: State<'_, AuthState>, id: String) -> R
     .map_err(|e| e.to_string())?
 }
 
-/// The current skin of a player (by id or name) as a PNG data address, for avatars. `None` when unavailable.
-#[tauri::command]
-async fn player_skin(player: String) -> Option<String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let client = skins::http_client().ok()?;
-        let (_, png, _) = skins::fetch_player_skin(&client, &skins::Endpoints::production(), &player).ok()?;
-        Some(skins::png_data_url(&png))
+/// Remembered appearances, so opening the account menu, the Accounts page and
+/// the Skins page does not re-download the same skin three times. Bounded and
+/// short-lived: a skin change shows up within five minutes.
+const APPEARANCE_TTL: std::time::Duration = std::time::Duration::from_secs(300);
+
+#[derive(Default)]
+struct AppearanceCache(Mutex<std::collections::HashMap<String, (std::time::Instant, skins::Appearance)>>);
+
+async fn appearance_for(cache: &AppearanceCache, player: String, force: bool) -> Result<skins::Appearance, String> {
+    let key = player.trim().to_ascii_lowercase();
+    if key.is_empty() {
+        return Err("No player was given.".to_string());
+    }
+    if !force {
+        if let Ok(map) = cache.0.lock() {
+            if let Some((at, appearance)) = map.get(&key) {
+                if at.elapsed() < APPEARANCE_TTL {
+                    return Ok(appearance.clone());
+                }
+            }
+        }
+    }
+    let lookup = player.clone();
+    // Keep Mojang's reason (rate limit, rejected texture host, timeout) instead
+    // of turning every failure into "could not be loaded".
+    let appearance = tauri::async_runtime::spawn_blocking(move || {
+        let client = skins::http_client()?;
+        skins::fetch_appearance(&client, &skins::Endpoints::production(), &lookup)
     })
     .await
-    .ok()
-    .flatten()
+    .map_err(|e| e.to_string())??;
+    if let Ok(mut map) = cache.0.lock() {
+        if map.len() >= 32 {
+            map.clear();
+        }
+        map.insert(key, (std::time::Instant::now(), appearance.clone()));
+    }
+    Ok(appearance)
+}
+
+/// A player's skin, arm model and own cape, ready to draw. The window never
+/// talks to Mojang's image host: the PNGs arrive as data addresses.
+#[tauri::command]
+async fn player_appearance(
+    state: State<'_, AppearanceCache>,
+    player: String,
+    force: Option<bool>,
+) -> Result<skins::Appearance, String> {
+    appearance_for(&state, player, force.unwrap_or(false)).await
+}
+
+/// The current skin of a player (by id or name) as a PNG data address, for
+/// avatars. A missing skin is an error rather than an empty success, so the
+/// avatar falls back to the player's initial instead of an unusable address.
+#[tauri::command]
+async fn player_skin(state: State<'_, AppearanceCache>, player: String) -> Result<Option<String>, String> {
+    let appearance = appearance_for(&state, player, false).await?;
+    if appearance.skin.is_empty() {
+        return Err("That player has no skin to show.".to_string());
+    }
+    Ok(Some(appearance.skin))
 }
 
 #[tauri::command]
@@ -956,6 +1136,26 @@ async fn launch_game(
         return refuse("Java was not found at the saved location. Re-scan Java and try again.");
     }
     let (root, memory) = game_root(&app)?;
+    // Window size and extra JVM options come from the settings file. A settings
+    // problem must not stop a launch, so defaults are used when loading fails.
+    let stored = match default_settings(&app, system::total_ram_mb()) {
+        Ok(defaults) => match settings_file(&app) {
+            Ok(file) => settings::load(&file, &defaults).settings,
+            Err(_) => defaults,
+        },
+        Err(_) => Settings::default(),
+    };
+    let launch_options = game::LaunchOptions {
+        memory_mb: memory,
+        window_width: stored.window_width,
+        window_height: stored.window_height,
+        jvm_args: stored
+            .jvm_args
+            .split_whitespace()
+            .filter(|a| a.len() <= 512 && !a.contains('\0'))
+            .map(str::to_string)
+            .collect(),
+    };
     let Some(info) = game::installed(&root, &version, fabric) else {
         return refuse("The game files are not installed yet.");
     };
@@ -971,7 +1171,7 @@ async fn launch_game(
         &root,
         &info,
         &java,
-        memory,
+        &launch_options,
         &player,
         env!("CARGO_PKG_VERSION"),
         instance_id.as_deref(),
@@ -1243,6 +1443,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(InstallState::default())
         .manage(AuthState::default())
+        .manage(AppearanceCache::default())
         .manage(GameState::default())
         .manage(discord::DiscordState::default())
         .invoke_handler(tauri::generate_handler![
@@ -1257,6 +1458,7 @@ pub fn run() {
             auth_sign_in,
             auth_sign_in_window,
             auth_cancel,
+            auth_switch,
             auth_sign_out,
             discord_set_presence,
             discord_clear_presence,
@@ -1280,6 +1482,7 @@ pub fn run() {
             stop_game,
             quit_app,
             list_game_versions,
+            list_game_version_catalog,
             curseforge_available,
             search_mods,
             install_mod,
@@ -1292,6 +1495,7 @@ pub fn run() {
             remove_skin,
             apply_skin,
             player_skin,
+            player_appearance,
             set_mod_enabled,
             remove_mod
         ])

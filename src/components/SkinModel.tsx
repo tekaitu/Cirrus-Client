@@ -10,6 +10,7 @@ interface Part {
   d: number;
   x: number;
   y: number;
+  z: number;
   grow: number;
 }
 
@@ -18,12 +19,12 @@ function parts(model: Model, legacy: boolean): Part[] {
   const base = (p: Omit<Part, "grow">): Part[] => [{ ...p, grow: 0 }];
   const over = (p: Omit<Part, "grow">): Part[] => [{ ...p, grow: 0.5 }];
   // y is the box centre measured from the middle of the 32 pixel tall figure.
-  const head = { w: 8, h: 8, d: 8, x: 0, y: -12 };
-  const body = { w: 8, h: 12, d: 4, x: 0, y: -2 };
-  const rArm = { w: aw, h: 12, d: 4, x: -(4 + aw / 2), y: -2 };
-  const lArm = { w: aw, h: 12, d: 4, x: 4 + aw / 2, y: -2 };
-  const rLeg = { w: 4, h: 12, d: 4, x: -2, y: 10 };
-  const lLeg = { w: 4, h: 12, d: 4, x: 2, y: 10 };
+  const head = { w: 8, h: 8, d: 8, x: 0, y: -12, z: 0 };
+  const body = { w: 8, h: 12, d: 4, x: 0, y: -2, z: 0 };
+  const rArm = { w: aw, h: 12, d: 4, x: -(4 + aw / 2), y: -2, z: 0 };
+  const lArm = { w: aw, h: 12, d: 4, x: 4 + aw / 2, y: -2, z: 0 };
+  const rLeg = { w: 4, h: 12, d: 4, x: -2, y: 10, z: 0 };
+  const lLeg = { w: 4, h: 12, d: 4, x: 2, y: 10, z: 0 };
   return [
     ...base({ ...rLeg, u: 0, v: 16 }),
     ...base({ ...lLeg, u: legacy ? 0 : 16, v: legacy ? 16 : 48 }),
@@ -46,7 +47,7 @@ function parts(model: Model, legacy: boolean): Part[] {
 }
 
 function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
-  const { u, v, w, h, d, x, y, grow } = p;
+  const { u, v, w, h, d, x, y, z, grow } = p;
   const W = w + grow;
   const H = h + grow;
   const D = d + grow;
@@ -71,7 +72,11 @@ function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
   return (
     <span
       className="skin-box"
-      style={{ width: W * s, height: H * s, transform: `translate3d(${x * s - (W * s) / 2}px, ${y * s - (H * s) / 2}px, 0)` }}
+      style={{
+        width: W * s,
+        height: H * s,
+        transform: `translate3d(${x * s - (W * s) / 2}px, ${y * s - (H * s) / 2}px, ${z * s}px)`,
+      }}
     >
       {face("front", u + d, v + d, w, h, W, H, { transform: `translateZ(${(D * s) / 2}px)` })}
       {face("back", u + 2 * d + w, v + d, w, h, W, H, { transform: `rotateY(180deg) translateZ(${(D * s) / 2}px)` })}
@@ -100,8 +105,38 @@ function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
 }
 
 /**
+ * A cape hanging from the shoulders. Minecraft cape textures are 64 x 32 and
+ * the outside of the cape is the 10 x 16 area at (1, 1). It turns with the
+ * figure and sways a little; with reduce motion on, it stays still.
+ */
+function Cape({ texture, s }: { texture: string; s: number }) {
+  const W = 10;
+  const H = 16;
+  return (
+    <span
+      className="skin-cape-anchor"
+      style={{ transform: `translate3d(${(-W * s) / 2}px, ${-8 * s}px, ${-3.2 * s}px)` }}
+    >
+      <span className="skin-cape-sway">
+        <span
+          className="skin-cape"
+          style={{
+            width: W * s,
+            height: H * s,
+            backgroundImage: `url(${texture})`,
+            backgroundSize: `${64 * s}px ${32 * s}px`,
+            backgroundPosition: `-${s}px -${s}px`,
+          }}
+        />
+      </span>
+    </span>
+  );
+}
+
+/**
  * A turnable Minecraft figure built from the skin's own pixels with CSS 3D (no canvas, no WebGL).
  * `view` is "spin" (slow turn), "front" or "back". The texture is drawn with hard pixel edges.
+ * Dragging turns it with a little momentum; a double-click puts the view back.
  */
 export function SkinFigure({
   skin,
@@ -111,6 +146,7 @@ export function SkinFigure({
   legacy = false,
   label,
   draggable = false,
+  cape = null,
 }: {
   skin: string;
   model: Model;
@@ -122,23 +158,56 @@ export function SkinFigure({
   label: string;
   /** Let the player turn the figure by dragging it (double-click puts it back). */
   draggable?: boolean;
+  /** A cape texture (64 x 32) to hang on the figure. */
+  cape?: string | null;
 }) {
   // While the player drags, `turn` is the angle in degrees and replaces the preset view.
   const [turn, setTurn] = useState<number | null>(null);
-  const from = useRef<{ x: number; angle: number } | null>(null);
+  const drag = useRef<{ x: number; angle: number; lastX: number; lastT: number; velocity: number } | null>(null);
+  const inertia = useRef<number | null>(null);
   useEffect(() => setTurn(null), [view]);
+  useEffect(
+    () => () => {
+      if (inertia.current !== null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(inertia.current);
+    },
+    [],
+  );
+
+  const stopInertia = () => {
+    if (inertia.current !== null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(inertia.current);
+    inertia.current = null;
+  };
 
   const onDown = (e: PointerEvent<HTMLSpanElement>) => {
     if (!draggable) return;
+    stopInertia();
     e.currentTarget.setPointerCapture?.(e.pointerId);
-    from.current = { x: e.clientX, angle: turn ?? (view === "back" ? 162 : -25) };
+    const angle = turn ?? (view === "back" ? 162 : -25);
+    drag.current = { x: e.clientX, angle, lastX: e.clientX, lastT: performance.now(), velocity: 0 };
   };
   const onMove = (e: PointerEvent<HTMLSpanElement>) => {
-    if (!from.current) return;
-    setTurn(from.current.angle + (e.clientX - from.current.x) * 0.9);
+    const d = drag.current;
+    if (!d) return;
+    const now = performance.now();
+    const dt = Math.max(1, now - d.lastT);
+    d.velocity = ((e.clientX - d.lastX) / dt) * 0.9;
+    d.lastX = e.clientX;
+    d.lastT = now;
+    setTurn(d.angle + (e.clientX - d.x) * 0.9);
   };
   const onUp = () => {
-    from.current = null;
+    const d = drag.current;
+    drag.current = null;
+    if (!d || typeof requestAnimationFrame !== "function") return;
+    let velocity = d.velocity * 16;
+    if (Math.abs(velocity) < 0.4) return;
+    const step = () => {
+      velocity *= 0.94;
+      setTurn((current) => (current ?? d.angle) + velocity);
+      if (Math.abs(velocity) > 0.15) inertia.current = requestAnimationFrame(step);
+      else inertia.current = null;
+    };
+    inertia.current = requestAnimationFrame(step);
   };
 
   const manual: CSSProperties | undefined =
@@ -153,10 +222,14 @@ export function SkinFigure({
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
-      onDoubleClick={() => setTurn(null)}
+      onDoubleClick={() => {
+        stopInertia();
+        setTurn(null);
+      }}
     >
       <span className={`skin-figure skin-view-${view}`} style={{ width: 0, height: 0, ...manual }}>
         <span className="skin-center">
+          {cape && <Cape texture={cape} s={scale} />}
           {parts(model, legacy).map((p, i) => (
             <Box key={i} p={p} skin={skin} s={scale} />
           ))}

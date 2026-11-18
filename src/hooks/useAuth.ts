@@ -1,25 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import { accountFromStatus, type AccountState, type SignInMethod } from "../core/auth";
+import type { AccountRef, AuthStatus } from "../api/types";
+import { resetAppearanceCache } from "./useAppearance";
 
 export interface Account {
   state: AccountState;
-  /** "window" (default): Microsoft's page in a pop-up. "code": type a code in your own browser. */
+  /** Every account signed in on this PC, newest first. */
+  accounts: AccountRef[];
+  /** The account the live session belongs to. */
+  activeId: string | null;
+  /** "window" (default): Microsoft's own page in a window. "code": type a code in your own browser. */
   signIn: (method?: SignInMethod) => void;
   cancel: () => void;
-  signOut: () => void;
+  /** Signs out one saved account, or the active one when no id is given. */
+  signOut: (id?: string) => void;
+  /** Makes another saved account active. */
+  switchAccount: (id: string) => void;
   openLink: (url: string) => void;
   /** Set when opening the browser failed. */
   linkError: string | null;
 }
 
 /**
- * Tracks the Microsoft account. `clientId` is the saved Azure client ID (or
- * null); the status is re-read whenever it changes. `ready` is false while
- * Settings are still loading.
+ * Tracks the Microsoft accounts. `ready` is false while Settings are still
+ * loading; the saved account is then restored silently from Windows
+ * Credential Manager. Nothing here ever receives a token.
  */
-export function useAuth(clientId: string | null, ready: boolean): Account {
+export function useAuth(ready: boolean): Account {
   const [state, setState] = useState<AccountState>({ phase: "checking" });
+  const [accounts, setAccounts] = useState<AccountRef[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const busy = useRef(false);
   const mounted = useRef(true);
@@ -33,6 +44,16 @@ export function useAuth(clientId: string | null, ready: boolean): Account {
     if (mounted.current) setState(next);
   }, []);
 
+  /** Takes everything a status answer says: the account, the list and the active id. */
+  const adopt = useCallback(
+    (status: AuthStatus) => {
+      set(accountFromStatus(status));
+      setAccounts(status.accounts ?? []);
+      setActiveId(status.activeId ?? status.profile?.id ?? null);
+    },
+    [set],
+  );
+
   useEffect(() => {
     if (!ready || busy.current) return;
     let cancelled = false;
@@ -42,11 +63,13 @@ export function useAuth(clientId: string | null, ready: boolean): Account {
         if (cancelled) return;
         if (quick.state === "signedIn" || quick.state === "notConfigured" || !quick.savedLogin) {
           set(accountFromStatus(quick));
+          setAccounts(quick.accounts ?? []);
+          setActiveId(quick.activeId ?? quick.profile?.id ?? null);
           return;
         }
         set({ phase: "checking" });
         const restored = await api.authRestore();
-        if (!cancelled) set(accountFromStatus(restored));
+        if (!cancelled) adopt(restored);
       } catch (e) {
         if (!cancelled) set({ phase: "error", message: errorMessage(e) });
       }
@@ -54,30 +77,33 @@ export function useAuth(clientId: string | null, ready: boolean): Account {
     return () => {
       cancelled = true;
     };
-  }, [clientId, ready, set]);
+  }, [ready, set, adopt]);
 
-  const signIn = useCallback((method: SignInMethod = "window") => {
-    if (busy.current) return;
-    busy.current = true;
-    setLinkError(null);
-    set({ phase: "starting", method });
-    void (async () => {
-      let unlisten: () => void = () => {};
-      try {
-        if (method === "code") {
-          unlisten = await api.onAuthDeviceCode((code) => set({ phase: "waiting", code }));
-          set(accountFromStatus(await api.authSignIn()));
-        } else {
-          set(accountFromStatus(await api.authSignInWindow()));
+  const signIn = useCallback(
+    (method: SignInMethod = "window") => {
+      if (busy.current) return;
+      busy.current = true;
+      setLinkError(null);
+      set({ phase: "starting", method });
+      void (async () => {
+        let unlisten: () => void = () => {};
+        try {
+          if (method === "code") {
+            unlisten = await api.onAuthDeviceCode((code) => set({ phase: "waiting", code }));
+            adopt(await api.authSignIn());
+          } else {
+            adopt(await api.authSignInWindow());
+          }
+        } catch (e) {
+          set({ phase: "error", message: errorMessage(e) });
+        } finally {
+          unlisten();
+          busy.current = false;
         }
-      } catch (e) {
-        set({ phase: "error", message: errorMessage(e) });
-      } finally {
-        unlisten();
-        busy.current = false;
-      }
-    })();
-  }, [set]);
+      })();
+    },
+    [set, adopt],
+  );
 
   const cancel = useCallback(() => {
     api.authCancel().catch(() => {
@@ -85,20 +111,43 @@ export function useAuth(clientId: string | null, ready: boolean): Account {
     });
   }, []);
 
-  const signOut = useCallback(() => {
-    void (async () => {
-      try {
-        set(accountFromStatus(await api.authSignOut()));
-      } catch (e) {
-        set({ phase: "error", message: errorMessage(e) });
-      }
-    })();
-  }, [set]);
+  const signOut = useCallback(
+    (id?: string) => {
+      void (async () => {
+        try {
+          resetAppearanceCache();
+          adopt(await api.authSignOut(id ?? null));
+        } catch (e) {
+          set({ phase: "error", message: errorMessage(e) });
+        }
+      })();
+    },
+    [set, adopt],
+  );
+
+  const switchAccount = useCallback(
+    (id: string) => {
+      if (busy.current) return;
+      busy.current = true;
+      setLinkError(null);
+      set({ phase: "checking" });
+      void (async () => {
+        try {
+          adopt(await api.authSwitch(id));
+        } catch (e) {
+          set({ phase: "error", message: errorMessage(e) });
+        } finally {
+          busy.current = false;
+        }
+      })();
+    },
+    [set, adopt],
+  );
 
   const openLink = useCallback((url: string) => {
     setLinkError(null);
     api.openMicrosoftLink(url).catch((e: unknown) => setLinkError(errorMessage(e)));
   }, []);
 
-  return { state, signIn, cancel, signOut, openLink, linkError };
+  return { state, accounts, activeId, signIn, cancel, signOut, switchAccount, openLink, linkError };
 }
