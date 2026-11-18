@@ -41,7 +41,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         listBottom = height - 14 - footerH - 6;
 
         // rail
-        int y = top + 8 + (small ? 22 : 30);
+        int y = top + 8 + (small ? 24 : 32);
         addRenderableWidget(CirrusButton.nav(railX + 6, y, railW - 12, 20, Component.literal("Dashboard"), CirrusUi.ICON_DASHBOARD, b -> minecraft.setScreen(new CirrusDashboardScreen(this))));
         y += 24;
         for (ModCategory c : ModCategory.values()) {
@@ -103,10 +103,10 @@ public final class CirrusMenuScreen extends CirrusScreen {
         CirrusUi.card(g, railX, 14, railW, height - 28, 12, t.surface, t.border);
         boolean small = compact();
         int mark = small ? 16 : 22;
-        CirrusUi.brand(g, railX + 8, 14 + 8, mark, t);
+        CirrusUi.mark(g, railX + 10, 14 + 8, mark);
         // header
         CirrusUi.headingText(g, font, "MOD LIBRARY", cx + 2, 14 + 8, t.cyan);
-        CirrusUi.smallText(g, font, category.label + "  ·  " + entries().size() + " available", cx + 2, 14 + 8 + 11, t.muted, false);
+        CirrusUi.smallText(g, font, category.label + "  ·  " + entries().size() + " available", cx + 2, 14 + 8 + 14, t.muted, false);
         // search field
         CirrusUi.card(g, cx, 14 + 28, cw, 22, 8, t.surface, search != null && search.isFocused() ? t.cyan : t.border);
         CirrusUi.icon(g, cx + 6, 14 + 28 + 4, 14, CirrusUi.ICON_SEARCH, t.cyan);

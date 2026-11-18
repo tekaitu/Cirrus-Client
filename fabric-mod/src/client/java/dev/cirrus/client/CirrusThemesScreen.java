@@ -13,23 +13,23 @@ public final class CirrusThemesScreen extends CirrusScreen {
 
     @Override protected void init() {
         shellW = Math.min(440, width - 16);
-        shellH = Math.min(height - 16, 214);
+        shellH = Math.min(height - 16, 200);
         shellX = (width - shellW) / 2;
         shellY = (height - shellH) / 2;
         cardW = (shellW - 36 - 10) / 2;
-        cardH = Math.max(50, shellH - 28 - 22 - 34 - 28);
-        cardY = shellY + 28 + 18;
+        cardY = shellY + 40;
+        cardH = Math.max(40, shellH - 40 - 8 - 20 - 16);
         leftX = shellX + 18;
         rightX = leftX + cardW + 10;
         int by = cardY + cardH + 8;
         addRenderableWidget(CirrusButton.nav(leftX, by, cardW, 20, Component.literal(theme() == CirrusTheme.DARK ? "Midnight  ·  selected" : "Use Midnight"), CirrusUi.ICON_THEMES, b -> { CirrusTheme.set(config(), CirrusTheme.DARK); rebuildWidgets(); }));
         addRenderableWidget(CirrusButton.nav(rightX, by, cardW, 20, Component.literal(theme() == CirrusTheme.LIGHT ? "Frost  ·  selected" : "Use Frost"), CirrusUi.ICON_THEMES, b -> { CirrusTheme.set(config(), CirrusTheme.LIGHT); rebuildWidgets(); }));
-        addRenderableWidget(CirrusButton.primary(shellX + shellW - 18 - 72, shellY + shellH - 14 - 22, 72, 22, Component.literal("Back"), b -> minecraft.setScreen(parent)));
+        addRenderableWidget(CirrusButton.primary(shellX + shellW - 18 - 64, shellY + 10, 64, 22, Component.literal("Back"), b -> minecraft.setScreen(parent)));
     }
 
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
         CirrusUi.panel(g, shellX, shellY, shellW, shellH, 18, t);
-        CirrusUi.headingText(g, font, "APPEARANCE", shellX + 18, shellY + 14, t.cyan);
+        CirrusUi.headingText(g, font, "APPEARANCE", shellX + 18, shellY + 16, t.cyan);
         preview(g, leftX, cardY, cardW, cardH, CirrusTheme.DARK, "Midnight glass", t == CirrusTheme.DARK, t);
         preview(g, rightX, cardY, cardW, cardH, CirrusTheme.LIGHT, "Frost glass", t == CirrusTheme.LIGHT, t);
     }

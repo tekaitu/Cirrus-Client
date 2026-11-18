@@ -45,7 +45,7 @@ public final class CirrusButton extends Button {
 
         Gfx.fillRound(g, x, y + 1, w, h, radius, Gfx.scaleAlpha(t.shadow, 0.35f + 0.3f * hover));
         Gfx.fillRound(g, x, y, w, h, radius, fill);
-        Gfx.fillRound(g, x + 1, y + 1, w - 2, Math.max(1, h / 2 - 1), Math.max(1, radius - 1), Gfx.scaleAlpha(t.highlight, 0.6f));
+        if (w > radius * 2) g.fillGradient(x + (int) radius, y + 1, x + w - (int) radius, y + 1 + h / 2, Gfx.scaleAlpha(t.highlight, 0.7f), 0x00000000);
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
         if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.cyan);
 

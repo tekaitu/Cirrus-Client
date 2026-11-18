@@ -18,7 +18,7 @@ public final class CirrusDashboardScreen extends CirrusScreen {
         railW = Math.max(compact() ? 84 : 112, Math.min(132, width / 4));
         cx = railX + railW + 8;
         cw = width - 14 - cx;
-        int y = 14 + (compact() ? 30 : 38), rowH = 20, gap = compact() ? 3 : 5;
+        int y = 14 + (compact() ? 32 : 40), rowH = 20, gap = compact() ? 3 : 5;
         addRenderableWidget(CirrusButton.nav(railX + 6, y, railW - 12, rowH, Component.literal("Mods"), CirrusUi.ICON_MODS, b -> minecraft.setScreen(new CirrusMenuScreen(this))));
         addRenderableWidget(CirrusButton.nav(railX + 6, y += rowH + gap, railW - 12, rowH, Component.literal("HUD Editor"), CirrusUi.ICON_HUD, b -> minecraft.setScreen(new HudEditorScreen(this))));
         addRenderableWidget(CirrusButton.nav(railX + 6, y += rowH + gap, railW - 12, rowH, Component.literal("Themes"), CirrusUi.ICON_THEMES, b -> minecraft.setScreen(new CirrusThemesScreen(this))));
@@ -36,15 +36,15 @@ public final class CirrusDashboardScreen extends CirrusScreen {
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
         CirrusUi.panel(g, 6, 6, width - 12, height - 12, 16, t);
         CirrusUi.card(g, railX, 14, railW, height - 28, 12, t.surface, t.border);
-        CirrusUi.brand(g, railX + 8, 14 + 8, compact() ? 16 : 22, t);
+        CirrusUi.mark(g, railX + 10, 14 + 8, compact() ? 16 : 22);
         CirrusUi.headingText(g, font, "DASHBOARD", cx + 2, 14 + 8, t.cyan);
-        CirrusUi.smallText(g, font, "Everything about this session at a glance", cx + 2, 14 + 8 + 11, t.muted, false);
+        CirrusUi.smallText(g, font, "Everything about this session at a glance", cx + 2, 14 + 8 + 14, t.muted, false);
         CirrusUi.card(g, cx, infoY, cw, infoH, 12, t.surface, t.border);
         int x = cx + 12, w = cw - 24, y = infoY + 10;
         CirrusUi.headingText(g, font, "YOUR GAME", x, y, t.text);
         g.fill(x, y + 13, x + w, y + 14, t.border);
         y += 20;
-        row(g, x, y, w, "Minecraft", Minecraft.getInstance().getLaunchedVersion(), t); y += 14;
+        row(g, x, y, w, "Minecraft", "1.21.11  ·  " + Minecraft.getInstance().getLaunchedVersion(), t); y += 14;
         row(g, x, y, w, "Theme", t == CirrusTheme.DARK ? "Midnight (dark)" : "Frost (light)", t); y += 14;
         if (infoH >= 110) row(g, x, y, w, "Instance", Minecraft.getInstance().gameDirectory.toPath().toString(), t);
     }

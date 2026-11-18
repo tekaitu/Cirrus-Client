@@ -24,7 +24,7 @@ public final class HudEditorScreen extends CirrusScreen {
         rows.clear();
         railW = Math.max(compact() ? 110 : 130, Math.min(176, width / 3));
         var cfg = config();
-        int y = 14 + 44, w = railW - 16, toggleW = 40;
+        int y = 14 + 50, w = railW - 16, toggleW = 40;
         for (HudElement e : HudElementRegistry.all()) {
             int nameW = w - toggleW - 4;
             addRenderableWidget(CirrusButton.nav(14 + 8, y, nameW, 22, Component.literal(e.label()), CirrusUi.ICON_HUD, b -> selected = e.id()));
@@ -38,8 +38,8 @@ public final class HudEditorScreen extends CirrusScreen {
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
         CirrusUi.panel(g, 6, 6, width - 12, height - 12, 16, t);
         CirrusUi.card(g, 14, 14, railW, height - 28, 12, t.surface, t.border);
-        CirrusUi.brand(g, 22, 14 + 8, compact() ? 16 : 20, t);
-        CirrusUi.headingText(g, font, "HUD ELEMENTS", 22, 14 + 30, t.cyan);
+        CirrusUi.mark(g, 24, 14 + 8, compact() ? 14 : 18);
+        CirrusUi.headingText(g, font, "HUD ELEMENTS", 22, 14 + 32, t.cyan);
         int i = 0;
         for (HudElement e : HudElementRegistry.all()) {
             if (e.id().equals(selected) && i < rows.size()) Gfx.fillRound(g, 14 + 3, rows.get(i)[0] + 3, 2, 16, 1, t.cyan);
@@ -53,6 +53,9 @@ public final class HudEditorScreen extends CirrusScreen {
             e.render(g, x, y, 0, cfg);
             Gfx.strokeRound(g, x - 3, y - 3, e.width() + 6, e.height() + 6, 6, e.id().equals(selected) ? 1f : 0.5f, e.id().equals(selected) ? t.cyan : t.border);
         }
+        boolean any = false;
+        for (HudElement e : HudElementRegistry.all()) any |= e.enabled(cfg);
+        if (!any) CirrusUi.centeredSmall(g, font, "Switch an element ON in the list to place it here.", (14 + railW + width) / 2, height / 2 - 4, t.muted);
         String hint = selected.isEmpty() ? "Click an element to select it, then drag it into place." : "Drag to move. Click the canvas to place the selected element.";
         int hx = 14 + railW + 12;
         CirrusUi.smallText(g, font, CirrusUi.fitSmall(font, hint, width - hx - 16), hx, height - 26, t.muted, true);

@@ -23,6 +23,8 @@ public final class CirrusUi {
         ICON_SINGLEPLAYER = 12, ICON_MULTIPLAYER = 13, ICON_BACK = 14, ICON_CLOSE = 15;
     /** Nominal line box of the UI fonts in GUI units. */
     public static final int LINE = 9;
+    /** The Inter glyphs sit about one GUI pixel high in the 9px line box; body and small text are nudged down to centre optically. */
+    private static final int NUDGE = 1;
     private CirrusUi() { }
 
     // ---- surfaces -------------------------------------------------------------------------------------------------
@@ -44,8 +46,8 @@ public final class CirrusUi {
         if (w <= 0 || h <= 0) return;
         Gfx.shadow(g, x, y, w, h, radius, 6, t.shadow);
         Gfx.fillRound(g, x, y, w, h, radius, t.panel);
-        int sheen = Math.max(0, Math.min(h - 2, 22));
-        if (sheen > 2) Gfx.fillRound(g, x + 1, y + 1, w - 2, sheen, Math.max(1, radius - 1), t.highlight);
+        int sheen = Math.max(0, Math.min(h / 3, 26));
+        if (sheen > 2 && w > radius * 2) g.fillGradient(x + radius, y + 1, x + w - radius, y + 1 + sheen, t.highlight, 0x00000000);
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 
@@ -98,13 +100,13 @@ public final class CirrusUi {
     public static String fitBody(Font f, String v, int w) { return fit(f, v, w, CirrusUi::body); }
     public static String fitSmall(Font f, String v, int w) { return fit(f, v, w, CirrusUi::small); }
 
-    public static void text(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, body(value), x, y, color, shadow); }
-    public static void smallText(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, small(value), x, y, color, shadow); }
+    public static void text(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, body(value), x, y + NUDGE, color, shadow); }
+    public static void smallText(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, small(value), x, y + NUDGE, color, shadow); }
     public static void headingText(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawString(f, heading(value), x, y, color, false); }
-    public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, body(value), x, y, color); }
-    public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, small(value), x, y, color); }
+    public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, body(value), x, y + NUDGE, color); }
+    public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, small(value), x, y + NUDGE, color); }
     public static void centeredHeading(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawCenteredString(f, heading(value), x, y, color); }
-    public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { g.drawString(f, small(value), right - smallWidth(f, value), y, color, false); }
+    public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { g.drawString(f, small(value), right - smallWidth(f, value), y + NUDGE, color, false); }
 
     // ---- icons and brand ------------------------------------------------------------------------------------------
 
@@ -116,6 +118,11 @@ public final class CirrusUi {
     public static int brandWidth(Font f, int markSize) {
         int markWidth = Math.max(1, (markSize * 640 + 236) / 473);
         return markWidth + 8 + headingWidth(f, "Cirrus Client");
+    }
+
+    /** Just the cloud mark, for narrow rails. */
+    public static void mark(GuiGraphics g, int x, int y, int size) {
+        CirrusAssetTextures.drawMark(g, x, y, Math.max(1, (size * 640 + 236) / 473), size);
     }
 
     public static void brand(GuiGraphics g, int x, int y, int markSize, CirrusTheme t) {
