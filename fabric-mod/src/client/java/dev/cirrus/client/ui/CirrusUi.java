@@ -83,6 +83,17 @@ public final class CirrusUi {
         Gfx.fillRound(g, x, y + (h - thumb) * offset, 3, thumb, 1.5f, t.accent);
     }
 
+    /** "Tune" glyph (three sliders) used for settings buttons; the icon sheet has no cog. */
+    public static void sliders(GuiGraphics g, int x, int y, int size, int color) {
+        float lineH = Math.max(1f, size / 10f), knob = Math.max(3f, size / 4f);
+        float[] ys = {size * 0.18f, size * 0.5f, size * 0.82f};
+        float[] ks = {0.65f, 0.3f, 0.55f};
+        for (int i = 0; i < 3; i++) {
+            Gfx.fillRound(g, x, y + ys[i] - lineH / 2, size, lineH, lineH / 2, Gfx.scaleAlpha(color, 0.75f));
+            Gfx.fillRound(g, x + (size - knob) * ks[i], y + ys[i] - knob / 2, knob, knob, knob / 2, color);
+        }
+    }
+
     // ---- typography -----------------------------------------------------------------------------------------------
 
     public static Component body(String value) { return Component.literal(value).withStyle(s -> s.withFont(UI_FONT_DESC)); }

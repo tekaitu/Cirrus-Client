@@ -160,7 +160,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         boolean gearHover = mx >= x + 8 && mx < x + 8 + gear && my >= rowY && my < rowY + rowH && my < gridY + gridH;
         Gfx.fillRound(g, x + 8, rowY, gear, rowH, 7, Gfx.mix(t.surface, t.accent, gearHover ? 0.4f : 0.1f));
         Gfx.strokeRound(g, x + 8, rowY, gear, rowH, 7, 0.5f, t.border);
-        CirrusUi.icon(g, x + 8 + 4, rowY + 4, 12, CirrusUi.ICON_SETTINGS, m.hasSettings() ? (gearHover ? t.cyan : t.muted) : Gfx.scaleAlpha(t.muted, 0.4f));
+        CirrusUi.sliders(g, x + 8 + 5, rowY + 5, 10, m.hasSettings() ? (gearHover ? t.cyan : t.muted) : Gfx.scaleAlpha(t.muted, 0.4f));
         int pillX = x + 8 + gear + 4, pillW = cardW - 16 - gear - 4;
         Gfx.fillRound(g, pillX, rowY, pillW, rowH, 7, Gfx.mix(Gfx.mix(t.surface, t.panel, 0.3f), t.accent, prog));
         if (prog < 0.95f) Gfx.strokeRound(g, pillX, rowY, pillW, rowH, 7, 0.5f, t.border);
