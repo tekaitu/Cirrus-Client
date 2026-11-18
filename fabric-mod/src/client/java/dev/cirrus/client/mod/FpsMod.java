@@ -12,6 +12,7 @@ public final class FpsMod extends HudMod {
     public String name() { return "FPS Counter"; }
     public String description() { return "Shows your current frames per second."; }
     public ModCategory category() { return ModCategory.HUD; }
+    @Override public int icon() { return dev.cirrus.client.ui.CirrusUi.ICON_PERFORMANCE; }
     public int width() { return 70; }
     public int height() { return 20; }
     @Override public int defaultX() { return 8; }

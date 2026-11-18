@@ -18,6 +18,7 @@ public final class ArmorStatusMod extends HudMod {
     public String name() { return "Armor Status"; }
     public String description() { return "Shows worn armor with its remaining durability."; }
     public ModCategory category() { return ModCategory.PVP; }
+    @Override public int icon() { return dev.cirrus.client.ui.CirrusUi.ICON_PVP; }
     public int width() { return 96; }
     public int height() { return 8 + ROW * 4; }
     @Override public int defaultX() { return 8; }

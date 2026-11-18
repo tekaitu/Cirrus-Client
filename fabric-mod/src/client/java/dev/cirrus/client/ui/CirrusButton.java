@@ -9,11 +9,12 @@ import net.minecraft.network.chat.Component;
 
 /** Theme-aware button with animated hover/press, optional icon, measured and clipped label. */
 public final class CirrusButton extends Button {
-    public enum Style { SECONDARY, PRIMARY, NAV, ICON }
+    public enum Style { SECONDARY, PRIMARY, NAV, ICON, TAB }
 
     private final Style style;
     private final int iconKind;
-    private float hover, press;
+    private float hover, press, selectedBlend;
+    private boolean selected;
     private final Anim.Clock clock = new Anim.Clock();
 
     private CirrusButton(int x, int y, int w, int h, Component text, OnPress action, int iconKind, Style style) {
@@ -25,6 +26,13 @@ public final class CirrusButton extends Button {
     public static CirrusButton of(int x, int y, int w, int h, Component text, OnPress action) { return new CirrusButton(x, y, w, h, text, action, -1, Style.SECONDARY); }
     public static CirrusButton primary(int x, int y, int w, int h, Component text, OnPress action) { return new CirrusButton(x, y, w, h, text, action, -1, Style.PRIMARY); }
     public static CirrusButton nav(int x, int y, int w, int h, Component text, int iconKind, OnPress action) { return new CirrusButton(x, y, w, h, text, action, iconKind, Style.NAV); }
+    /** Top navigation tab. Pass an empty label for an icon-only tab. */
+    public static CirrusButton tab(int x, int y, int w, int h, Component text, int iconKind, boolean selected, OnPress action) {
+        CirrusButton b = new CirrusButton(x, y, w, h, text, action, iconKind, Style.TAB);
+        b.selected = selected;
+        b.selectedBlend = selected ? 1f : 0f;
+        return b;
+    }
     public static CirrusButton icon(int x, int y, int size, int iconKind, OnPress action) { return new CirrusButton(x, y, size, size, Component.empty(), action, iconKind, Style.ICON); }
 
     @Override protected void renderContents(GuiGraphics g, int mouseX, int mouseY, float delta) {
@@ -36,10 +44,12 @@ public final class CirrusButton extends Button {
 
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         float radius = Math.min(8f, h / 2f);
-        boolean primary = style == Style.PRIMARY;
+        selectedBlend = Anim.approach(selectedBlend, selected ? 1f : 0f, dt, 16f);
+        boolean primary = style == Style.PRIMARY || selectedBlend > 0.5f;
         int base = primary ? Gfx.mix(t.accent, t.panel, 0.15f) : Gfx.mix(t.surface, t.panel, 0.4f);
         int lit = primary ? Gfx.mix(t.accent, t.cyan, 0.35f) : Gfx.mix(t.surface, t.accent, 0.45f);
         int fill = Gfx.mix(Gfx.mix(base, lit, hover), 0xFF000000, press * 0.18f);
+        if (style == Style.TAB) fill = Gfx.mix(fill, t.accent, selectedBlend);
         int edge = Gfx.mix(t.border, t.cyan, hover);
         if (!active) { fill = Gfx.scaleAlpha(fill, 0.55f); edge = Gfx.scaleAlpha(edge, 0.55f); }
 
@@ -58,7 +68,7 @@ public final class CirrusButton extends Button {
         if (style == Style.ICON || (iconKind >= 0 && label.isEmpty())) {
             int is = Math.min(16, h - 4);
             CirrusUi.icon(g, x + (w - is) / 2, y + (h - is) / 2, is, iconKind, iconColor);
-        } else if (style == Style.NAV && iconKind >= 0) {
+        } else if ((style == Style.NAV || style == Style.TAB) && iconKind >= 0) {
             int is = w < 90 ? 12 : Math.min(14, h - 6);
             CirrusUi.icon(g, x + pad, y + (h - is) / 2, is, iconKind, iconColor);
             String fitted = CirrusUi.fitBody(font, label, w - pad * 2 - is - 6);

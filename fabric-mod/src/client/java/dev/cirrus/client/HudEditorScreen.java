@@ -21,7 +21,12 @@ public final class HudEditorScreen extends CirrusScreen {
     private int listTop, listBottom, scroll;
     private static final int ROW_H = 25;
 
-    public HudEditorScreen(Screen parent) { super(Component.literal("Cirrus HUD Editor"), parent); }
+    public HudEditorScreen(Screen parent) { this(parent, ""); }
+
+    public HudEditorScreen(Screen parent, String selectedId) {
+        super(Component.literal("Cirrus HUD Editor"), parent);
+        this.selected = selectedId;
+    }
 
     @Override protected void init() {
         rows.clear();

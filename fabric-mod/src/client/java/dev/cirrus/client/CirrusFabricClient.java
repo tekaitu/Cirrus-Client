@@ -62,7 +62,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
             int x = Math.max(8, screen.width - buttonWidth - 8);
             int y = Math.max(8, screen.height - 30);
             Component label = Component.literal("Cirrus  ·  Right Shift");
-            Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusDashboardScreen(screen))));
+            Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusMenuScreen(screen))));
         });
     }
 }

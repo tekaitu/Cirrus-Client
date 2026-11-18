@@ -18,6 +18,7 @@ public final class KeystrokesMod extends HudMod {
     public String name() { return "Keystrokes"; }
     public String description() { return "Shows movement keys, jump and mouse buttons as you press them."; }
     public ModCategory category() { return ModCategory.PVP; }
+    @Override public int icon() { return dev.cirrus.client.ui.CirrusUi.ICON_UTILITY; }
     public int width() { return KEY * 3 + GAP * 2; }
     public int height() { return KEY * 2 + GAP + GAP + 18 + GAP + 14; }
     @Override public int defaultX() { return 8; }
