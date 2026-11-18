@@ -303,12 +303,16 @@
 
 /* Hovering a card or tab may change its colour; it never moves it. */
 .vc:hover,
+.vc:hover .vc-art,
 .vc-more:hover,
 .shortcut:hover,
 .news-card:hover,
 .instance-card:hover,
 .mod-card:hover,
-.theme-card:hover {
+.mod-results .mod-card:hover,
+.mod-tile:hover,
+.theme-card:hover,
+.profile-chip:hover .ico-package {
   transform: none;
 }
 .hdr-tab,
