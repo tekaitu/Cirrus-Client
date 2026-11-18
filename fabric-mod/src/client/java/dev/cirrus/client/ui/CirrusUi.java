@@ -50,6 +50,12 @@ public final class CirrusUi {
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 
+    /** Light-weight surface for always-on HUD elements: no shadow stack, so it stays cheap every frame. */
+    public static void hudPanel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
+        Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(t.panel, 0xFF000000, 0.15f));
+        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
+    }
+
     /** A flatter inset surface used inside panels (cards, fields, chips). */
     public static void card(GuiGraphics g, float x, float y, float w, float h, float radius, int fill, int border) {
         Gfx.fillRound(g, x, y, w, h, radius, fill);

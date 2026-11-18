@@ -17,22 +17,48 @@ public final class HudEditorScreen extends CirrusScreen {
     private boolean dragging;
     private int dragDx, dragDy, railW;
     private final List<int[]> rows = new ArrayList<>();
+    private final List<net.minecraft.client.gui.components.AbstractWidget[]> rowWidgets = new ArrayList<>();
+    private int listTop, listBottom, scroll;
+    private static final int ROW_H = 25;
 
     public HudEditorScreen(Screen parent) { super(Component.literal("Cirrus HUD Editor"), parent); }
 
     @Override protected void init() {
         rows.clear();
+        rowWidgets.clear();
         railW = Math.max(compact() ? 110 : 130, Math.min(176, width / 3));
         var cfg = config();
-        int y = 14 + 50, w = railW - 16, toggleW = 40;
+        int w = railW - 16, toggleW = 40;
+        listTop = 14 + 50;
+        listBottom = height - 14 - 8 - 22 - 6;
         for (HudElement e : HudElementRegistry.all()) {
             int nameW = w - toggleW - 4;
-            addRenderableWidget(CirrusButton.nav(14 + 8, y, nameW, 22, Component.literal(e.label()), CirrusUi.ICON_HUD, b -> selected = e.id()));
-            addRenderableWidget(CirrusButton.of(14 + 8 + nameW + 4, y, toggleW, 22, Component.literal(e.enabled(cfg) ? "ON" : "OFF"), b -> { e.setEnabled(cfg, !e.enabled(cfg)); b.setMessage(Component.literal(e.enabled(cfg) ? "ON" : "OFF")); }));
-            rows.add(new int[] {y, e.id().hashCode()});
-            y += 27;
+            var name = CirrusButton.nav(14 + 8, listTop, nameW, 22, Component.literal(e.label()), CirrusUi.ICON_HUD, b -> selected = e.id());
+            var toggle = CirrusButton.of(14 + 8 + nameW + 4, listTop, toggleW, 22, Component.literal(e.enabled(cfg) ? "ON" : "OFF"), b -> { e.setEnabled(cfg, !e.enabled(cfg)); b.setMessage(Component.literal(e.enabled(cfg) ? "ON" : "OFF")); });
+            addRenderableWidget(name);
+            addRenderableWidget(toggle);
+            rowWidgets.add(new net.minecraft.client.gui.components.AbstractWidget[] {name, toggle});
+            rows.add(new int[] {0, 0});
         }
+        scroll = Math.min(scroll, maxScroll());
+        layoutRows();
         addRenderableWidget(CirrusButton.primary(14 + 8, height - 14 - 8 - 22, w, 22, Component.literal("Back"), b -> minecraft.setScreen(parent)));
+    }
+
+    private int maxScroll() { return Math.max(0, rowWidgets.size() * ROW_H - (listBottom - listTop)); }
+
+    private void layoutRows() {
+        for (int i = 0; i < rowWidgets.size(); i++) {
+            int y = listTop + i * ROW_H - scroll;
+            boolean visible = y >= listTop - 1 && y + 22 <= listBottom + 1;
+            rows.get(i)[0] = y;
+            for (var widget : rowWidgets.get(i)) { widget.setY(y); widget.visible = visible; widget.active = visible; }
+        }
+    }
+
+    @Override public boolean mouseScrolled(double x, double y, double h, double v) {
+        if (x < 14 + railW) { scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) (v * ROW_H))); layoutRows(); return true; }
+        return super.mouseScrolled(x, y, h, v);
     }
 
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
@@ -42,7 +68,7 @@ public final class HudEditorScreen extends CirrusScreen {
         CirrusUi.headingText(g, font, "HUD ELEMENTS", 22, 14 + 32, t.cyan);
         int i = 0;
         for (HudElement e : HudElementRegistry.all()) {
-            if (e.id().equals(selected) && i < rows.size()) Gfx.fillRound(g, 14 + 3, rows.get(i)[0] + 3, 2, 16, 1, t.cyan);
+            if (e.id().equals(selected) && i < rows.size() && rowWidgets.get(i)[0].visible) Gfx.fillRound(g, 14 + 3, rows.get(i)[0] + 3, 2, 16, 1, t.cyan);
             i++;
         }
         var cfg = config();

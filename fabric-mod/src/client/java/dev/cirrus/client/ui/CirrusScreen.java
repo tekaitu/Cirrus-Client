@@ -42,5 +42,16 @@ public abstract class CirrusScreen extends Screen {
     /** Anything that must sit above the widgets. */
     protected void drawOverlay(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) { }
 
+    /** Right Shift closes any Cirrus screen straight back to the game (or to the screen that opened the menu). */
+    @Override public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox box && box.isFocused())) {
+            Screen root = this;
+            while (root instanceof CirrusScreen cs && cs.parent != null) root = cs.parent;
+            minecraft.setScreen(root instanceof CirrusScreen ? null : root);
+            return true;
+        }
+        return super.keyPressed(event);
+    }
+
     @Override public void onClose() { minecraft.setScreen(parent); }
 }
