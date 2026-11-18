@@ -65,6 +65,10 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         }
         context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
         // In a real world: the HUD element, then the pause menu with the Cirrus entry point.
+        context.runOnClient(mc -> {
+            mc.options.renderDistance().set(2);
+            mc.options.simulationDistance().set(5);
+        });
         try (var singleplayer = context.worldBuilder().create()) {
             singleplayer.getClientWorld().waitForChunksRender();
             context.waitTicks(20);
