@@ -1,12 +1,12 @@
 package dev.cirrus.client.ui;
 
-import net.minecraft.Util;
+
 
 /** Small time-based animation helpers so motion looks the same at any frame rate. */
 public final class Anim {
     private Anim() { }
 
-    public static long now() { return Util.getMillis(); }
+    public static long now() { return System.currentTimeMillis(); }
 
     /** Frame-rate independent exponential approach. rate is per second (higher is snappier). */
     public static float approach(float current, float target, float seconds, float rate) {
