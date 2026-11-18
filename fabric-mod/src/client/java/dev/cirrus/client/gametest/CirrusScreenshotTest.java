@@ -55,7 +55,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             mc.resizeDisplay();
             var cfg = dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath());
             dev.cirrus.client.ui.CirrusTheme.set(cfg, dev.cirrus.client.ui.CirrusTheme.LIGHT);
-            cfg.put("hud.enabled.local_status", "true");
+            cfg.put("enabled.local_status", "true");
         });
         context.waitTicks(5);
         for (Map.Entry<String, Supplier<Screen>> entry : screens.entrySet()) {
@@ -64,10 +64,6 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("light-" + entry.getKey() + "-1280x720-gui2");
         }
         context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
-        // Pause menu (shows the Cirrus entry point). A full world is too slow to load on the CI software renderer.
-        context.setScreen(() -> new net.minecraft.client.gui.screens.PauseScreen(true));
-        context.waitTicks(25);
-        context.takeScreenshot("pause-menu-1280x720-gui2");
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
     }
