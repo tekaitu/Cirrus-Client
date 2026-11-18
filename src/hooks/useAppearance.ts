@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { api } from "../api/client";
 import type { PlayerAppearance } from "../api/types";
 
@@ -11,50 +11,111 @@ export interface AppearanceState {
 }
 
 /**
- * The real Minecraft look of a player (skin, model and own cape), or a fallback.
+ * One shared copy of each player's appearance.
  *
- * Repeated lookups are cheap: the backend keeps a short-lived in-memory cache
- * per player, so opening the account menu and the Skins page does not download
- * the same skin again, while a skin changed in game still appears within five
- * minutes. The interface itself keeps no stale copy.
+ * The header, dashboard, account menu and Character page all show the same
+ * player. Keeping one cache with one in-flight request per player means they
+ * cannot disagree, Mojang is not asked four times at once, and Refresh in any
+ * of them updates every head and the 3D figure immediately.
  */
-export function usePlayerAppearance(player: string | null): AppearanceState {
-  const [appearance, setAppearance] = useState<PlayerAppearance | null>(null);
-  const [loading, setLoading] = useState(Boolean(player));
-  const [error, setError] = useState<string | null>(null);
-  const [version, setVersion] = useState(0);
+interface Entry {
+  appearance: PlayerAppearance | null;
+  error: string | null;
+  at: number;
+}
 
-  const reload = useCallback(() => setVersion((v) => v + 1), []);
+const TTL = 5 * 60 * 1000;
+const entries = new Map<string, Entry>();
+const inflight = new Map<string, Promise<void>>();
+const pending = new Set<string>();
+const listeners = new Set<() => void>();
+let version = 0;
 
-  useEffect(() => {
-    if (!player) {
-      setAppearance(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    let live = true;
-    setLoading(true);
-    setError(null);
-    // The first load may use the backend cache; an explicit refresh must not.
-    void Promise.resolve(api.playerAppearance(player, version > 0))
-      .then((next) => {
-        if (!live) return;
-        setAppearance(next ?? null);
-        setError(next ? null : "The skin could not be loaded.");
-      })
-      .catch((e: unknown) => {
-        if (!live) return;
-        setAppearance(null);
-        setError(e instanceof Error ? e.message : "The skin could not be loaded.");
-      })
-      .finally(() => {
-        if (live) setLoading(false);
+const keyOf = (player: string) => player.trim().toLowerCase();
+
+function emit() {
+  version += 1;
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function snapshot() {
+  return version;
+}
+
+async function load(player: string, force: boolean): Promise<void> {
+  const key = keyOf(player);
+  if (!key) return;
+
+  const cached = entries.get(key);
+  if (!force) {
+    if (cached && Date.now() - cached.at < TTL) return;
+    const running = inflight.get(key);
+    if (running) return running;
+  } else {
+    entries.delete(key);
+  }
+
+  pending.add(key);
+  emit();
+  let request: Promise<void>;
+  request = api
+    .playerAppearance(player, force)
+    .then((next) => {
+      entries.set(key, {
+        appearance: next ?? null,
+        error: next ? null : "The skin could not be loaded.",
+        at: Date.now(),
       });
-    return () => {
-      live = false;
-    };
-  }, [player, version]);
+    })
+    .catch((e: unknown) => {
+      entries.set(key, {
+        appearance: null,
+        error: e instanceof Error ? e.message : "The skin could not be loaded.",
+        at: Date.now(),
+      });
+    })
+    .finally(() => {
+      pending.delete(key);
+      if (inflight.get(key) === request) inflight.delete(key);
+      emit();
+    });
+  if (!force) inflight.set(key, request);
+  return request;
+}
 
-  return { appearance, loading, error, reload };
+/** Forgets every remembered appearance. Used by tests and sign-out. */
+export function resetAppearanceCache() {
+  entries.clear();
+  inflight.clear();
+  pending.clear();
+  emit();
+}
+
+/** The real Minecraft look of a player, shared by every place that shows it. */
+export function usePlayerAppearance(player: string | null): AppearanceState {
+  useSyncExternalStore(subscribe, snapshot, snapshot);
+  useEffect(() => {
+    if (player) void load(player, false);
+  }, [player]);
+
+  const key = player ? keyOf(player) : "";
+  const entry = key ? entries.get(key) : undefined;
+  const loading = Boolean(key) && (pending.has(key) || !entry);
+  const reload = useCallback(() => {
+    if (player) void load(player, true);
+  }, [player]);
+
+  return {
+    appearance: entry?.appearance ?? null,
+    loading,
+    error: entry?.error ?? null,
+    reload,
+  };
 }

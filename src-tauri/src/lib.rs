@@ -955,35 +955,36 @@ const APPEARANCE_TTL: std::time::Duration = std::time::Duration::from_secs(300);
 #[derive(Default)]
 struct AppearanceCache(Mutex<std::collections::HashMap<String, (std::time::Instant, skins::Appearance)>>);
 
-async fn appearance_for(cache: &AppearanceCache, player: String, force: bool) -> Option<skins::Appearance> {
+async fn appearance_for(cache: &AppearanceCache, player: String, force: bool) -> Result<skins::Appearance, String> {
     let key = player.trim().to_ascii_lowercase();
     if key.is_empty() {
-        return None;
+        return Err("No player was given.".to_string());
     }
     if !force {
         if let Ok(map) = cache.0.lock() {
             if let Some((at, appearance)) = map.get(&key) {
                 if at.elapsed() < APPEARANCE_TTL {
-                    return Some(appearance.clone());
+                    return Ok(appearance.clone());
                 }
             }
         }
     }
     let lookup = player.clone();
+    // Keep Mojang's reason (rate limit, rejected texture host, timeout) instead
+    // of turning every failure into "could not be loaded".
     let appearance = tauri::async_runtime::spawn_blocking(move || {
-        let client = skins::http_client().ok()?;
-        skins::fetch_appearance(&client, &skins::Endpoints::production(), &lookup).ok()
+        let client = skins::http_client()?;
+        skins::fetch_appearance(&client, &skins::Endpoints::production(), &lookup)
     })
     .await
-    .ok()
-    .flatten()?;
+    .map_err(|e| e.to_string())??;
     if let Ok(mut map) = cache.0.lock() {
         if map.len() >= 32 {
             map.clear();
         }
         map.insert(key, (std::time::Instant::now(), appearance.clone()));
     }
-    Some(appearance)
+    Ok(appearance)
 }
 
 /// A player's skin, arm model and own cape, ready to draw. The window never
@@ -994,9 +995,7 @@ async fn player_appearance(
     player: String,
     force: Option<bool>,
 ) -> Result<skins::Appearance, String> {
-    appearance_for(&state, player, force.unwrap_or(false))
-        .await
-        .ok_or_else(|| "That player's skin could not be loaded.".to_string())
+    appearance_for(&state, player, force.unwrap_or(false)).await
 }
 
 /// The current skin of a player (by id or name) as a PNG data address, for
@@ -1004,9 +1003,7 @@ async fn player_appearance(
 /// avatar falls back to the player's initial instead of an unusable address.
 #[tauri::command]
 async fn player_skin(state: State<'_, AppearanceCache>, player: String) -> Result<Option<String>, String> {
-    let appearance = appearance_for(&state, player, false)
-        .await
-        .ok_or_else(|| "That player's skin could not be loaded.".to_string())?;
+    let appearance = appearance_for(&state, player, false).await?;
     if appearance.skin.is_empty() {
         return Err("That player has no skin to show.".to_string());
     }

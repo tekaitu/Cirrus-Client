@@ -10,6 +10,8 @@ Every big change gets its own version number. Small fixes bump the last number (
 - Character: the real character is the default preview (own skin, Classic/Slim model, own cape), with drag-to-turn, zoom, a cape chooser, four original Cirrus skin presets, PNG upload and a one-click restore of the previous skin. The Cirrus cape is clearly labelled as a local preview.
 - Header uses the transparent Cirrus cloud mark instead of a black tile.
 - Removed Developer options and the Azure Application (client) ID from every user-facing screen. The app ID is built into the build, still overridable with `LIMITEDFPS_MS_CLIENT_ID`.
+- Fixed real skin and cape loading: Mojang still returns `http://textures.minecraft.net` texture addresses, which the downloader previously rejected as insecure. They are now validated and upgraded to HTTPS, so real heads, skins and equipped capes appear instead of the labelled fallback.
+- One shared appearance cache keeps every head, the dashboard and the 3D character in sync; Refresh and account switching update all of them, and 64 × 32 skins use the correct legacy body layout.
 - Appearance lookups are cached in the backend for five minutes, so the account menu and Skins page do not re-download the same skin.
 - New shared control layer for every button, icon button, segmented control and navigation tab: solid surfaces, a one-pixel press, a 120 ms release, fixed heights, and explicit loading, disabled and keyboard-focus states. No cursor light, sheen, glow or hover lift.
 - Download panel now shows the real stage, percentage, average speed, time left and elapsed time from the bytes the backend reports, with a safe cancel and clear success and failure states.

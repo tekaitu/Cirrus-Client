@@ -1,40 +1,14 @@
-import { useEffect, useState } from "react";
-import { api } from "../api/client";
-
-/** Skins that were already fetched this session, by player id. `null` means "looked, none available". */
-const cache = new Map<string, string | null>();
+import { usePlayerAppearance } from "../hooks/useAppearance";
 
 /** The PNG of a player's current skin as a data address, or null while loading / when there is none. */
 export function usePlayerSkin(uuid: string | null): string | null {
-  const [url, setUrl] = useState<string | null>(uuid ? (cache.get(uuid) ?? null) : null);
-  useEffect(() => {
-    if (!uuid) {
-      setUrl(null);
-      return;
-    }
-    if (cache.has(uuid)) {
-      setUrl(cache.get(uuid) ?? null);
-      return;
-    }
-    let live = true;
-    void Promise.resolve(api.playerSkin(uuid))
-      .then((u) => {
-        cache.set(uuid, u ?? null);
-        if (live) setUrl(u ?? null);
-      })
-      .catch(() => {
-        if (live) setUrl(null);
-      });
-    return () => {
-      live = false;
-    };
-  }, [uuid]);
-  return url;
+  return usePlayerAppearance(uuid).appearance?.skin ?? null;
 }
 
 /**
  * A player's face (with the hat layer), cut out of the skin with plain CSS so no canvas is needed.
- * Without a skin it shows the first letter of the name, or a neutral square.
+ * Without a skin it shows the first letter of the name, or a neutral square. The skin comes from
+ * the same shared appearance request as the 3D figure, so refreshing one refreshes both.
  */
 export function SkinHead({
   uuid,
@@ -52,7 +26,7 @@ export function SkinHead({
   const skin = dataUrl ?? fetched;
   const scale = size / 8;
   const layer = (x: number): React.CSSProperties => ({
-    backgroundImage: `url(${skin})`,
+    backgroundImage: skin ? `url(${skin})` : undefined,
     backgroundSize: `${64 * scale}px ${64 * scale}px`,
     backgroundPosition: `-${x * scale}px -${8 * scale}px`,
   });

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import { accountFromStatus, type AccountState, type SignInMethod } from "../core/auth";
 import type { AccountRef, AuthStatus } from "../api/types";
+import { resetAppearanceCache } from "./useAppearance";
 
 export interface Account {
   state: AccountState;
@@ -114,6 +115,7 @@ export function useAuth(ready: boolean): Account {
     (id?: string) => {
       void (async () => {
         try {
+          resetAppearanceCache();
           adopt(await api.authSignOut(id ?? null));
         } catch (e) {
           set({ phase: "error", message: errorMessage(e) });

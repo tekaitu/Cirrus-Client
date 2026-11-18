@@ -272,6 +272,8 @@ export interface PlayerAppearance {
   skin: string;
   /** The account's own cape as a data address, when it has one equipped. */
   cape: string | null;
+  /** True for a 64 x 32 skin, which uses the pre-1.8 body layout. */
+  legacy?: boolean;
 }
 
 export interface SkinEntry {

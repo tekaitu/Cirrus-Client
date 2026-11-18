@@ -6,6 +6,7 @@ import { initTheme } from "../src/core/theme";
 import { notify, resetNotifications } from "../src/core/notifications";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
+import { resetAppearanceCache } from "../src/hooks/useAppearance";
 import type { AuthStatus, DeviceCodeInfo, GameExit, GameProgress, GameStatus, InstallProgress, InstallResult } from "../src/api/types";
 import { appInfo, java17Raw, java21Raw, settingsState, systemInfo } from "./helpers/fixtures";
 
@@ -150,6 +151,7 @@ let gameExitHandler: ((e: GameExit) => void) | null = null;
 let progressHandler: ((p: InstallProgress) => void) | null = null;
 
 beforeEach(() => {
+  resetAppearanceCache();
   window.localStorage.clear();
   window.localStorage.setItem("unlimited.license", "2");
   mocked.listGameVersions.mockResolvedValue(["1.21.11", "1.21.1", "1.20.6"]);
@@ -402,6 +404,7 @@ describe("Microsoft account", () => {
     await goToAccounts();
     fireEvent.click(await screen.findByRole("button", { name: "Switch to Alex" }));
     await waitFor(() => expect(mocked.authSwitch).toHaveBeenCalledWith(alex.id));
+    await waitFor(() => expect(mocked.playerAppearance).toHaveBeenCalledWith(alex.id, false));
     expect(await screen.findByRole("button", { name: "Switch to Steve" })).toBeTruthy();
   });
 
@@ -1660,6 +1663,17 @@ describe("Skins page", () => {
     expect(window.localStorage.getItem("cirrus.appliedSkin")).toBe("alex");
   });
 
+  it("shows a cape empty state when the account has none equipped", async () => {
+    signedIn();
+    mocked.listSkins.mockResolvedValue([]);
+    render(<App />);
+    await settled();
+    goTo("Character");
+    const capes = await screen.findByRole("radiogroup", { name: "Cape" });
+    expect(within(capes).queryByRole("radio", { name: /Your Minecraft cape/ })).toBeNull();
+    expect(within(capes).getByRole("radio", { name: /No cape/ })).toBeTruthy();
+  });
+
   it("previews the account character and switches capes as a local preview", async () => {
     signedIn();
     mocked.playerAppearance.mockResolvedValue(appearance({ cape: "data:image/png;base64,CCCC" }));
@@ -1883,6 +1897,20 @@ describe("Account switching and removal", () => {
     const refresh = await screen.findByRole("button", { name: "Refresh skin" });
     fireEvent.click(refresh);
     await waitFor(() => expect(mocked.playerAppearance).toHaveBeenLastCalledWith(steve.id, true));
+  });
+
+  it("refreshes every head when the account skin changes", async () => {
+    twoAccounts();
+    mocked.playerAppearance
+      .mockResolvedValueOnce(appearance({ skin: "data:image/png;base64,OLD" }))
+      .mockResolvedValue(appearance({ skin: "data:image/png;base64,NEW" }));
+    render(<App />);
+    await settled();
+    await goToAccounts();
+    const headerLayer = () => document.querySelector(".hdr-account .skin-head-layer") as HTMLElement | null;
+    await waitFor(() => expect(headerLayer()?.style.backgroundImage).toContain("OLD"));
+    fireEvent.click(await screen.findByRole("button", { name: "Refresh skin" }));
+    await waitFor(() => expect(headerLayer()?.style.backgroundImage).toContain("NEW"));
   });
 
   it("draws a clearly labelled default character when the skin cannot be read", async () => {

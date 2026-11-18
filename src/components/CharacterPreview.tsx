@@ -81,11 +81,12 @@ export function CharacterPreview({
       ) : (
         <div className="character-stage">
           <SkinFigure
-            key={`${appearance?.skin ?? "fallback"}-${model}`}
+            key={`${appearance?.skin ?? "fallback"}-${model}-${appearance?.legacy ?? false}`}
             skin={texture}
             model={model}
             view={current}
             scale={scale}
+            legacy={appearance?.legacy ?? false}
             draggable={!usingFallback}
             cape={showCape ? (appearance?.cape ?? null) : null}
             label={label}

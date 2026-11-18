@@ -88,6 +88,11 @@ export function SkinsPage({ data }: { data: AppData }) {
   // previewed next to it without changing the account.
   const hasAccountCharacter = Boolean(player && accountCharacter);
   const showingAccount = subject === "account" && hasAccountCharacter;
+  useEffect(() => {
+    // "Your Minecraft cape" is not an option when the account has none; fall
+    // back to the honest empty choice instead of leaving nothing selected.
+    if (accountCharacter && !accountCharacter.cape) setCapeId((current) => (current === "account" ? "none" : current));
+  }, [accountCharacter]);
 
   const reload = useCallback(async () => {
     try {
@@ -181,6 +186,8 @@ export function SkinsPage({ data }: { data: AppData }) {
         }
         remember(APPLIED_KEY, target.id);
         setApplied(target.id);
+        // Ask Mojang for the account's new look instead of keeping the old head.
+        appearanceState.reload();
       },
       () => `“${target.name}” is now your skin. It shows up in game after the next launch.`,
     );
@@ -198,6 +205,7 @@ export function SkinsPage({ data }: { data: AppData }) {
         setApplied(target.id);
         setPrevious(before);
         setSelectedId(target.id);
+        appearanceState.reload();
       },
       () => `Restored “${target.name}”.`,
     );
@@ -449,6 +457,7 @@ export function SkinsPage({ data }: { data: AppData }) {
                   model={accountCharacter.model}
                   view={view}
                   scale={zoom}
+                  legacy={accountCharacter.legacy ?? false}
                   draggable
                   cape={capeTexture(capeId, accountCharacter.cape, cirrusCape)}
                   label={`${accountCharacter.name}, ${MODEL_LABEL[accountCharacter.model]} model${capeId === "none" ? "" : ", cape"}`}
