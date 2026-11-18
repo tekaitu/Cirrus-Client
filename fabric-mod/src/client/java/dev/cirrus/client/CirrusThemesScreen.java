@@ -1,31 +1,46 @@
 package dev.cirrus.client;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.CirrusButton;
-import dev.cirrus.client.ui.CirrusTheme;
-import dev.cirrus.client.ui.CirrusUi;
-import net.minecraft.client.Minecraft;
+import dev.cirrus.client.ui.*;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Persistent built-in themes; palette tokens keep additional themes extensible. */
-public final class CirrusThemesScreen extends Screen {
- private final Screen parent;
- public CirrusThemesScreen(Screen parent){super(Component.literal("Cirrus Themes"));this.parent=parent;}
- protected void init(){int x=width/2-170,y=height/2-34;addRenderableWidget(CirrusButton.nav(x,y,150,28,Component.literal("Dark  ·  Midnight"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.DARK)));addRenderableWidget(CirrusButton.nav(x+190,y,150,28,Component.literal("Light  ·  Frost"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));addRenderableWidget(CirrusButton.nav(width/2-70,y+58,140,22,Component.literal("Back"),CirrusUi.ICON_BACK,b->minecraft.setScreen(parent)));}
- public void render(GuiGraphics g,int mx,int my,float d){
-  var t=CirrusTheme.current(config());
-  int shellW=Math.min(500,width-24),shellX=(width-shellW)/2;CirrusUi.panel(g,shellX,Math.max(20,height/2-126),shellW,Math.min(250,height-40),20,t);
-  CirrusUi.centeredHeading(g,font,"APPEARANCE",width/2,Math.max(34,height/2-102),t.cyan);
-  int w=Math.min(190,(shellW-48)/2),h=82,y=height/2-34;int left=width/2-w-9,right=width/2+9;
-  CirrusUi.panel(g,left,y,w,h,14,CirrusTheme.DARK);CirrusUi.panel(g,right,y,w,h,14,CirrusTheme.LIGHT);
-  CirrusUi.centeredHeading(g,font,"Aa",left+w/2,y+14,CirrusTheme.DARK.text);CirrusUi.centered(g,font,"Midnight glass",left+w/2,y+42,CirrusTheme.DARK.text);
-  CirrusUi.centeredHeading(g,font,"Aa",right+w/2,y+14,CirrusTheme.LIGHT.text);CirrusUi.centered(g,font,"Frost glass",right+w/2,y+42,CirrusTheme.LIGHT.text);super.render(g,mx,my,d);
- }
- private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
- public void onClose(){minecraft.setScreen(parent);}
+/** Built-in themes. Palette tokens in CirrusTheme keep additional themes cheap to add. */
+public final class CirrusThemesScreen extends CirrusScreen {
+    private int shellX, shellY, shellW, shellH, cardY, cardW, cardH, leftX, rightX;
 
- @Override public void renderBackground(GuiGraphics bg,int bmx,int bmy,float bd){CirrusUi.backdrop(bg,width,height,CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())));}
+    public CirrusThemesScreen(Screen parent) { super(Component.literal("Cirrus Themes"), parent); }
+
+    @Override protected void init() {
+        shellW = Math.min(440, width - 16);
+        shellH = Math.min(height - 16, 214);
+        shellX = (width - shellW) / 2;
+        shellY = (height - shellH) / 2;
+        cardW = (shellW - 36 - 10) / 2;
+        cardH = Math.max(50, shellH - 28 - 22 - 34 - 28);
+        cardY = shellY + 28 + 18;
+        leftX = shellX + 18;
+        rightX = leftX + cardW + 10;
+        int by = cardY + cardH + 8;
+        addRenderableWidget(CirrusButton.nav(leftX, by, cardW, 20, Component.literal(theme() == CirrusTheme.DARK ? "Midnight  ·  selected" : "Use Midnight"), CirrusUi.ICON_THEMES, b -> { CirrusTheme.set(config(), CirrusTheme.DARK); rebuildWidgets(); }));
+        addRenderableWidget(CirrusButton.nav(rightX, by, cardW, 20, Component.literal(theme() == CirrusTheme.LIGHT ? "Frost  ·  selected" : "Use Frost"), CirrusUi.ICON_THEMES, b -> { CirrusTheme.set(config(), CirrusTheme.LIGHT); rebuildWidgets(); }));
+        addRenderableWidget(CirrusButton.primary(shellX + shellW - 18 - 72, shellY + shellH - 14 - 22, 72, 22, Component.literal("Back"), b -> minecraft.setScreen(parent)));
+    }
+
+    @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
+        CirrusUi.panel(g, shellX, shellY, shellW, shellH, 18, t);
+        CirrusUi.headingText(g, font, "APPEARANCE", shellX + 18, shellY + 14, t.cyan);
+        preview(g, leftX, cardY, cardW, cardH, CirrusTheme.DARK, "Midnight glass", t == CirrusTheme.DARK, t);
+        preview(g, rightX, cardY, cardW, cardH, CirrusTheme.LIGHT, "Frost glass", t == CirrusTheme.LIGHT, t);
+    }
+
+    private void preview(GuiGraphics g, int x, int y, int w, int h, CirrusTheme sample, String name, boolean selected, CirrusTheme current) {
+        Gfx.fillRound(g, x, y, w, h, 12, Gfx.mix(sample == CirrusTheme.DARK ? 0xFF0B1220 : 0xFFDDE8F6, sample.panel, 0.55f));
+        Gfx.strokeRound(g, x, y, w, h, 12, selected ? 1.5f : 0.5f, selected ? current.cyan : current.border);
+        CirrusUi.headingText(g, font, "Aa", x + 12, y + 10, sample.text);
+        CirrusUi.smallText(g, font, name, x + 12, y + 24, sample.muted, false);
+        int bx = x + 12, by = y + h - 24, bw = Math.max(20, w - 24);
+        Gfx.fillRound(g, bx, by, bw, 14, 7, Gfx.mix(sample.surface, sample.accent, 0.3f));
+        Gfx.fillRound(g, bx + 4, by + 5, Math.max(8, bw / 3), 4, 2, sample.cyan);
+    }
 }
-
