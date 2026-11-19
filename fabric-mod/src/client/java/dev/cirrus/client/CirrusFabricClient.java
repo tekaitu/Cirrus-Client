@@ -25,11 +25,16 @@ public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ModRegistry.register(new LocalStatusMod());
+        ModRegistry.register(new dev.cirrus.client.mod.FpsMod());
+        ModRegistry.register(new dev.cirrus.client.mod.PingMod());
+        ModRegistry.register(new dev.cirrus.client.mod.ArmorStatusMod());
+        ModRegistry.register(new dev.cirrus.client.mod.KeystrokesMod());
         ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
         AssetManager assets = AssetManager.get(Minecraft.getInstance().gameDirectory.toPath());
         assets.initialize();
         CirrusKeyBindings.register();
-        dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find("local_status").orElseThrow());
+        for (String id : new String[] {"local_status", "fps", "ping", "armor_status", "keystrokes"})
+            dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find(id).orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,
             Identifier.fromNamespaceAndPath("cirrus_fabric", "status"),
@@ -57,7 +62,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
             int x = Math.max(8, screen.width - buttonWidth - 8);
             int y = Math.max(8, screen.height - 30);
             Component label = Component.literal("Cirrus  ·  Right Shift");
-            Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusDashboardScreen(screen))));
+            Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusMenuScreen(screen))));
         });
     }
 }

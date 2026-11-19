@@ -50,6 +50,12 @@ public final class CirrusUi {
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 
+    /** Light-weight surface for always-on HUD elements: no shadow stack, so it stays cheap every frame. */
+    public static void hudPanel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
+        Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(t.panel, 0xFF000000, 0.15f));
+        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
+    }
+
     /** A flatter inset surface used inside panels (cards, fields, chips). */
     public static void card(GuiGraphics g, float x, float y, float w, float h, float radius, int fill, int border) {
         Gfx.fillRound(g, x, y, w, h, radius, fill);
@@ -75,6 +81,17 @@ public final class CirrusUi {
         Gfx.fillRound(g, x, y, 3, h, 1.5f, Gfx.scaleAlpha(t.border, 0.6f));
         float thumb = Math.max(14f, h * visible);
         Gfx.fillRound(g, x, y + (h - thumb) * offset, 3, thumb, 1.5f, t.accent);
+    }
+
+    /** "Tune" glyph (three sliders) used for settings buttons; the icon sheet has no cog. */
+    public static void sliders(GuiGraphics g, int x, int y, int size, int color) {
+        float lineH = Math.max(1f, size / 10f), knob = Math.max(3f, size / 4f);
+        float[] ys = {size * 0.18f, size * 0.5f, size * 0.82f};
+        float[] ks = {0.65f, 0.3f, 0.55f};
+        for (int i = 0; i < 3; i++) {
+            Gfx.fillRound(g, x, y + ys[i] - lineH / 2, size, lineH, lineH / 2, Gfx.scaleAlpha(color, 0.75f));
+            Gfx.fillRound(g, x + (size - knob) * ks[i], y + ys[i] - knob / 2, knob, knob, knob / 2, color);
+        }
     }
 
     // ---- typography -----------------------------------------------------------------------------------------------
@@ -105,6 +122,12 @@ public final class CirrusUi {
     public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = body(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
     public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = small(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
     public static void centeredHeading(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = heading(value); g.drawString(f, c, x - f.width(c) / 2, y, color, false); }; }
+    /** Draws short text centred on (cx, cy) in the largest of heading/body/small that fits maxW (monograms in small tiles). */
+    public static void centeredFit(GuiGraphics g, Font f, String value, int cx, int cy, int maxW, int color) {
+        if (headingWidth(f, value) <= maxW) centeredHeading(g, f, value, cx, cy - LINE / 2, color);
+        else if (bodyWidth(f, value) <= maxW) centered(g, f, value, cx, cy - LINE / 2, color);
+        else centeredSmall(g, f, value, cx, cy - LINE / 2, color);
+    }
     public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { g.drawString(f, small(value), right - smallWidth(f, value), y + NUDGE, color, false); }
 
     // ---- icons and brand ------------------------------------------------------------------------------------------

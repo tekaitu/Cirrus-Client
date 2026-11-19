@@ -7,6 +7,10 @@ import net.minecraft.client.gui.GuiGraphics;
 /** A self-contained feature contribution. Render and lifecycle hooks are optional. */
 public interface CirrusMod {
     String id(); String name(); String description(); ModCategory category();
+    /** Index into the Cirrus icon sheet (see CirrusUi.ICON_*). */
+    default int icon() {
+        return switch (category()) { case ALL -> dev.cirrus.client.ui.CirrusUi.ICON_LIBRARY; case HUD -> dev.cirrus.client.ui.CirrusUi.ICON_HUD; case PVP -> dev.cirrus.client.ui.CirrusUi.ICON_PVP; case VISUALS -> dev.cirrus.client.ui.CirrusUi.ICON_VISUALS; case PERFORMANCE -> dev.cirrus.client.ui.CirrusUi.ICON_PERFORMANCE; case UTILITY -> dev.cirrus.client.ui.CirrusUi.ICON_UTILITY; case INTERFACE -> dev.cirrus.client.ui.CirrusUi.ICON_SETTINGS; };
+    }
     default boolean defaultEnabled() { return false; }
     default boolean favorite(CirrusConfig config) { return config.getBoolean("favorite." + id(), false); }
     default boolean enabled(CirrusConfig config) { return config.getBoolean("enabled." + id(), defaultEnabled()); }
