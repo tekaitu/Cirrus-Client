@@ -13,6 +13,9 @@
 .app-bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: var(--scene-filter); }
 .app-bg-veil { position: absolute; inset: 0; background: var(--scene-veil); }
 .app-bg-vignette { position: absolute; inset: 0; background: var(--scene-vignette); }
+/* The Home picture stays readable and still visible behind the title. */
+.app-bg[data-backdrop="home"] .app-bg-veil { background: linear-gradient(180deg, rgba(6, 10, 18, 0.58) 0%, rgba(6, 10, 18, 0.22) 38%, rgba(6, 10, 18, 0.88) 100%); }
+:root[data-theme="light"] .app-bg[data-backdrop="home"] .app-bg-veil { background: linear-gradient(180deg, rgba(244, 247, 253, 0.62) 0%, rgba(244, 247, 253, 0.3) 38%, rgba(240, 244, 252, 0.9) 100%); }
 .scene-canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 
 /* ---------------------------------------------------------------- top bar */
@@ -47,7 +50,7 @@
 .hdr-account:hover, .hdr-account[aria-expanded="true"] { background: rgb(255 255 255 / 0.12); }
 .hdr-account .skin-head, .hdr-account > :first-child { border-radius: 8px; flex: none; }
 .hdr-account-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
-.hdr-account-text small { display: none; color: var(--muted); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; }
+.hdr-account-text small { color: var(--muted); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; }
 .hdr-account-text strong { font-size: 0.84rem; font-weight: 700; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .hdr-win { display: inline-flex; align-items: center; margin-left: 4px; }
@@ -69,6 +72,27 @@
   .hdr-brand-name { display: none; }
   .hdr-tab { padding: 0 8px; }
 }
+
+/* ---------------------------------------------------------------- account panel on the side */
+.acct-layer { position: fixed; inset: 0; z-index: 70; display: flex; justify-content: flex-end; }
+.acct-scrim { position: absolute; inset: 0; background: var(--scrim); backdrop-filter: blur(3px); animation: fade 0.16s ease both; }
+.acct-drawer { position: relative; display: flex; flex-direction: column; width: min(440px, 100%); height: 100%; min-height: 0; background: var(--surface-solid); border-left: 1px solid var(--glass-border); box-shadow: var(--shadow-lg); animation: drawer-in 0.26s var(--ease) both; }
+.acct-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 20px 14px; border-bottom: 1px solid var(--border); }
+.acct-head h2 { font-size: 1.3rem; }
+.acct-head .eyebrow { margin-bottom: 3px; }
+.acct-body { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 14px; padding: 16px 16px 24px; }
+.acct-body .card { background: var(--raised); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.offline-form { display: flex; flex-direction: column; gap: 8px; }
+.offline-form > label { font-size: 0.74rem; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.offline-form .ui-btn { align-self: flex-start; }
+.offline-note { font-size: 0.8rem; color: var(--text-soft); }
+@keyframes drawer-in { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+
+/* ---------------------------------------------------------------- startup screen */
+.boot { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; background: #000; color: #fff; }
+.boot .logo-mark { width: auto; }
+.boot-spinner { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgb(255 255 255 / 0.16); border-top-color: #fff; animation: spin 0.8s linear infinite; }
+.boot-text { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgb(255 255 255 / 0.55); }
 
 /* ---------------------------------------------------------------- footer */
 .footbar { position: relative; z-index: 2; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px clamp(14px, 2vw, 28px); background: linear-gradient(0deg, rgba(4, 8, 16, 0.55), rgba(4, 8, 16, 0)); }

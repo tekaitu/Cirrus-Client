@@ -8,23 +8,27 @@ import { loaderLabel, loaderOf, useInstances } from "../hooks/useInstances";
 import type { PageId } from "../components/Navigation";
 import { GridIcon } from "../components/Icons";
 import type { AppData } from "../hooks/useAppData";
+import { usePlayAs } from "../hooks/usePlayAs";
 
 /**
  * Who is playing and what state the game is in. The head comes from the real
  * skin cache; the model and cape only appear when the account's appearance was
- * actually fetched, so nothing here is invented.
+ * actually fetched, so nothing here is invented. An offline ("cracked") name
+ * is shown as exactly that, with no borrowed skin.
  */
 function Identity({
   data,
-  onNavigate,
   onOpenAccount,
 }: {
   data: AppData;
-  onNavigate: (page: PageId) => void;
   onOpenAccount: () => void;
 }) {
   const account = data.account.state;
-  const player = account.phase === "signedIn" ? account.profile : null;
+  const playAs = usePlayAs();
+  // An offline name that was chosen on purpose wins over a saved Microsoft account,
+  // because that is exactly who Minecraft will start as.
+  const offline = playAs.mode === "offline" ? playAs.name.trim() : "";
+  const player = offline ? null : account.phase === "signedIn" ? account.profile : null;
   const appearance = usePlayerAppearance(player?.id ?? null);
   const install =
     data.game.installer.phase === "running"
@@ -41,29 +45,28 @@ function Identity({
         appearance.appearance?.cape ? "Cape equipped" : null,
         install,
       ].filter(Boolean).join(" · ")
-    : `Not signed in · offline play is available · ${install}`;
+    : offline
+      ? `Offline account · singleplayer and offline servers · ${install}`
+      : `No account chosen · play offline or sign in with Microsoft · ${install}`;
 
   return (
     <div className="home-identity" aria-label="Active account and game status">
-      <SkinHead uuid={player?.id ?? null} name={player?.name ?? null} size={38} />
+      <SkinHead uuid={player?.id ?? null} name={player?.name ?? offline ?? null} size={38} />
       <div className="home-id-text">
         <span className="home-id-name">
-          {player ? player.name : "Not signed in"}
+          {player ? player.name : offline || "Not signed in"}
           {player && <small>Minecraft: Java Edition</small>}
+          {!player && offline && <small>Offline</small>}
         </span>
         <span className="home-id-meta">{facts}</span>
       </div>
-      <div className="home-id-actions">
-        {player ? (
-          <Button size="sm" variant="secondary" onClick={() => onNavigate("accounts")}>
-            Manage account
-          </Button>
-        ) : (
+      {!player && !offline && (
+        <div className="home-id-actions">
           <Button size="sm" variant="primary" onClick={onOpenAccount}>
             Sign in
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -74,7 +77,7 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
   const recent = readRecent();
   return (
     <section className="home-hero" aria-labelledby="hero-title">
-      <Identity data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
+      <Identity data={data} onOpenAccount={onOpenAccount} />
       <h1 id="hero-title" className="home-title">
         {selection.version} {loaderLabel(selection.loader)}
       </h1>

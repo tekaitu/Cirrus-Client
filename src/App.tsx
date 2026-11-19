@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { AccountPanel } from "./components/AccountPanel";
+import { AccountDrawer } from "./components/AccountDrawer";
+import { LogoMark } from "./components/Logo";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { SignInDialog } from "./components/SignInDialog";
 import { GameDialog } from "./components/GameDialog";
 import { FooterBar } from "./components/FooterBar";
 import { AppBackground, type BackdropId } from "./components/Scene";
-import { CloseIcon } from "./components/Icons";
 import { TopNav, type PageId } from "./components/Navigation";
 import { LICENSE_VERSION } from "./content/license";
 import { api } from "./api/client";
@@ -27,6 +27,7 @@ import { notify } from "./core/notifications";
 import { Toasts } from "./components/Toasts";
 import { REQUIRED_JAVA_MAJOR } from "./core/java";
 import { writeRecent } from "./core/recent";
+import { usePlayAs } from "./hooks/usePlayAs";
 
 /** Which picture sits behind each page. */
 const BACKDROPS: Record<PageId, BackdropId> = {
@@ -45,6 +46,7 @@ const BACKDROPS: Record<PageId, BackdropId> = {
 
 export default function App() {
   const data = useAppData();
+  const playAs = usePlayAs();
   const [page, setPage] = useState<PageId>("home");
   const [section, setSection] = useState<string | undefined>(undefined);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -70,20 +72,40 @@ export default function App() {
     document.documentElement.dataset.reduceMotion = reduceMotion ? "true" : "false";
   }, [reduceMotion]);
 
+  // The startup screen: the logo on black until settings are in, plus a short beat so it never flashes.
+  const booted = data.settings.status !== "loading";
+  const [booting, setBooting] = useState(true);
   useEffect(() => {
-    if (!accountOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAccountOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [accountOpen]);
+    if (!booted) return;
+    const timer = window.setTimeout(() => setBooting(false), 700);
+    return () => window.clearTimeout(timer);
+  }, [booted]);
 
   const navigate = (next: PageId, nextSection?: string) => {
     setPage(next);
     setSection(nextSection);
     setAccountOpen(false);
   };
-  // The Accounts page already shows the account, so the account button does not also open a menu there.
+  const openAccount = () => setAccountOpen(true);
+  // The Accounts page already shows the account, so the account button does not also open the panel there.
   const toggleAccount = () => (page === "accounts" ? undefined : setAccountOpen((v) => !v));
+
+  const accountState = data.account.state;
+  const microsoftName = accountState.phase === "signedIn" ? accountState.profile : null;
+  const offlineName = playAs.mode === "offline" ? playAs.name.trim() : "";
+  // The chosen offline name is what the game uses, so it is what the header shows.
+  const identity = offlineName
+    ? { name: offlineName, id: null, offline: true }
+    : microsoftName
+      ? { name: microsoftName.name, id: microsoftName.id }
+      : null;
+
+  // Signing in means playing online from now on; choosing a name in the panel switches it back.
+  const accountPhase = data.account.state.phase;
+  useEffect(() => {
+    if (accountPhase === "signedIn") playAs.useMicrosoft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountPhase]);
 
   // Alt + 1..9 jumps between pages (listed under Settings > Keybinds).
   useEffect(() => {
@@ -100,7 +122,6 @@ export default function App() {
   }, []);
 
   // Sign-in results and an expired login get a notification of their own.
-  const accountPhase = data.account.state.phase;
   const prevAccount = useRef(accountPhase);
   useEffect(() => {
     const was = prevAccount.current;
@@ -191,14 +212,12 @@ export default function App() {
           onNavigate={navigate}
           onAccount={toggleAccount}
           accountOpen={accountOpen}
-          player={data.account.state.phase === "signedIn" ? data.account.state.profile : null}
+          player={identity}
         />
         <main className="content">
           <div key={page} className="page-enter">
-          {page === "home" && (
-            <HomePage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />
-          )}
-          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />}
+          {page === "home" && <HomePage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
+          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
           {page === "browse" && <ModsPage data={data} mode="browse" onNavigate={navigate} />}
           {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
@@ -219,12 +238,17 @@ export default function App() {
       {accepted && <GameDialog data={data} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}
       <Toasts />
-      {accountOpen && (
-        <div className="popover" role="dialog" aria-label="Account">
-          <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>
-            <CloseIcon />
-          </button>
-          <AccountPanel account={data.account} onManage={() => navigate("accounts")} />
+      <AccountDrawer
+        open={accountOpen}
+        account={data.account}
+        onClose={() => setAccountOpen(false)}
+        onManage={() => navigate("accounts")}
+      />
+      {booting && (
+        <div className="boot" role="status" aria-live="polite" aria-label="Loading Cirrus Client">
+          <LogoMark size={76} />
+          <span className="boot-spinner" aria-hidden="true" />
+          <p className="boot-text">Starting Cirrus Client…</p>
         </div>
       )}
     </div>

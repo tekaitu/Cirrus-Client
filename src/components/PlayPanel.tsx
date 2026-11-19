@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { exitText, gameProgressView, usernameError, type PlayMode } from "../core/game";
+import { exitText, gameProgressView, usernameError } from "../core/game";
+import { usePlayAs } from "../hooks/usePlayAs";
 import { REQUIRED_JAVA_MAJOR } from "../core/java";
 import type { AppData } from "../hooks/useAppData";
 import { BrandIcon } from "./BrandIcon";
@@ -9,21 +10,6 @@ import { InstallProgress } from "./InstallProgress";
 import { Button } from "./Button";
 import { VersionSelector } from "./VersionSelector";
 import type { PageId } from "./Navigation";
-
-function read(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-function write(key: string, value: string) {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    /* a remembered choice is a convenience only */
-  }
-}
 
 /** Version, loader and player choice, plus the one button that sets up, signs in, or starts the game. */
 export function PlayPanel({
@@ -39,17 +25,17 @@ export function PlayPanel({
   variant?: "quick" | "full";
 }) {
   const { game, selection } = data;
-  const [mode, setMode] = useState<PlayMode>(() => (read("unlimited.playMode") === "offline" ? "offline" : "microsoft"));
-  const [name, setName] = useState(() => read("unlimited.username") ?? "");
+  // Who plays is shared with the account panel, so a name chosen there is used here at once.
+  const playAs = usePlayAs();
+  const { mode, name } = playAs;
+  const setMode = playAs.setMode;
+  const setName = playAs.setName;
   const [touched, setTouched] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   // When the current download started, so the panel can show a real elapsed time and average speed.
   const [installStartedAt, setInstallStartedAt] = useState(0);
   // Each setup step is tried once per click, so a step that "succeeds" without changing anything cannot repeat forever.
   const tried = useRef({ java: false, game: false });
-
-  useEffect(() => write("unlimited.playMode", mode), [mode]);
-  useEffect(() => write("unlimited.username", name), [name]);
 
   const acct = data.account.state;
   const signedIn = acct.phase === "signedIn";

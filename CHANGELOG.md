@@ -3,6 +3,11 @@
 Every big change gets its own version number. Small fixes bump the last number (0.3.1), new features and redesigns bump the middle one (0.4.0).
 
 ## 0.3.2 — Character Studio, icon navigation and a real version picker
+- Home opens on the new forest-lantern artwork (`src/assets/backgrounds/home.jpg`) with a lighter dark layer over it, so the picture shows behind the title and Play button.
+- The account chip opens a panel on the side of the window instead of a menu in the middle. It offers both ways to play in one place: an offline ("cracked") username with validation and a "Use this name" step, and the Microsoft account.
+- Cracked play now works from the account panel: the name is stored, the header and Home show that player (with an "Offline" tag and no borrowed skin), and Play launches Minecraft in offline mode with it. Signing in with Microsoft switches play back to the real account.
+- Removed the "Manage account" button from the middle of the Home identity row; managing accounts lives in the side panel.
+- New startup screen: the Cirrus cloud mark on black with a small loading circle, shown while settings load and fading away when the window is ready.
 - Character Studio replaces the old skin page: the account's real Minecraft character fills the large central stage, with its own skin, arm model and equipped cape read from the Minecraft profile, a live sync indicator, and an honest error state when the profile cannot be read.
 - Skin changes go through the account: choose a 64 × 64 PNG (or drop it on the stage), copy a skin from a username or texture link, then apply it to the Minecraft account. Applying or refreshing updates every head, the dashboard and the figure through the shared appearance cache, and switching accounts swaps the whole character.
 - Better 3D figure: bigger stage, smooth drag-to-turn with inertia, arrow-key turning, zoom slider with ± buttons, directional lighting on every side of every body part, a floor shadow, Classic and Slim bodies, legacy 64 × 32 skins and the account cape with its own shading.

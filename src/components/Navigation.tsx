@@ -64,7 +64,8 @@ interface Props {
   onNavigate: (page: PageId) => void;
   onAccount: () => void;
   accountOpen: boolean;
-  player: { name: string; id: string } | null;
+  /** The account Minecraft will start as; `offline` names have no Minecraft id or skin. */
+  player: { name: string; id: string | null; offline?: boolean } | null;
 }
 
 /**
@@ -154,6 +155,7 @@ export function TopNav({ page, onNavigate, onAccount, accountOpen, player }: Pro
           <SkinHead uuid={player?.id ?? null} name={player?.name ?? null} size={30} />
           <span className="hdr-account-text">
             <strong>{player ? player.name : "Sign in"}</strong>
+            {player?.offline && <small>Offline</small>}
           </span>
         </button>
 

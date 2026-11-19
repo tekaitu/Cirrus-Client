@@ -427,7 +427,7 @@ describe("Microsoft account", () => {
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
     expect(await screen.findAllByText("Steve")).toBeTruthy();
     expect(document.querySelector(".account-card .skin-head")).toBeTruthy();
-    expect(screen.getAllByText("01234567-89ab-cdef-0123-456789abcdef").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { level: 2, name: "Microsoft account" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 
@@ -1033,12 +1033,46 @@ describe("Play", () => {
     expect(screen.getByText("Why is there no OptiFine?")).toBeTruthy();
   });
 
-  it("asks to sign in when the Minecraft account is not signed in", async () => {
-    mocked.authStatus.mockResolvedValue(authStatus());
+  it("opens the side account panel with both ways to play when nobody is signed in", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true }));
     ready();
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Sign in to play" }));
-    expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
+    const panel = await screen.findByRole("dialog", { name: "Account" });
+    expect(within(panel).getByRole("button", { name: "Sign in with Microsoft" })).toBeTruthy();
+    expect(within(panel).getByLabelText("Cracked username")).toBeTruthy();
+    expect(within(panel).getByRole("button", { name: "Use this name" })).toBeTruthy();
+  });
+
+  it("plays as a cracked username chosen in the account panel, straight from Home", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true }));
+    ready();
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    render(<App />);
+    await loaded();
+    openAccount();
+    fireEvent.change(await screen.findByLabelText("Cracked username"), { target: { value: "Herobrine" } });
+    fireEvent.click(screen.getByRole("button", { name: "Use this name" }));
+    expect(window.localStorage.getItem("unlimited.username")).toBe("Herobrine");
+    expect(window.localStorage.getItem("unlimited.playMode")).toBe("offline");
+    // The Home screen and the header now show the offline player, and Play uses it.
+    expect((await screen.findAllByText("Herobrine")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Close account panel" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Play" }));
+    await waitFor(() =>
+      expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "offline", "Herobrine", "1.21.11", "fabric"),
+    );
+  });
+
+  it("refuses a cracked username Minecraft would refuse", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus());
+    ready();
+    render(<App />);
+    openAccount();
+    const field = await screen.findByLabelText("Cracked username");
+    fireEvent.change(field, { target: { value: "a" } });
+    expect((screen.getByRole("button", { name: "Use this name" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/3 to 16 characters/)).toBeTruthy();
   });
 
   it("plays offline without any Microsoft sign-in", async () => {
