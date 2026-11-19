@@ -30,7 +30,7 @@ public final class MenuLayout {
     public final Rect[] partnerTiles;
     public final Rect banner;           // null when it does not fit
 
-    public MenuLayout(int width, int height, int partnerCount, int logoTextWidth) {
+    public MenuLayout(int width, int height, int partnerCount, int logoTextWidth, int nameWidth) {
         float s = Math.max(0.45f, Math.min(width / 800f, height / 450f));
         scale = s;
         int bh = Math.max(16, Math.round(26 * s));
@@ -40,6 +40,8 @@ public final class MenuLayout {
         int markH = Math.max(16, Math.round(25 * s)), markW = (markH * 640 + 236) / 473;
         int versionGap = Math.max(4, Math.round(13.5f * s));
         int cx = width / 2;
+        int chipPad = Math.max(4, Math.round(6 * s));
+        int chipW = Math.max(44, Math.min(Math.round(125 * s), Math.max(Math.round(70 * s), bh - 6 + chipPad * 3 + nameWidth)));
 
         int top = Math.round(height / 2f + (218.75f - 225f) * s);
         int logoGap = Math.max(4, Math.round(8 * s));
@@ -61,11 +63,11 @@ public final class MenuLayout {
         int margin = Math.max(6, Math.round(54 * s));
         int iconGap = Math.max(3, Math.round(5.5f * s));
         int clusterY = Math.max(4, Math.round(height / 2f + (33.5f - 225f) * s));
-        Rect[] cluster = cluster(width, margin, iconGap, clusterY, bh, Math.max(44, Math.round(70 * s)));
+        Rect[] cluster = cluster(width, margin, iconGap, clusterY, bh, chipW);
         Rect lock = new Rect(lockX, logoY, lockW, markH);
         boolean text = true, chip = true;
         if (lock.intersects(union(cluster, true))) {
-            cluster = cluster(width, 6, iconGap, clusterY, bh, Math.max(44, Math.round(70 * s)));
+            cluster = cluster(width, 6, iconGap, clusterY, bh, chipW);
             if (lock.intersects(union(cluster, true))) {
                 text = false; lockX = cx - markW / 2; lock = new Rect(lockX, logoY, markW, markH);
                 if (lock.intersects(union(cluster, true))) chip = false;

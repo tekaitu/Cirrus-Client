@@ -8,7 +8,7 @@ class MenuLayoutTest {
     private static final int[][] SIZES = {{284, 160}, {320, 180}, {427, 240}, {480, 270}, {640, 360}, {800, 450}, {960, 540}, {1024, 576}, {600, 450}, {320, 240}};
 
     @Test void referenceSizeMatchesTheFeatherComposition() {
-        MenuLayout l = new MenuLayout(800, 450, 6, 90);
+        MenuLayout l = new MenuLayout(800, 450, 6, 90, 60);
         assertEquals(1f, l.scale, 0.001f);
         assertEquals(151, l.buttons[0].w());
         assertEquals(26, l.buttons[0].h());
@@ -27,7 +27,7 @@ class MenuLayoutTest {
     @Test void nothingOverlapsOrLeavesTheScreenAtAnySize() {
         for (int[] size : SIZES) {
             int w = size[0], h = size[1];
-            MenuLayout l = new MenuLayout(w, h, 6, 80);
+            MenuLayout l = new MenuLayout(w, h, 6, 80, 60);
             String at = w + "x" + h;
             for (MenuLayout.Rect r : l.buttons) assertInside(r, w, h, at);
             assertInside(l.quit, w, h, at);
@@ -49,14 +49,14 @@ class MenuLayoutTest {
     }
 
     @Test void noPartnersMeansNoSidebar() {
-        assertNull(new MenuLayout(800, 450, 0, 80).sidebar);
-        assertEquals(0, new MenuLayout(800, 450, 0, 80).partnerTiles.length);
+        assertNull(new MenuLayout(800, 450, 0, 80, 60).sidebar);
+        assertEquals(0, new MenuLayout(800, 450, 0, 80, 60).partnerTiles.length);
     }
 
     @Test void tooManyPartnersAreClippedToWhatFits() {
-        MenuLayout l = new MenuLayout(427, 240, 12, 80);
+        MenuLayout l = new MenuLayout(284, 160, 12, 80, 60);
         assertTrue(l.partnerTiles.length < 12 && l.partnerTiles.length > 0);
-        assertTrue(l.sidebar.bottom() <= 240);
+        assertTrue(l.sidebar.bottom() <= 160);
     }
 
     private static void assertInside(MenuLayout.Rect r, int w, int h, String at) {
