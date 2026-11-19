@@ -62,6 +62,7 @@ export function PlayPanel({
   const javaLoading = javaState.status === "loading";
   const nameProblem = usernameError(name);
   const running = game.run.phase === "running";
+  const launching = game.run.phase === "starting";
   const javaPhase = data.installer.state.phase;
   const gamePhase = game.installer.phase;
   const installing = gamePhase === "running" || javaPhase === "running";
@@ -114,8 +115,8 @@ export function PlayPanel({
   let action: { label: string; onClick?: () => void; disabled?: boolean; danger?: boolean; hint?: string };
   if (running) {
     action = { label: "Stop Minecraft", onClick: game.stop, danger: true };
-  } else if (game.run.phase === "starting") {
-    action = { label: "Starting…", disabled: true };
+  } else if (launching) {
+    action = { label: "Launching…", disabled: true, hint: "Minecraft is starting. The log opens when the game is up." };
   } else if (mode === "microsoft" && checkingAccount) {
     action = { label: "Checking account…", disabled: true };
   } else if (mode === "microsoft" && !signedIn) {
@@ -248,7 +249,7 @@ export function PlayPanel({
       )}
       </>)}
 
-      <div className="play-dock">
+      <div className="play-dock" aria-busy={launching || installing || undefined}>
       {progress ? (
         <InstallProgress
           progress={gameProgress}
@@ -261,10 +262,10 @@ export function PlayPanel({
           <Button
             variant={action.danger ? "danger" : "primary"}
             size="lg"
-            className="lp-go"
+            className={`lp-go ${launching ? "is-launching" : ""}`.trim()}
             disabled={action.disabled}
-            loading={game.run.phase === "starting"}
-            loadingLabel="Starting…"
+            loading={launching}
+            loadingLabel="Launching…"
             onClick={action.onClick}
             icon={
               action.danger ? <StopIcon /> : action.label.startsWith("Sign in") ? <BrandIcon name="microsoft" size={20} /> : <PlayArrowIcon />
@@ -286,7 +287,11 @@ export function PlayPanel({
         </div>
       )}
       </div>
-      {variant === "full" && action.hint && !progress && <p className="muted small hero-note">{action.hint}</p>}
+      {!progress && (action.hint || running || launching) && (
+        <p className="muted small hero-note" role="status">
+          {action.hint ?? (running ? "Minecraft is running." : "Minecraft is starting…")}
+        </p>
+      )}
 
       {game.installer.phase === "error" && (
         <Banner
@@ -340,7 +345,6 @@ export function PlayPanel({
           {exitText(game.run.code, game.run.stopped)}
         </Banner>
       )}
-      {running && <p className="muted small hero-note">Minecraft is running.</p>}
     </div>
   );
 }

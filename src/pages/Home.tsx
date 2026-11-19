@@ -37,7 +37,6 @@ function Identity({
   const facts = player
     ? [
         "Microsoft connected",
-        player.ownsMinecraft ? "Java Edition owned" : null,
         appearance.appearance ? `${appearance.appearance.model === "slim" ? "Slim" : "Classic"} model` : null,
         appearance.appearance?.cape ? "Cape equipped" : null,
         install,

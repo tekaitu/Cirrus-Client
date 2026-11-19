@@ -46,6 +46,20 @@ function parts(model: Model, legacy: boolean): Part[] {
   ];
 }
 
+/**
+ * A fixed light from the upper left. Each visible side of a box gets a little
+ * darker as it turns away from that light, which is what gives the flat pixel
+ * texture its depth without a WebGL renderer or a per-frame loop.
+ */
+const SHADE: Record<string, number> = {
+  front: 0,
+  right: 0.14,
+  left: 0.2,
+  back: 0.34,
+  top: -0.07,
+  bottom: 0.42,
+};
+
 function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
   const { u, v, w, h, d, x, y, z, grow } = p;
   const W = w + grow;
@@ -55,20 +69,38 @@ function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
     backgroundImage: `url(${skin})`,
     backgroundSize: `${64 * s}px ${64 * s}px`,
   };
-  const face = (name: string, fu: number, fv: number, fw: number, fh: number, w2: number, h2: number, extra: CSSProperties) => (
-    <span
-      key={name}
-      className="skin-face"
-      style={{
-        ...sheet,
-        width: w2 * s,
-        height: h2 * s,
-        backgroundSize: `${64 * s * (w2 / fw)}px ${64 * s * (h2 / fh)}px`,
-        backgroundPosition: `-${fu * s * (w2 / fw)}px -${fv * s * (h2 / fh)}px`,
-        ...extra,
-      }}
-    />
-  );
+  const face = (
+    name: string,
+    fu: number,
+    fv: number,
+    fw: number,
+    fh: number,
+    w2: number,
+    h2: number,
+    extra: CSSProperties,
+  ) => {
+    const shade = SHADE[name] ?? 0;
+    return (
+      <span
+        key={name}
+        className="skin-face"
+        style={{
+          ...sheet,
+          width: w2 * s,
+          height: h2 * s,
+          backgroundSize: `${64 * s * (w2 / fw)}px ${64 * s * (h2 / fh)}px`,
+          backgroundPosition: `-${fu * s * (w2 / fw)}px -${fv * s * (h2 / fh)}px`,
+          ...extra,
+        }}
+      >
+        <span
+          className={`skin-shade ${shade < 0 ? "skin-shade-light" : ""}`}
+          style={{ opacity: Math.abs(shade) }}
+          aria-hidden="true"
+        />
+      </span>
+    );
+  };
   return (
     <span
       className="skin-box"
@@ -105,7 +137,7 @@ function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
 }
 
 /**
- * A cape hanging from the shoulders. Minecraft cape textures are 64 x 32 and
+ * The cape hanging from the shoulders. Minecraft cape textures are 64 x 32 and
  * the outside of the cape is the 10 x 16 area at (1, 1). It turns with the
  * figure and sways a little; with reduce motion on, it stays still.
  */
@@ -115,7 +147,7 @@ function Cape({ texture, s }: { texture: string; s: number }) {
   return (
     <span
       className="skin-cape-anchor"
-      style={{ transform: `translate3d(${(-W * s) / 2}px, ${-8 * s}px, ${-3.2 * s}px)` }}
+      style={{ transform: `translate3d(${(-W * s) / 2}px, ${-8 * s}px, ${-3.4 * s}px)` }}
     >
       <span className="skin-cape-sway">
         <span
@@ -127,7 +159,9 @@ function Cape({ texture, s }: { texture: string; s: number }) {
             backgroundSize: `${64 * s}px ${32 * s}px`,
             backgroundPosition: `-${s}px -${s}px`,
           }}
-        />
+        >
+          <span className="skin-cape-shade" aria-hidden="true" />
+        </span>
       </span>
     </span>
   );
@@ -135,8 +169,10 @@ function Cape({ texture, s }: { texture: string; s: number }) {
 
 /**
  * A turnable Minecraft figure built from the skin's own pixels with CSS 3D (no canvas, no WebGL).
- * `view` is "spin" (slow turn), "front" or "back". The texture is drawn with hard pixel edges.
- * Dragging turns it with a little momentum; a double-click puts the view back.
+ * `view` is "spin" (slow turn), "front" or "back". The texture is drawn with hard pixel edges and
+ * each side is lit from the same direction, so the body reads as a solid model rather than six
+ * flat pictures. Dragging turns it with a little momentum; arrow keys turn it too, and a
+ * double-click (or Home) puts the view back.
  */
 export function SkinFigure({
   skin,
@@ -147,6 +183,7 @@ export function SkinFigure({
   label,
   draggable = false,
   cape = null,
+  className = "",
 }: {
   skin: string;
   model: Model;
@@ -160,6 +197,7 @@ export function SkinFigure({
   draggable?: boolean;
   /** A cape texture (64 x 32) to hang on the figure. */
   cape?: string | null;
+  className?: string;
 }) {
   // While the player drags, `turn` is the angle in degrees and replaces the preset view.
   const [turn, setTurn] = useState<number | null>(null);
@@ -210,18 +248,33 @@ export function SkinFigure({
     inertia.current = requestAnimationFrame(step);
   };
 
+  const currentAngle = turn ?? (view === "back" ? 162 : -25);
   const manual: CSSProperties | undefined =
     turn === null ? undefined : { animation: "none", transform: `rotateX(-8deg) rotateY(${turn}deg)` };
+
   return (
     <span
-      className={`skin-stage ${draggable ? "skin-draggable" : ""}`}
+      className={`skin-stage ${draggable ? "skin-draggable" : ""} ${className}`.trim()}
       role="img"
       aria-label={label}
+      tabIndex={draggable ? 0 : undefined}
       style={{ width: 22 * scale, height: 34 * scale }}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
+      onKeyDown={(e) => {
+        if (!draggable) return;
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault();
+          stopInertia();
+          const step = e.key === "ArrowLeft" ? -15 : 15;
+          setTurn((value) => (value ?? currentAngle) + step);
+        } else if (e.key === "Home" || e.key === "Escape") {
+          stopInertia();
+          setTurn(null);
+        }
+      }}
       onDoubleClick={() => {
         stopInertia();
         setTurn(null);

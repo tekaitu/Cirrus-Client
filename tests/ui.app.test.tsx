@@ -1021,9 +1021,11 @@ describe("Play", () => {
     render(<App />);
     await waitReady();
     goTo("Versions");
-    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
-    expect(Array.from(select.options).map((o) => o.value)).toEqual(["1.21.11", "1.21.1", "1.20.6"]);
-    fireEvent.change(select, { target: { value: "1.20.6" } });
+    const trigger = screen.getByLabelText("Minecraft version");
+    expect(trigger.textContent).toContain("1.21.11");
+    fireEvent.click(trigger);
+    // Every release in Mojang's list is offered in the picker, and clicking one applies it.
+    fireEvent.click(await screen.findByRole("option", { name: /1\.20\.6/ }));
     await waitFor(() => expect(mocked.gameStatus).toHaveBeenLastCalledWith("1.20.6", "fabric"));
     fireEvent.click(screen.getByRole("radio", { name: "Vanilla" }));
     await waitFor(() => expect(mocked.gameStatus).toHaveBeenLastCalledWith("1.20.6", "vanilla"));
@@ -1245,7 +1247,7 @@ describe("Installed versions", () => {
     expect(screen.getAllByText("Vanilla").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Play Minecraft 1.20.6 vanilla" }));
     expect(await screen.findByLabelText("Minecraft version")).toBeTruthy(); // stays on Play, with the choice applied
-    expect((screen.getByLabelText("Minecraft version") as HTMLSelectElement).value).toBe("1.20.6");
+    expect(screen.getByLabelText("Minecraft version").textContent).toContain("1.20.6");
     expect(window.localStorage.getItem("unlimited.loader")).toBe("vanilla");
   });
 });
@@ -1584,7 +1586,7 @@ describe("Skins page", () => {
     render(<App />);
     goTo("Character");
     expect(await screen.findByRole("heading", { level: 2, name: "No skins yet" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Choose file" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Choose a PNG file/ })).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
@@ -1663,43 +1665,47 @@ describe("Skins page", () => {
     expect(window.localStorage.getItem("cirrus.appliedSkin")).toBe("alex");
   });
 
-  it("shows a cape empty state when the account has none equipped", async () => {
+  it("shows an honest empty state when the account has no cape", async () => {
     signedIn();
     mocked.listSkins.mockResolvedValue([]);
     render(<App />);
     await settled();
     goTo("Character");
-    const capes = await screen.findByRole("radiogroup", { name: "Cape" });
-    expect(within(capes).queryByRole("radio", { name: /Your Minecraft cape/ })).toBeNull();
-    expect(within(capes).getByRole("radio", { name: /No cape/ })).toBeTruthy();
+    expect(await screen.findByText("No cape equipped")).toBeTruthy();
+    expect(screen.getByText(/Capes can only be equipped on minecraft.net/)).toBeTruthy();
+    expect(screen.queryByText(/Cirrus Cloud/)).toBeNull();
   });
 
-  it("previews the account character and switches capes as a local preview", async () => {
+  it("shows the cape the account actually has equipped and adds no cosmetics", async () => {
     signedIn();
     mocked.playerAppearance.mockResolvedValue(appearance({ cape: "data:image/png;base64,CCCC" }));
     mocked.listSkins.mockResolvedValue([]);
     render(<App />);
     await settled();
     goTo("Character");
-    expect(await screen.findByText("Steve's Minecraft character")).toBeTruthy();
-    const capes = await screen.findByRole("radiogroup", { name: "Cape" });
-    expect(within(capes).getByRole("radio", { name: /Your Minecraft cape/ })).toBeTruthy();
-    fireEvent.click(within(capes).getByRole("radio", { name: /Cirrus Cloud/ }));
-    expect(screen.getByText(/does not change your account/)).toBeTruthy();
+    expect(await screen.findByText("Equipped and synced")).toBeTruthy();
+    expect(screen.getByText("Account cape")).toBeTruthy();
+    expect(screen.queryByText(/Cirrus Cloud/)).toBeNull();
     expect(mocked.applySkin).not.toHaveBeenCalled();
   });
 
-  it("adds a Cirrus preset as a real PNG", async () => {
-    mocked.addSkinFile.mockResolvedValue(skin({ id: "preset", name: "Cirrus Sky" }));
+  it("uploads a PNG to the library and applies it to the account", async () => {
+    signedIn();
+    const uploaded = skin({ id: "hero", name: "hero" });
+    mocked.listSkins.mockResolvedValueOnce([]).mockResolvedValue([uploaded]);
+    mocked.addSkinFile.mockResolvedValue(uploaded);
+    mocked.applySkin.mockResolvedValue(undefined);
     render(<App />);
+    await settled();
     goTo("Character");
-    fireEvent.click(await screen.findByRole("button", { name: "Add preset Cirrus Sky" }));
+    const file = new File([new Uint8Array([137, 80, 78, 71])], "hero.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("Skin file"), { target: { files: [file] } });
     await waitFor(() => expect(mocked.addSkinFile).toHaveBeenCalledTimes(1));
-    const [name, model, base64] = mocked.addSkinFile.mock.calls[0]!;
-    expect(name).toBe("Cirrus Sky");
+    const [name, model] = mocked.addSkinFile.mock.calls[0]!;
+    expect(name).toBe("hero");
     expect(model).toBe("classic");
-    expect(String(base64).startsWith("iVBOR")).toBe(true);
-    expect(await screen.findByText(/Added “Cirrus Sky” to your library/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Apply to my account" }));
+    await waitFor(() => expect(mocked.applySkin).toHaveBeenCalledWith("hero"));
   });
 
   it("zooms the character preview without touching the account", async () => {
@@ -1707,7 +1713,7 @@ describe("Skins page", () => {
     render(<App />);
     goTo("Character");
     const zoom = (await screen.findByLabelText("Zoom")) as HTMLInputElement;
-    expect(zoom.value).toBe("10");
+    expect(zoom.value).toBe("12");
     fireEvent.change(zoom, { target: { value: "14" } });
     expect(zoom.value).toBe("14");
     expect(screen.getByText("140%")).toBeTruthy();
@@ -1818,15 +1824,13 @@ describe("Version selection", () => {
     render(<App />);
     goTo("Versions");
     await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
-    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
-    const options = Array.from(select.options);
-    expect(options.find((o) => o.value === "25w45a")?.disabled).toBe(true);
-    expect(options.find((o) => o.value === "1.20.4")?.disabled).toBe(true);
-    expect(options.find((o) => o.value === "1.21.11")?.disabled).toBe(false);
-    expect(Array.from(select.querySelectorAll("optgroup")).map((g) => g.label)).toEqual([
-      "Releases",
-      "Snapshots (not installable)",
-    ]);
+    fireEvent.click(screen.getByLabelText("Minecraft version"));
+    const snapshot = await screen.findByRole("option", { name: /25w45a/ });
+    expect(snapshot.getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("option", { name: /1\.20\.4/ }).getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("option", { name: /1\.21\.11/ }).getAttribute("aria-disabled")).toBeNull();
+    expect(screen.getAllByText("Releases").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Snapshots").length).toBeGreaterThan(0);
   });
 
   it("filters the picker by text and by version type", async () => {
@@ -1838,13 +1842,14 @@ describe("Version selection", () => {
     render(<App />);
     goTo("Versions");
     await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
-    fireEvent.change(screen.getByLabelText("Filter versions"), { target: { value: "25w" } });
+    fireEvent.click(screen.getByLabelText("Minecraft version"));
+    fireEvent.change(await screen.findByLabelText("Filter versions"), { target: { value: "25w" } });
     expect(await screen.findByText(/Showing 1 of 3 versions/)).toBeTruthy();
-    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
-    // The chosen version stays pinned so the select never goes blank.
-    expect(Array.from(select.options).some((o) => o.value === "1.21.11")).toBe(true);
-    expect(Array.from(select.options).some((o) => o.value === "1.21.1")).toBe(false);
-    expect(Array.from(select.options).some((o) => o.value === "25w45a")).toBe(true);
+    // The chosen version stays pinned so the picker never loses the current choice.
+    const list = screen.getByRole("listbox", { name: "Minecraft versions" });
+    expect(within(list).getByText("1.21.11")).toBeTruthy();
+    expect(within(list).getByText("25w45a")).toBeTruthy();
+    expect(within(list).queryByText("1.21.1")).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: "Releases" }));
     expect(await screen.findByText(/Showing 0 of 3 versions/)).toBeTruthy();
     expect(screen.getByText(/Java 21 required/)).toBeTruthy();

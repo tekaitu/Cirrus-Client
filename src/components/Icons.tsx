@@ -451,6 +451,14 @@ export function BellIcon() {
   );
 }
 
+export function ChevronDownIcon() {
+  return (
+    <svg {...common}>
+      <path d="m6 9.5 6 6 6-6" />
+    </svg>
+  );
+}
+
 export function ServerIcon() {
   return (
     <svg {...common}>

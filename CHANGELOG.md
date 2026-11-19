@@ -2,6 +2,16 @@
 
 Every big change gets its own version number. Small fixes bump the last number (0.3.1), new features and redesigns bump the middle one (0.4.0).
 
+## 0.3.2 — Character Studio, icon navigation and a real version picker
+- Character Studio replaces the old skin page: the account's real Minecraft character fills the large central stage, with its own skin, arm model and equipped cape read from the Minecraft profile, a live sync indicator, and an honest error state when the profile cannot be read.
+- Skin changes go through the account: choose a 64 × 64 PNG (or drop it on the stage), copy a skin from a username or texture link, then apply it to the Minecraft account. Applying or refreshing updates every head, the dashboard and the figure through the shared appearance cache, and switching accounts swaps the whole character.
+- Better 3D figure: bigger stage, smooth drag-to-turn with inertia, arrow-key turning, zoom slider with ± buttons, directional lighting on every side of every body part, a floor shadow, Classic and Slim bodies, legacy 64 × 32 skins and the account cape with its own shading.
+- Removed the four Cirrus skin presets, the Cirrus Cloud cape and the cape chooser. Capes now come only from the account; an account without one says so and points to minecraft.net instead of inventing a cosmetic. Minecraft ownership and other account trivia are gone from the studio.
+- Top navigation is one recognizable icon per page with a tooltip, an accessible name, a tinted active tile and an accent dot; the arrow keys, Home and End move between pages.
+- New Play button: solid accent surface, one-pixel press, colour-only hover, explicit launching state with a spinner, and a flat disabled state when the game cannot start.
+- New version picker instead of a plain dropdown: a trigger card showing the chosen version, loader and install status, plus a panel with installed-on-this-PC shortcuts, search, All/Releases/Snapshots filters, per-version install labels and the Java check. The panel flips above the trigger and stays inside the window.
+- Discord keeps its official mark with a quiet blurple colour change and no glow, lighting or movement.
+
 ## 0.3.1 — Minecraft identity, real player preview, no developer settings
 - Microsoft sign-in opens in a dedicated sign-in window by default; the device code stays as a fallback.
 - Account menu and Accounts page show the real Minecraft player head, player name, formatted UUID, skin model, equipped cape and Minecraft ownership. Account switching and removal stay in the same place.

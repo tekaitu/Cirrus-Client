@@ -1,31 +1,28 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from "react";
 import { api, errorMessage } from "../api/client";
 import type { SkinEntry, SkinModel } from "../api/types";
-import { PlusIcon, RefreshArrowIcon, ShirtIcon, TrashIcon, UploadIcon } from "../components/Icons";
-import { SkinFigure } from "../components/SkinModel";
-import { usePlayerSkin } from "../components/SkinHead";
-import { Badge, Banner, Card, Skeleton } from "../components/ui";
 import { Button } from "../components/Button";
-import { capeOptions, capeTexture, type CapeId } from "../core/capes";
-import { SKIN_PRESETS, presetBase64, type SkinPreset } from "../core/skinPresets";
+import {
+  PlusIcon,
+  RefreshArrowIcon,
+  ShirtIcon,
+  TrashIcon,
+  UploadIcon,
+  WarningIcon,
+} from "../components/Icons";
+import { SkinFigure } from "../components/SkinModel";
+import { SkinHead } from "../components/SkinHead";
+import { Badge, Banner, Skeleton } from "../components/ui";
 import { usePlayerAppearance } from "../hooks/useAppearance";
 import type { AppData } from "../hooks/useAppData";
-import cirrusCape from "../assets/capes/cirrus.png";
+import type { PageId } from "../components/Navigation";
 
 const APPLIED_KEY = "cirrus.appliedSkin";
 const PREVIOUS_KEY = "cirrus.previousSkin";
 
-function readApplied(): string | null {
+function read(key: string): string | null {
   try {
-    return window.localStorage.getItem(APPLIED_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function readPrevious(): string | null {
-  try {
-    return window.localStorage.getItem(PREVIOUS_KEY);
+    return window.localStorage.getItem(key);
   } catch {
     return null;
   }
@@ -41,6 +38,8 @@ function remember(key: string, value: string | null) {
 }
 
 const MODEL_LABEL: Record<SkinModel, string> = { classic: "Classic", slim: "Slim" };
+const ZOOM_MIN = 8;
+const ZOOM_MAX = 18;
 
 /** Reads a chosen file as base64 (without the "data:" prefix). */
 function readFileBase64(file: File): Promise<string> {
@@ -55,46 +54,41 @@ function readFileBase64(file: File): Promise<string> {
   });
 }
 
-function skinSource(s: SkinEntry): string {
-  if (s.source.startsWith("player:")) return `From ${s.source.slice(7)}`;
-  if (s.source === "url") return "From a link";
+function sourceLabel(source: string): string {
+  if (source.startsWith("player:")) return `Copied from ${source.slice(7)}`;
+  if (source === "url") return "From a link";
   return "From a file";
 }
 
-/** Skin library with a turnable preview, import from a file, a player name or a texture link, and apply to the account. */
-export function SkinsPage({ data }: { data: AppData }) {
+/**
+ * The Character Studio: the signed-in account's real Minecraft character in the
+ * middle, its own skin, arm model and equipped cape on screen, and the ways to
+ * change that skin through the account. Everything the figure shows is the
+ * appearance Mojang returns for this account; the library only holds skins the
+ * player added or uploaded themselves.
+ */
+export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
   const [skins, setSkins] = useState<SkinEntry[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
   const [input, setInput] = useState("");
   const [newModel, setNewModel] = useState<SkinModel>("classic");
-  const [view, setView] = useState<"spin" | "front" | "back">("spin");
+  const [view, setView] = useState<"spin" | "front" | "back">("front");
   const [busy, setBusy] = useState(false);
-  const [applied, setApplied] = useState<string | null>(readApplied);
-  const [previous, setPrevious] = useState<string | null>(readPrevious);
-  const [zoom, setZoom] = useState(10);
+  const [applied, setApplied] = useState<string | null>(() => read(APPLIED_KEY));
+  const [previous, setPrevious] = useState<string | null>(() => read(PREVIOUS_KEY));
+  const [zoom, setZoom] = useState(12);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [subject, setSubject] = useState<"account" | "library">("account");
-  const [capeId, setCapeId] = useState<CapeId>("account");
+  const [dropping, setDropping] = useState(false);
+  const [preview, setPreview] = useState<"account" | "library">("account");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const acct = data.account.state;
-  const player = acct.phase === "signedIn" ? acct.profile : null;
-  const accountSkin = usePlayerSkin(player?.id ?? null);
-  const appearanceState = usePlayerAppearance(player?.id ?? null);
-  const accountCharacter = appearanceState.appearance;
-  // The account's own character is the default subject; a library skin can be
-  // previewed next to it without changing the account.
-  const hasAccountCharacter = Boolean(player && accountCharacter);
-  const showingAccount = subject === "account" && hasAccountCharacter;
-  useEffect(() => {
-    // "Your Minecraft cape" is not an option when the account has none; fall
-    // back to the honest empty choice instead of leaving nothing selected.
-    if (accountCharacter && !accountCharacter.cape) setCapeId((current) => (current === "account" ? "none" : current));
-  }, [accountCharacter]);
+  const account = data.account.state;
+  const player = account.phase === "signedIn" ? account.profile : null;
+  const { appearance, loading, error, reload } = usePlayerAppearance(player?.id ?? null);
 
-  const reload = useCallback(async () => {
+  const reloadLibrary = useCallback(async () => {
     try {
       const list = await api.listSkins();
       setSkins(list);
@@ -106,10 +100,19 @@ export function SkinsPage({ data }: { data: AppData }) {
     }
   }, []);
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    void reloadLibrary();
+  }, [reloadLibrary]);
+
+  // A new account means a new character: show it, not a skin from the old one.
+  useEffect(() => {
+    setPreview("account");
+    setConfirmDelete(null);
+  }, [player?.id]);
 
   const selected = skins?.find((s) => s.id === selectedId) ?? null;
+  const showingLibrary = preview === "library" && selected !== null;
+  const accountModel = appearance?.model ?? "classic";
+  const stageModel: SkinModel = showingLibrary ? (selected?.model ?? accountModel) : accountModel;
 
   const run = async (work: () => Promise<SkinEntry | void>, done: (r: SkinEntry | void) => string) => {
     setBusy(true);
@@ -124,6 +127,38 @@ export function SkinsPage({ data }: { data: AppData }) {
     }
   };
 
+  const addFile = (file: File) => {
+    if (!/\.png$/i.test(file.name) && file.type !== "image/png") {
+      setNotice({ tone: "bad", text: "Choose a PNG skin: Cirrus only sends PNG files to Minecraft." });
+      return;
+    }
+    void run(
+      async () => {
+        const base64 = await readFileBase64(file);
+        const name = file.name.replace(/\.png$/i, "").slice(0, 32) || "My skin";
+        const added = await api.addSkinFile(name, newModel, base64);
+        await reloadLibrary();
+        setSelectedId(added.id);
+        setPreview("library");
+        return added;
+      },
+      (r) => `Added “${(r as SkinEntry).name}”. Check it, then apply it to your account.`,
+    );
+  };
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) addFile(file);
+  };
+
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDropping(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) addFile(file);
+  };
+
   const addFromInput = (e: FormEvent) => {
     e.preventDefault();
     const text = input.trim();
@@ -136,25 +171,9 @@ export function SkinsPage({ data }: { data: AppData }) {
       async () => {
         const added = isLink ? await api.addSkinUrl(text, "Skin from a link", newModel) : await api.addSkinPlayer(text);
         setInput("");
-        await reload();
+        await reloadLibrary();
         setSelectedId(added.id);
-        return added;
-      },
-      (r) => `Added “${(r as SkinEntry).name}”.`,
-    );
-  };
-
-  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    void run(
-      async () => {
-        const base64 = await readFileBase64(file);
-        const name = file.name.replace(/\.png$/i, "").slice(0, 32) || "My skin";
-        const added = await api.addSkinFile(name, newModel, base64);
-        await reload();
-        setSelectedId(added.id);
+        setPreview("library");
         return added;
       },
       (r) => `Added “${(r as SkinEntry).name}”.`,
@@ -166,7 +185,7 @@ export function SkinsPage({ data }: { data: AppData }) {
     void run(
       async () => {
         const updated = await api.setSkinModel(selected.id, model);
-        await reload();
+        await reloadLibrary();
         return updated;
       },
       () => `Skin type changed to ${MODEL_LABEL[model]}.`,
@@ -186,8 +205,9 @@ export function SkinsPage({ data }: { data: AppData }) {
         }
         remember(APPLIED_KEY, target.id);
         setApplied(target.id);
-        // Ask Mojang for the account's new look instead of keeping the old head.
-        appearanceState.reload();
+        setPreview("account");
+        // Ask Mojang for the account's new look instead of keeping the old figure.
+        reload();
       },
       () => `“${target.name}” is now your skin. It shows up in game after the next launch.`,
     );
@@ -205,21 +225,10 @@ export function SkinsPage({ data }: { data: AppData }) {
         setApplied(target.id);
         setPrevious(before);
         setSelectedId(target.id);
-        appearanceState.reload();
+        setPreview("account");
+        reload();
       },
       () => `Restored “${target.name}”.`,
-    );
-  };
-
-  const addPreset = (preset: SkinPreset) => {
-    void run(
-      async () => {
-        const added = await api.addSkinFile(preset.name, preset.model, presetBase64(preset));
-        await reload();
-        setSelectedId(added.id);
-        return added;
-      },
-      (r) => `Added “${(r as SkinEntry).name}” to your library.`,
     );
   };
 
@@ -232,7 +241,7 @@ export function SkinsPage({ data }: { data: AppData }) {
     void run(
       async () => {
         await api.removeSkin(id);
-        await reload();
+        await reloadLibrary();
       },
       () => "Skin removed from the library.",
     );
@@ -243,7 +252,7 @@ export function SkinsPage({ data }: { data: AppData }) {
     void run(
       async () => {
         const added = await api.addSkinPlayer(player.name);
-        await reload();
+        await reloadLibrary();
         setSelectedId(added.id);
         return added;
       },
@@ -251,16 +260,20 @@ export function SkinsPage({ data }: { data: AppData }) {
     );
   };
 
+  const changeZoom = (next: number) => setZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next)));
   const applyBlocked = !player
     ? "Sign in with Microsoft to change your account's skin. Offline players have no account skin."
     : null;
 
   return (
-    <div className="page skins-page">
+    <div className="page studio-page">
       <header className="page-head">
+        <p className="eyebrow">Character Studio</p>
         <h1>Character</h1>
         <p className="muted">
-          Your Minecraft character, skin library and capes. Everything here shows the account Cirrus is signed in with.
+          {player
+            ? `${player.name}'s Minecraft character, read from the account Cirrus is signed in with.`
+            : "Sign in with Microsoft to see and change your Minecraft character."}
         </p>
       </header>
 
@@ -270,29 +283,226 @@ export function SkinsPage({ data }: { data: AppData }) {
         </Banner>
       )}
       {loadError && (
-        <Banner tone="warn" title="The skin library is only available in the desktop app">
+        <Banner tone="warn" title="Your saved skins are only available in the desktop app">
           {loadError}
         </Banner>
       )}
 
-      <div className="skins-layout">
-        <Card title="Library" icon={<ShirtIcon />} description="Add a skin by username, link or file.">
-          <form className="skin-add" onSubmit={addFromInput} role="search">
-            <input
-              type="text"
-              aria-label="Username or skin link"
-              placeholder="Enter a username or a textures.minecraft.net link"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={busy}
-            />
-            <button type="submit" className="btn btn-primary" disabled={busy}>
-              <PlusIcon />
-              Add
-            </button>
-            <button type="button" className="btn" disabled={busy} onClick={() => fileRef.current?.click()}>
+      <div className="studio-grid">
+        <section className="studio-stage-card" aria-label="Character preview">
+          <div
+            className={`studio-stage ${dropping ? "is-dropping" : ""}`.trim()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDropping(true);
+            }}
+            onDragLeave={() => setDropping(false)}
+            onDrop={onDrop}
+          >
+            {!player ? (
+              <div className="studio-stage-empty">
+                <span className="studio-stage-icon" aria-hidden="true">
+                  <ShirtIcon />
+                </span>
+                <h2>No account connected</h2>
+                <p className="muted small">
+                  Your character, its skin and its cape come from your own Minecraft account. Sign in with Microsoft to
+                  load them.
+                </p>
+                <Button variant="primary" size="md" onClick={() => onNavigate("accounts")}>
+                  Sign in with Microsoft
+                </Button>
+              </div>
+            ) : loading && !appearance ? (
+              <div className="studio-stage-loading" role="status" aria-label="Loading your Minecraft character">
+                <Skeleton lines={4} label="Loading your Minecraft character" />
+              </div>
+            ) : !appearance ? (
+              <div className="studio-stage-empty" role="alert">
+                <span className="studio-stage-icon studio-stage-icon-bad" aria-hidden="true">
+                  <WarningIcon />
+                </span>
+                <h2>Your character could not be loaded</h2>
+                <p className="muted small">{error ?? "Minecraft did not return a skin for this account."}</p>
+                <Button variant="secondary" size="md" icon={<RefreshArrowIcon />} onClick={reload}>
+                  Try again
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="studio-figure">
+                  <SkinFigure
+                    key={`${showingLibrary ? "library" : "account"}-${showingLibrary ? selected?.id : appearance.id}`}
+                    skin={showingLibrary && selected ? selected.dataUrl : appearance.skin}
+                    model={stageModel}
+                    view={view}
+                    scale={zoom}
+                    legacy={showingLibrary ? false : (appearance.legacy ?? false)}
+                    draggable
+                    cape={showingLibrary ? null : appearance.cape}
+                    label={
+                      showingLibrary && selected
+                        ? `${selected.name}, ${MODEL_LABEL[selected.model]} model, preview`
+                        : `${appearance.name}, ${MODEL_LABEL[appearance.model]} model${appearance.cape ? ", cape" : ""}`
+                    }
+                  />
+                  <span className="studio-floor" aria-hidden="true" />
+                </div>
+                <p className="studio-hint small">
+                  Drag to turn · double-click to reset · arrow keys turn it too
+                </p>
+                <div className="studio-badge-row">
+                  <span className="studio-badge">{MODEL_LABEL[stageModel]} model</span>
+                  <span className="studio-badge">
+                    {showingLibrary ? "Preview only" : appearance.cape ? "Account cape" : "No cape"}
+                  </span>
+                  {showingLibrary && applied !== selected?.id && (
+                    <span className="studio-badge studio-badge-accent">Not applied yet</span>
+                  )}
+                </div>
+              </>
+            )}
+            <div className="studio-drop">
               <UploadIcon />
-              Choose file
+              <span>Drop a 64 × 64 PNG skin here</span>
+            </div>
+          </div>
+
+          <div className="studio-toolbar">
+            <div className="seg" role="radiogroup" aria-label="Character view">
+              {(["spin", "front", "back"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={view === v}
+                  aria-label={`${v === "spin" ? "Turning" : v === "front" ? "Front" : "Back"} view`}
+                  className={view === v ? "seg-on" : ""}
+                  onClick={() => setView(v)}
+                >
+                  {v === "spin" ? "Turn" : v === "front" ? "Front" : "Back"}
+                </button>
+              ))}
+            </div>
+
+            <div className="studio-zoom">
+              <Button
+                size="sm"
+                variant="ghost"
+                iconOnly
+                aria-label="Zoom out"
+                title="Zoom out"
+                disabled={zoom <= ZOOM_MIN}
+                onClick={() => changeZoom(zoom - 1)}
+                icon={<span className="studio-zoom-glyph">−</span>}
+              />
+              <label className="studio-zoom-slider">
+                <span className="visually-hidden">Zoom</span>
+                <input
+                  type="range"
+                  min={ZOOM_MIN}
+                  max={ZOOM_MAX}
+                  step={1}
+                  value={zoom}
+                  aria-label="Zoom"
+                  aria-valuetext={`${Math.round((zoom / 10) * 100)} percent`}
+                  onChange={(e) => changeZoom(Number(e.target.value))}
+                />
+              </label>
+              <Button
+                size="sm"
+                variant="ghost"
+                iconOnly
+                aria-label="Zoom in"
+                title="Zoom in"
+                disabled={zoom >= ZOOM_MAX}
+                onClick={() => changeZoom(zoom + 1)}
+                icon={<span className="studio-zoom-glyph">+</span>}
+              />
+              <span className="studio-zoom-value">{Math.round((zoom / 10) * 100)}%</span>
+            </div>
+
+            <div className="studio-toolbar-end">
+              {showingLibrary && (
+                <Button size="sm" variant="ghost" onClick={() => setPreview("account")}>
+                  Back to my character
+                </Button>
+              )}
+              <span className={`studio-sync studio-sync-${error ? "bad" : loading ? "busy" : "good"}`}>
+                <span className="dot" aria-hidden="true" />
+                {error ? "Out of sync" : loading ? "Syncing…" : "In sync with Minecraft"}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <aside className="studio-side">
+          <section className="studio-panel" aria-label="Account appearance">
+            <div className="studio-panel-head">
+              <h2>Your account</h2>
+              {player && <Badge tone="info">{appearance ? MODEL_LABEL[accountModel] : "Loading"}</Badge>}
+            </div>
+            {player ? (
+              <>
+                <p className="studio-account-name">{player.name}</p>
+                <dl className="studio-facts">
+                  <div>
+                    <dt>Skin</dt>
+                    <dd>{appearance ? "From your Minecraft profile" : loading ? "Loading…" : "Unavailable"}</dd>
+                  </div>
+                  <div>
+                    <dt>Cape</dt>
+                    <dd className="studio-cape-fact">
+                      {appearance?.cape ? "Equipped and synced" : "No cape equipped"}
+                    </dd>
+                  </div>
+                </dl>
+                {!appearance?.cape && (
+                  <p className="muted small">
+                    Capes can only be equipped on minecraft.net. Cirrus shows the cape your account already owns and
+                    never adds one that is not there.
+                  </p>
+                )}
+                <div className="studio-panel-actions">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<RefreshArrowIcon />}
+                    loading={loading}
+                    loadingLabel="Refreshing…"
+                    onClick={reload}
+                  >
+                    Refresh
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={busy || !appearance} onClick={saveAccountSkin}>
+                    Save skin to library
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="muted small">
+                Sign in with Microsoft to load the character, skin and cape that belong to your account.
+              </p>
+            )}
+          </section>
+
+          <section className="studio-panel" aria-label="Change skin">
+            <div className="studio-panel-head">
+              <h2>Change skin</h2>
+            </div>
+            <p className="muted small">
+              Upload a 64 × 64 PNG or copy a skin from a username or link. Pick it in the library, then apply it to your
+              account.
+            </p>
+
+            <button type="button" className="studio-upload" disabled={busy} onClick={() => fileRef.current?.click()}>
+              <span className="studio-upload-icon" aria-hidden="true">
+                <UploadIcon />
+              </span>
+              <span>
+                <strong>Choose a PNG file</strong>
+                <span className="muted small">or drop it on the preview</span>
+              </span>
             </button>
             <input
               ref={fileRef}
@@ -303,340 +513,162 @@ export function SkinsPage({ data }: { data: AppData }) {
               tabIndex={-1}
               onChange={onFile}
             />
-          </form>
-          <div className="skin-add-type">
-            <span id="new-skin-type" className="muted small">
-              Type for files and links
-            </span>
-            <div className="seg" role="radiogroup" aria-labelledby="new-skin-type">
-              {(["classic", "slim"] as SkinModel[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  role="radio"
-                  aria-checked={newModel === m}
-                  aria-label={`${MODEL_LABEL[m]} for new skins`}
-                  className={newModel === m ? "seg-on" : ""}
-                  onClick={() => setNewModel(m)}
-                >
-                  {MODEL_LABEL[m]}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="muted small">
-            Usernames copy that player&apos;s public skin. Links must be on textures.minecraft.net. Files must be 64 × 64
-            PNG images.
-          </p>
 
-          <div className="field">
-            <span className="field-label">Cirrus presets</span>
-            <div className="preset-row">
-              {SKIN_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className="preset-button"
-                  aria-label={`Add preset ${preset.name}`}
-                  disabled={busy}
-                  onClick={() => addPreset(preset)}
-                >
-                  <span aria-hidden="true">
-                    <SkinFigure skin={preset.dataUrl} model={preset.model} view="front" scale={1.1} label="" />
-                  </span>
-                  {preset.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {skins === null && <Skeleton label="Loading skins" lines={3} />}
-          {skins && skins.length === 0 && (
-            <div className="empty empty-big">
-              <ShirtIcon />
-              <h2>No skins yet</h2>
-              <p className="muted">
-                Type a username above, choose a PNG file, or save your current skin
-                {player ? " with the button on the right." : " after signing in."}
-              </p>
-            </div>
-          )}
-          {skins && skins.length > 0 && (
-            <ul className="skin-grid">
-              {skins.map((s) => (
-                <li key={s.id} className={`skin-card ${selectedId === s.id ? "skin-card-on" : ""}`}>
-                  <button
-                    type="button"
-                    className="skin-card-main"
-                    aria-label={`Select ${s.name}`}
-                    aria-pressed={selectedId === s.id}
-                    onClick={() => {
-                      setSelectedId(s.id);
-                      setConfirmDelete(null);
-                    }}
-                  >
-                    <SkinFigure skin={s.dataUrl} model={s.model} view="front" scale={2.6} label={`${s.name} preview`} />
-                    <span className="skin-card-name">{s.name}</span>
-                    <span className="muted small">
-                      {MODEL_LABEL[s.model]} · {skinSource(s)}
-                    </span>
-                  </button>
-                  {applied === s.id && <Badge tone="good">In use</Badge>}
-                  <button
-                    type="button"
-                    className={`icon-btn icon-btn-danger skin-card-delete ${confirmDelete === s.id ? "confirm" : ""}`}
-                    aria-label={confirmDelete === s.id ? `Confirm removing ${s.name}` : `Remove ${s.name}`}
-                    title={confirmDelete === s.id ? "Click again to remove" : "Remove"}
-                    disabled={busy}
-                    onClick={() => remove(s.id)}
-                  >
-                    <TrashIcon />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card
-          title="Preview"
-          icon={<ShirtIcon />}
-          description={
-            showingAccount
-              ? `${player?.name}'s Minecraft character`
-              : selected
-                ? selected.name
-                : "Pick a skin to preview it."
-          }
-        >
-          {hasAccountCharacter && selected && (
-            <div className="seg skin-subject" role="radiogroup" aria-label="What to preview">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={showingAccount}
-                className={showingAccount ? "seg-on" : ""}
-                onClick={() => setSubject("account")}
-              >
-                Your character
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!showingAccount}
-                className={!showingAccount ? "seg-on" : ""}
-                onClick={() => setSubject("library")}
-              >
-                Selected skin
-              </button>
-            </div>
-          )}
-
-          {(showingAccount || selected) && (
-            <div className="skin-zoom">
-              <span className="field-label" id="skin-zoom-label">Zoom</span>
+            <form className="studio-add" onSubmit={addFromInput} role="search">
               <input
-                type="range"
-                min={6}
-                max={16}
-                step={1}
-                value={zoom}
-                aria-labelledby="skin-zoom-label"
-                aria-valuetext={`${Math.round((zoom / 10) * 100)} percent`}
-                onChange={(e) => setZoom(Number(e.target.value))}
+                type="text"
+                aria-label="Username or skin link"
+                placeholder="Username or textures.minecraft.net link"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={busy}
               />
-              <span className="skin-zoom-value">{Math.round((zoom / 10) * 100)}%</span>
+              <Button type="submit" size="md" variant="secondary" icon={<PlusIcon />} disabled={busy}>
+                Add
+              </Button>
+            </form>
+
+            <div className="studio-model-row">
+              <span id="new-skin-type" className="field-label">
+                Type for new skins
+              </span>
+              <div className="seg" role="radiogroup" aria-labelledby="new-skin-type">
+                {(["classic", "slim"] as SkinModel[]).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={newModel === m}
+                    aria-label={`${MODEL_LABEL[m]} for new skins`}
+                    className={newModel === m ? "seg-on" : ""}
+                    onClick={() => setNewModel(m)}
+                  >
+                    {MODEL_LABEL[m]}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
 
-          {showingAccount && accountCharacter ? (
-            <>
-              <div className="skin-preview">
-                <SkinFigure
-                  skin={accountCharacter.skin}
-                  model={accountCharacter.model}
-                  view={view}
-                  scale={zoom}
-                  legacy={accountCharacter.legacy ?? false}
-                  draggable
-                  cape={capeTexture(capeId, accountCharacter.cape, cirrusCape)}
-                  label={`${accountCharacter.name}, ${MODEL_LABEL[accountCharacter.model]} model${capeId === "none" ? "" : ", cape"}`}
-                />
-                <span className="skin-floor" aria-hidden="true" />
-                <p className="skin-hint small">Drag to turn · double-click to reset</p>
-              </div>
-
-              <div className="skin-controls">
-                <div className="field">
-                  <span className="field-label">Model</span>
-                  <p className="skin-model-value">{MODEL_LABEL[accountCharacter.model]}</p>
+            {selected && (
+              <div className="studio-selected">
+                <div>
+                  <p className="studio-selected-name">{selected.name}</p>
+                  <p className="muted small">
+                    {MODEL_LABEL[selected.model]} · {sourceLabel(selected.source)}
+                    {applied === selected.id ? " · currently applied" : ""}
+                  </p>
                 </div>
-                <div className="field">
-                  <span id="skin-view-label" className="field-label">
-                    View
-                  </span>
-                  <div className="seg" role="radiogroup" aria-labelledby="skin-view-label">
-                    {(["spin", "front", "back"] as const).map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        role="radio"
-                        aria-checked={view === v}
-                        aria-label={`${v === "spin" ? "Turning" : v === "front" ? "Front" : "Back"} view`}
-                        className={view === v ? "seg-on" : ""}
-                        onClick={() => setView(v)}
-                      >
-                        {v === "spin" ? "Turn" : v === "front" ? "Front" : "Back"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <Button
+                  variant="primary"
+                  size="md"
+                  block
+                  className="studio-apply"
+                  icon={<ShirtIcon />}
+                  loading={busy}
+                  loadingLabel="Applying…"
+                  disabled={busy || applyBlocked !== null}
+                  onClick={apply}
+                >
+                  Apply to my account
+                </Button>
+                {applyBlocked && <p className="muted small">{applyBlocked}</p>}
+                {previous && previous !== applied && skins?.some((s) => s.id === previous) && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="btn-wide"
+                    icon={<RefreshArrowIcon />}
+                    disabled={busy || applyBlocked !== null}
+                    onClick={restorePrevious}
+                  >
+                    Restore previous skin
+                  </Button>
+                )}
               </div>
+            )}
+          </section>
 
-              <div className="field cape-field">
-                <span id="cape-label" className="field-label">
-                  Cape
-                </span>
-                <div className="cape-options" role="radiogroup" aria-labelledby="cape-label">
-                  {capeOptions(Boolean(accountCharacter.cape)).map((option) => (
+          <section className="studio-panel" aria-label="Skin library">
+            <div className="studio-panel-head">
+              <h2>Library</h2>
+              {skins && skins.length > 0 && <span className="muted small">{skins.length}</span>}
+            </div>
+
+            {skins === null && <Skeleton label="Loading skins" lines={2} />}
+            {skins && skins.length === 0 && (
+              <div className="empty">
+                <ShirtIcon />
+                <h2>No skins yet</h2>
+                <p className="muted small">
+                  Upload a PNG, add a username, or save your current skin{player ? " above." : " after signing in."}
+                </p>
+              </div>
+            )}
+            {skins && skins.length > 0 && (
+              <ul className="studio-library">
+                {skins.map((s) => (
+                  <li key={s.id} className={`studio-library-item ${selectedId === s.id ? "is-selected" : ""}`.trim()}>
                     <button
-                      key={option.id}
+                      type="button"
+                      className="studio-library-main"
+                      aria-label={`Select ${s.name}`}
+                      aria-pressed={selectedId === s.id}
+                      onClick={() => {
+                        setSelectedId(s.id);
+                        setPreview("library");
+                        setConfirmDelete(null);
+                      }}
+                    >
+                      <span className="studio-library-art">
+                        <SkinHead dataUrl={s.dataUrl} name={s.name} size={40} />
+                      </span>
+                      <span className="studio-library-text">
+                        <span className="studio-library-name">{s.name}</span>
+                        <span className="muted small">{MODEL_LABEL[s.model]}</span>
+                      </span>
+                      {applied === s.id && <Badge tone="good">In use</Badge>}
+                    </button>
+                    <button
+                      type="button"
+                      className={`icon-btn icon-btn-danger studio-library-delete ${
+                        confirmDelete === s.id ? "confirm" : ""
+                      }`.trim()}
+                      aria-label={confirmDelete === s.id ? `Confirm removing ${s.name}` : `Remove ${s.name}`}
+                      title={confirmDelete === s.id ? "Click again to remove" : "Remove"}
+                      disabled={busy}
+                      onClick={() => remove(s.id)}
+                    >
+                      <TrashIcon />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {selected && (
+              <div className="studio-type">
+                <span id="skin-type-label" className="field-label">
+                  Skin type
+                </span>
+                <div className="seg" role="radiogroup" aria-labelledby="skin-type-label">
+                  {(["classic", "slim"] as SkinModel[]).map((m) => (
+                    <button
+                      key={m}
                       type="button"
                       role="radio"
-                      aria-checked={capeId === option.id}
-                      className={`cape-option ${capeId === option.id ? "cape-option-on" : ""}`}
-                      onClick={() => setCapeId(option.id)}
+                      aria-checked={selected.model === m}
+                      className={selected.model === m ? "seg-on" : ""}
+                      disabled={busy}
+                      onClick={() => changeModel(m)}
                     >
-                      <span className="cape-option-name">
-                        {option.label}
-                        {option.id === "cirrus" && <Badge tone="info">Preview</Badge>}
-                      </span>
-                      <span className="muted small">{option.detail}</span>
+                      {MODEL_LABEL[m]}
                     </button>
                   ))}
                 </div>
-                <button type="button" className="btn" disabled={capeId === "account"} onClick={() => setCapeId("account")}>
-                  Reset to my account's look
-                </button>
-                <p className="muted small">
-                  Your Minecraft cape is read from your account and appears in game. Capes can only be equipped on
-                  minecraft.net; the Cirrus cape is a local preview and does not change your account.
-                </p>
               </div>
-            </>
-          ) : (
-            <>
-              {player && (appearanceState.loading || appearanceState.error) && (
-                <p className="muted small">
-                  {appearanceState.loading
-                    ? "Loading your Minecraft character…"
-                    : "Your character could not be loaded, so the selected skin is shown instead."}
-                </p>
-              )}
-              {selected ? (
-                <>
-                  <div className="skin-preview">
-                    <SkinFigure
-                      skin={selected.dataUrl}
-                      model={selected.model}
-                      view={view}
-                      scale={zoom}
-                      draggable
-                      label={`${selected.name}, ${MODEL_LABEL[selected.model]} model`}
-                    />
-                    <span className="skin-floor" aria-hidden="true" />
-                    <p className="skin-hint small">Drag to turn · double-click to reset</p>
-                  </div>
-                  <div className="skin-controls">
-                    <div className="field">
-                      <span id="skin-type-label" className="field-label">
-                        Skin type
-                      </span>
-                      <div className="seg" role="radiogroup" aria-labelledby="skin-type-label">
-                        {(["classic", "slim"] as SkinModel[]).map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            role="radio"
-                            aria-checked={selected.model === m}
-                            className={selected.model === m ? "seg-on" : ""}
-                            disabled={busy}
-                            onClick={() => changeModel(m)}
-                          >
-                            {MODEL_LABEL[m]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="field">
-                      <span id="skin-view-label" className="field-label">
-                        View
-                      </span>
-                      <div className="seg" role="radiogroup" aria-labelledby="skin-view-label">
-                        {(["spin", "front", "back"] as const).map((v) => (
-                          <button
-                            key={v}
-                            type="button"
-                            role="radio"
-                            aria-checked={view === v}
-                            aria-label={`${v === "spin" ? "Turning" : v === "front" ? "Front" : "Back"} view`}
-                            className={view === v ? "seg-on" : ""}
-                            onClick={() => setView(v)}
-                          >
-                            {v === "spin" ? "Turn" : v === "front" ? "Front" : "Back"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="empty">
-                  <p className="muted">Nothing selected.</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {selected && (
-            <>
-              <button
-                type="button"
-                className="btn btn-primary btn-wide"
-                aria-label="Apply to my account"
-                disabled={busy || applyBlocked !== null}
-                onClick={apply}
-              >
-                Apply “{selected.name}” to my account
-              </button>
-              {applyBlocked && <p className="muted small">{applyBlocked}</p>}
-              {previous && previous !== applied && skins?.some((s) => s.id === previous) && (
-                <Button
-                  variant="secondary"
-                  size="md"
-                  className="btn-wide"
-                  icon={<RefreshArrowIcon />}
-                  disabled={busy || applyBlocked !== null}
-                  onClick={restorePrevious}
-                >
-                  Restore previous skin
-                </Button>
-              )}
-            </>
-          )}
-
-          {player && (
-            <div className="skin-account">
-              <h3>Your current skin</h3>
-              <p className="muted small">
-                {player.name} · {accountSkin ? "as set on your Minecraft account" : "no custom skin found"}
-              </p>
-              <button type="button" className="btn" disabled={busy || !accountSkin} onClick={saveAccountSkin}>
-                Save it to the library
-              </button>
-            </div>
-          )}
-        </Card>
+            )}
+          </section>
+        </aside>
       </div>
     </div>
   );

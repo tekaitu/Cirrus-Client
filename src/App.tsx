@@ -202,7 +202,7 @@ export default function App() {
           {page === "browse" && <ModsPage data={data} mode="browse" onNavigate={navigate} />}
           {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
-          {page === "skins" && <SkinsPage data={data} />}
+          {page === "skins" && <SkinsPage data={data} onNavigate={navigate} />}
           {page === "servers" && <ServersPage />}
           {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} />}
           {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} discord={{ enabled: discordOn, onToggle: toggleDiscord }} />}

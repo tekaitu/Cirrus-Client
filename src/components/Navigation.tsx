@@ -15,6 +15,7 @@ import { LogoMark } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
 import { SkinHead } from "./SkinHead";
 import { useCustomFrame, windowActions } from "../core/windowFrame";
+import { useRef } from "react";
 
 export type PageId =
   | "home"
@@ -66,9 +67,35 @@ interface Props {
   player: { name: string; id: string } | null;
 }
 
-/** The top bar: brand, page tabs, notifications, settings, the player and (in the desktop app) the window buttons. */
+/**
+ * The top bar: brand, page icons, notifications, settings, the player and (in
+ * the desktop app) the window buttons.
+ *
+ * Each page is one recognizable icon with the page name as its tooltip and its
+ * accessible name, so the bar stays compact without losing any destination.
+ * Tab reaches the row, the arrow keys move between icons, and Enter or Space
+ * opens the page; the current page is marked with `aria-current` and a visible
+ * selected tile.
+ */
 export function TopNav({ page, onNavigate, onAccount, accountOpen, player }: Props) {
   const customFrame = useCustomFrame();
+  const tabsRef = useRef<HTMLUListElement>(null);
+
+  const moveFocus = (event: React.KeyboardEvent<HTMLUListElement>) => {
+    const keys = ["ArrowRight", "ArrowLeft", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    const buttons = Array.from(tabsRef.current?.querySelectorAll<HTMLButtonElement>("button.hdr-tab") ?? []);
+    const from = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (from === -1) return;
+    event.preventDefault();
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? buttons.length - 1
+          : (from + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[next]?.focus();
+  };
 
   return (
     <header className="hdr" data-tauri-drag-region>
@@ -80,7 +107,7 @@ export function TopNav({ page, onNavigate, onAccount, accountOpen, player }: Pro
       </button>
 
       <nav aria-label="Main" className="hdr-tabs" data-tauri-drag-region>
-        <ul>
+        <ul ref={tabsRef} role="list" onKeyDown={moveFocus}>
           {TABS.map((item) => {
             const active = page === item.id;
             return (
@@ -96,7 +123,6 @@ export function TopNav({ page, onNavigate, onAccount, accountOpen, player }: Pro
                   <span className="hdr-tab-icon" aria-hidden="true">
                     {item.icon}
                   </span>
-                  <span className="hdr-tab-label">{PAGE_TITLES[item.id]}</span>
                 </button>
               </li>
             );
