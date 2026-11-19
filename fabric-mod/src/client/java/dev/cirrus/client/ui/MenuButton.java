@@ -1,6 +1,5 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -37,7 +36,7 @@ public final class MenuButton extends Button {
 
     @Override protected void renderContents(GuiGraphics g, int mouseX, int mouseY, float delta) {
         Minecraft mc = Minecraft.getInstance();
-        CirrusTheme t = CirrusTheme.current(CirrusConfig.get(mc.gameDirectory.toPath()));
+        CirrusTheme t = CirrusTheme.DARK;   // the menu surfaces are dark in every theme
         float dt = clock.tick();
         hover = Anim.approach(hover, isHoveredOrFocused() && active ? 1f : 0f, dt, 16f);
         press = Anim.approach(press, isHovered() && active && mc.mouseHandler.isLeftPressed() ? 1f : 0f, dt, 30f);

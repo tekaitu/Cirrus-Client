@@ -1,6 +1,5 @@
 package dev.cirrus.client;
 
-import dev.cirrus.client.config.CirrusConfig;
 import dev.cirrus.client.dashboard.CirrusDashboard;
 import dev.cirrus.client.dashboard.DashboardConfig;
 import dev.cirrus.client.dashboard.ServerStatus;
@@ -285,5 +284,5 @@ public final class CirrusMultiplayerScreen extends Screen {
         return sb.length() == 0 ? "?" : sb.toString();
     }
 
-    private CirrusTheme theme() { return CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())); }
+    private CirrusTheme theme() { return CirrusTheme.DARK; }   // main-menu screens keep the dark Cirrus identity in every theme
 }

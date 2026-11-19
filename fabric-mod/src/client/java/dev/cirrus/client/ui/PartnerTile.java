@@ -1,6 +1,5 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.config.CirrusConfig;
 import dev.cirrus.client.dashboard.DashboardConfig;
 import dev.cirrus.client.dashboard.ServerStatus;
 import net.minecraft.client.Minecraft;
@@ -44,7 +43,7 @@ public final class PartnerTile extends Button {
 
     @Override protected void renderContents(GuiGraphics g, int mouseX, int mouseY, float delta) {
         Minecraft mc = Minecraft.getInstance();
-        CirrusTheme t = CirrusTheme.current(CirrusConfig.get(mc.gameDirectory.toPath()));
+        CirrusTheme t = CirrusTheme.DARK;   // the menu surfaces are dark in every theme
         hover = Anim.approach(hover, isHoveredOrFocused() ? 1f : 0f, clock.tick(), 16f);
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         float radius = Math.min(6f, h * 0.24f);

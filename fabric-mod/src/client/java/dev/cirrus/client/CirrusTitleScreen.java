@@ -1,7 +1,6 @@
 package dev.cirrus.client;
 
 import dev.cirrus.client.asset.CirrusAssetTextures;
-import dev.cirrus.client.config.CirrusConfig;
 import dev.cirrus.client.dashboard.CirrusDashboard;
 import dev.cirrus.client.dashboard.DashboardConfig;
 import dev.cirrus.client.dashboard.ServerStatus;
@@ -125,7 +124,7 @@ public final class CirrusTitleScreen extends TitleScreen {
 
     private void drawLogo(GuiGraphics g, CirrusTheme t) {
         MenuLayout.Rect m = layout.logoMark;
-        CirrusAssetTextures.drawMark(g, m.x(), m.y(), m.w(), m.h(), t == CirrusTheme.LIGHT ? t.accent : 0xFFFFFFFF);
+        CirrusAssetTextures.drawMark(g, m.x(), m.y(), m.w(), m.h(), 0xFFFFFFFF);
         if (layout.logoText) CirrusUi.headingText(g, font, "CIRRUS CLIENT", layout.logoTextX, layout.logoTextY, t.text);
     }
 
@@ -159,9 +158,9 @@ public final class CirrusTitleScreen extends TitleScreen {
         int a = 0xFF000000 | b.colorA(), c = 0xFF000000 | b.colorB();
         Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), radius, Gfx.mix(a, 0xFF05080F, 0.35f));
         g.enableScissor(r.x(), r.y(), r.right(), r.bottom());
-        int glow = Math.round(r.h() * 1.5f);                       // round glow in the lower right, clipped to the banner
-        Gfx.fillRound(g, r.right() - glow * 0.6f, r.bottom() - glow * 0.6f, glow, glow, glow / 2f, Gfx.scaleAlpha(c, 0.30f));
-        Gfx.fillRound(g, r.right() - glow * 0.4f, r.bottom() - glow * 0.4f, glow * 0.7f, glow * 0.7f, glow * 0.35f, Gfx.scaleAlpha(c, 0.25f));
+        int glow = Math.round(r.h() * 0.84f);                      // round glow at the right edge; sized to stay clear of the corners
+        Gfx.fillRound(g, r.right() - glow * 0.75f, r.y() + (r.h() - glow) / 2f, glow, glow, glow / 2f, Gfx.scaleAlpha(c, 0.30f));
+        Gfx.fillRound(g, r.right() - glow * 0.45f, r.y() + (r.h() - glow * 0.6f) / 2f, glow * 0.6f, glow * 0.6f, glow * 0.3f, Gfx.scaleAlpha(c, 0.25f));
         g.disableScissor();
         Gfx.hairline(g, r.x() + radius, r.y() + 1, r.w() - radius * 2, Gfx.scaleAlpha(t.highlight, 2.4f));
         Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), radius, 0.5f, Gfx.mix(t.border, c, 0.55f));
@@ -203,5 +202,5 @@ public final class CirrusTitleScreen extends TitleScreen {
     @Override public void added() { }
     @Override public void removed() { }
 
-    private CirrusTheme theme() { return CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())); }
+    private CirrusTheme theme() { return CirrusTheme.DARK; }   // main-menu screens keep the dark Cirrus identity in every theme
 }

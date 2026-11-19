@@ -1,10 +1,10 @@
 package dev.cirrus.client;
 
-import dev.cirrus.client.config.CirrusConfig;
 import dev.cirrus.client.dashboard.DashboardParser;
 import dev.cirrus.client.ui.CirrusButton;
 import dev.cirrus.client.ui.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
+import dev.cirrus.client.ui.Gfx;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -47,14 +47,16 @@ public final class CirrusServerEditScreen extends Screen {
         String oldName = nameBox == null ? (existing == null ? "" : existing.name) : nameBox.getValue();
         String oldAddr = addressBox == null ? (existing == null ? "" : existing.ip) : addressBox.getValue();
         if (named) {
-            nameBox = new EditBox(font, fx, y + 10, fw, 16, Component.literal("Server name"));
+            nameBox = new EditBox(font, fx + 6, y + 14, fw - 12, 10, Component.literal("Server name"));
+            nameBox.setBordered(false);
             nameBox.setMaxLength(40);
             nameBox.setValue(oldName);
             nameBox.setResponder(v -> validate());
             addRenderableWidget(nameBox);
             y += 34;
         }
-        addressBox = new EditBox(font, fx, y + 10, fw, 16, Component.literal("Server address"));
+        addressBox = new EditBox(font, fx + 6, y + 14, fw - 12, 10, Component.literal("Server address"));
+        addressBox.setBordered(false);
         addressBox.setMaxLength(260);
         addressBox.setValue(oldAddr);
         addressBox.setResponder(v -> validate());
@@ -99,8 +101,15 @@ public final class CirrusServerEditScreen extends Screen {
         int fx = panelX + 14, y = panelY + 30;
         if (mode != Mode.DIRECT) { CirrusUi.smallText(g, font, "Name", fx, y, t.muted, false); y += 34; }
         CirrusUi.smallText(g, font, "Address  (host or host:port)", fx, y, t.muted, false);
+        if (mode != Mode.DIRECT) field(g, nameBox, panelX + 14, panelY + 40, panelW - 28, t);
+        field(g, addressBox, panelX + 14, panelY + 40 + (mode != Mode.DIRECT ? 34 : 0), panelW - 28, t);
         super.render(g, mx, my, delta);
     }
 
-    private CirrusTheme theme() { return CirrusTheme.current(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath())); }
+    private void field(GuiGraphics g, EditBox box, int x, int y, int w, CirrusTheme t) {
+        Gfx.fillRound(g, x, y, w, 18, 6, 0xF0070B14);
+        Gfx.strokeRound(g, x, y, w, 18, 6, box.isFocused() ? 1f : 0.5f, box.isFocused() ? t.cyan : Gfx.scaleAlpha(t.border, 0.9f));
+    }
+
+    private CirrusTheme theme() { return CirrusTheme.DARK; }   // main-menu screens keep the dark Cirrus identity in every theme
 }
