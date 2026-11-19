@@ -1,6 +1,7 @@
 package dev.cirrus.client;
 
 import dev.cirrus.client.dashboard.DashboardParser;
+import dev.cirrus.client.ui.CirrusTextField;
 import dev.cirrus.client.ui.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Gfx;
@@ -70,10 +71,8 @@ public final class CirrusServerEditScreen extends SceneScreen {
     }
 
     private EditBox box(int labelY, String hint, int max, String value, boolean isName) {
-        EditBox box = new EditBox(font, fieldX + 22, labelY + 12 + 5, fieldW - 30, 10, Component.literal(isName ? "Server name" : "Server address"));
-        box.setBordered(false);
+        EditBox box = new CirrusTextField(font, fieldX + 22, labelY + 12 + 5, fieldW - 30, 10, Component.literal(isName ? "Server name" : "Server address"), hint);
         box.setMaxLength(max);
-        box.setHint(Component.literal(hint));
         box.setValue(value);
         box.setResponder(v -> { if (isName) nameTouched = true; else addressTouched = true; validate(); });
         addRenderableWidget(box);

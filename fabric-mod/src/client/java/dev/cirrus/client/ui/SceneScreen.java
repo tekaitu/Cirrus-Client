@@ -14,8 +14,8 @@ public abstract class SceneScreen extends Screen {
 
     @Override public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
         if (minecraft.level == null) renderPanorama(g, delta);
-        g.fill(0, 0, width, height, 0x9A050A14);                                           // keeps text readable on any scenery
-        g.fillGradient(0, 0, width, Math.max(1, height / 4), 0x66000000, 0x00000000);       // soft vignette top and bottom
-        g.fillGradient(0, height * 3 / 5, width, height, 0x00000000, 0x99000000);
+        g.fill(0, 0, width, height, 0x6E050A14);                                           // keeps text readable on any scenery
+        g.fillGradient(0, 0, width, Math.max(1, height / 4), 0x55000000, 0x00000000);       // soft vignette top and bottom
+        g.fillGradient(0, height * 3 / 5, width, height, 0x00000000, 0x88000000);
     }
 }
