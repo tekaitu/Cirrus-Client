@@ -26,6 +26,8 @@ public final class MenuButton extends Button {
     }
 
     public static MenuButton list(int x, int y, int w, int h, String label, int glyph, OnPress action) { return new MenuButton(x, y, w, h, Component.literal(label), glyph, Kind.LIST, action); }
+    /** Compact icon + label action (footers). Falls back to the icon alone, with a tooltip, when the label does not fit. */
+    public static MenuButton action(int x, int y, int w, int h, String label, int glyph, OnPress action) { return new MenuButton(x, y, w, h, Component.literal(label), glyph, Kind.LIST, action); }
     public static MenuButton primary(int x, int y, int w, int h, String label, int glyph, OnPress action) { return new MenuButton(x, y, w, h, Component.literal(label), glyph, Kind.PRIMARY, action); }
     public static MenuButton quit(int x, int y, int w, int h, String label, OnPress action) { return new MenuButton(x, y, w, h, Component.literal(label), -1, Kind.QUIT, action); }
     public static MenuButton square(int x, int y, int size, int glyph, String tooltip, OnPress action) {
@@ -78,6 +80,16 @@ public final class MenuButton extends Button {
             return;
         }
         String label = getMessage().getString();
+        if (kind == Kind.LIST && glyph >= 0 && h < 26) {                 // compact action: icon only when the label cannot fit
+            int need = CirrusUi.bodyWidth(font, label) + Math.max(9, Math.round(h * 0.5f)) + Math.max(6, Math.round(h * 0.5f)) * 2 + 4;
+            if (need > w) {
+                setTooltip(Tooltip.create(getMessage()));
+                int s = Math.max(9, Math.round(h * 0.55f));
+                Glyphs.draw(g, glyph, x + (w - s) / 2, y + (h - s) / 2, s, icon);
+                return;
+            }
+            setTooltip(null);
+        }
         int ty = y + (h - CirrusUi.LINE) / 2 + (kind == Kind.PRIMARY ? 1 : 0);
         int gs = Math.max(9, Math.round(h * 0.5f));
         int pad = Math.max(6, Math.round(h * 0.5f));
