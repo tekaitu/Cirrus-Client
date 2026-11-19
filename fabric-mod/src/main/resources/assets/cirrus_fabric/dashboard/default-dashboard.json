@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "revision": 1,
+  "_note": "Bundled fallback used until the Cirrus website dashboard is connected. Entries below are SAMPLES, not real partners.",
+  "store": { "label": "STORE", "url": "", "enabled": false },
+  "partners": [
+    { "id": "sample-network", "name": "Sample Network", "address": "play.sample-network.example", "tagline": "Sample entry - replaced by the Cirrus dashboard", "color": "#1B8FFF", "order": 1 },
+    { "id": "sample-skyblock", "name": "Sample Skyblock", "address": "skyblock.sample-network.example", "tagline": "Sample entry - replaced by the Cirrus dashboard", "color": "#42C8F5", "order": 2 },
+    { "id": "sample-survival", "name": "Sample Survival", "address": "survival.sample-network.example", "tagline": "Sample entry - replaced by the Cirrus dashboard", "color": "#286FE8", "order": 3 },
+    { "id": "sample-pvp", "name": "Sample PvP", "address": "pvp.sample-network.example", "tagline": "Sample entry - replaced by the Cirrus dashboard", "color": "#35D4C8", "order": 4 },
+    { "id": "sample-minigames", "name": "Sample Minigames", "address": "games.sample-network.example", "tagline": "Sample entry - replaced by the Cirrus dashboard", "color": "#5B8CFF", "order": 5 },
+    { "id": "sample-creative", "name": "Sample Creative", "address": "creative.sample-network.example", "tagline": "Sample entry - replaced by the Cirrus dashboard", "color": "#2EA7E0", "order": 6 }
+  ],
+  "banners": [
+    { "id": "welcome", "title": "Cirrus Client", "subtitle": "Promotions from the Cirrus dashboard appear here.", "cta": "", "url": "", "colorA": "#0B1E4A", "colorB": "#1B8FFF", "order": 1 }
+  ],
+  "storePromos": []
+}

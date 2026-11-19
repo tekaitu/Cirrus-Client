@@ -24,11 +24,12 @@ jobs:
       - name: Install a virtual display and software OpenGL
         working-directory: .
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q xvfb libgl1-mesa-dri libglx-mesa0 libgl1 mesa-vulkan-drivers libxrandr2 libxxf86vm1 libxcursor1 libxi6 libopenal1
+          sudo apt-get -o Acquire::Retries=4 -o Acquire::http::Timeout=25 -o Acquire::https::Timeout=25 update -q
+          sudo apt-get -o Acquire::Retries=4 -o Acquire::http::Timeout=25 install -y -q xvfb libgl1-mesa-dri libglx-mesa0 libgl1 mesa-vulkan-drivers libxrandr2 libxxf86vm1 libxcursor1 libxi6 libopenal1
       - name: Unit tests
         run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build --no-daemon
       - name: Dump protected widget hooks and GuiGraphics API
+        if: always()
         continue-on-error: true
         run: |
           MC=$(find ~/.gradle -name '*.jar' | grep -iE 'minecraft-clientonly-1' | grep -v sources | head -1)
@@ -40,6 +41,9 @@ jobs:
           for c in com.mojang.blaze3d.platform.NativeImage net.minecraft.client.renderer.texture.DynamicTexture; do echo "#### $c"; javap -public -cp "$MC" $c 2>&1 | grep -E "NativeImage\(|setPixel|getPixel|DynamicTexture\(|upload|fillRect|close" | cut -c1-200; done
           echo "#### MULTIPLAYER API"
           for c in net.minecraft.client.multiplayer.ServerStatusPinger net.minecraft.client.multiplayer.ServerData net.minecraft.client.multiplayer.ServerList net.minecraft.client.gui.screens.ConnectScreen net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen net.minecraft.client.gui.screens.multiplayer.ServerSelectionList net.minecraft.client.gui.screens.multiplayer.ServerSelectionList\$OnlineServerEntry net.minecraft.client.gui.screens.multiplayer.ManageServerScreen net.minecraft.client.gui.screens.multiplayer.DirectJoinServerScreen net.minecraft.client.multiplayer.resolver.ServerAddress net.minecraft.client.multiplayer.TransferState net.minecraft.client.gui.screens.options.SkinCustomizationScreen net.minecraft.client.gui.screens.PauseScreen net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.ConfirmLinkScreen net.minecraft.client.gui.screens.options.OptionsScreen net.minecraft.client.gui.screens.options.SkinCustomizationScreen; do show "$MC" "$c"; done | grep -vE 'access\$|lambda\$' | cut -c1-220
+          echo "#### Skin/face classes"
+          jar tf "$MC" | grep -iE 'Skin|PlayerFace|PlayerHead' | grep -v '\$' | head -40
+          for c in net.minecraft.client.resources.SkinManager net.minecraft.client.renderer.PlayerSkinRenderCache net.minecraft.client.gui.screens.options.ChatOptionsScreen net.minecraft.client.gui.screens.options.LanguageSelectScreen net.minecraft.client.gui.screens.packs.PackSelectionScreen net.minecraft.client.gui.components.Tooltip net.minecraft.client.gui.components.AbstractSelectionList; do show "$MC" "$c"; done 2>&1 | grep -vE 'lambda\$' | cut -c1-200
           echo "#### Util/Platform/Screenshot"
           for c in net.minecraft.Util net.minecraft.util.Util net.minecraft.client.Screenshot net.minecraft.client.player.AbstractClientPlayer net.minecraft.client.resources.PlayerSkin net.minecraft.client.gui.components.PlayerFaceRenderer net.minecraft.client.User net.minecraft.client.gui.screens.inventory.InventoryScreen; do show "$MC" "$c"; done 2>&1 | grep -E "####|openUri|openPath|openFile|getPlatform|OS\b|saveScreenshot|grab|drawPlayerFace|draw\(|getSkin|skin|getName|getPlayerUuid|getSessionId|renderEntityInInventory|Screenshot" | cut -c1-220
           echo "#### ClientGameTestContext"
