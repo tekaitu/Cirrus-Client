@@ -20,6 +20,9 @@ public final class CirrusDashboard {
 
     public static DashboardConfig get() { return repository().get(); }
 
+    /** CI only: forget loaded state so a freshly written cache file is read (used by the screenshot test with a labelled fixture). */
+    public static synchronized void reloadForTest() { repository = null; refreshStarted = true; }
+
     /** Idempotent; safe to call from the title screen every time it opens. */
     public static synchronized void refreshOnce() {
         if (refreshStarted) return;

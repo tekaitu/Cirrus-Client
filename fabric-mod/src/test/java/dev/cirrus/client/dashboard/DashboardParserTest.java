@@ -5,17 +5,82 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class DashboardParserTest {
-    @Test void bundledFallbackParsesAndHasSixPartnersAndABanner() {
+    private static final String FULL = """
+        {"schema":1,"revision":9,
+         "store":{"label":"SHOP","url":"https://cirrus.example/store","enabled":true},
+         "partners":[
+           {"id":"alpha","name":"Alpha Network","address":"play.alpha.example:25570","tagline":"Official","color":"#1B8FFF","iconUrl":"https://cdn.example/alpha.png","order":2},
+           {"id":"beta","name":"Beta","address":"beta.example","order":1}],
+         "advertised":{"partnerId":"alpha","startButton":true,"label":"PLAY"},
+         "banners":[{"id":"b1","title":"Launch","startsAt":"2026-01-01T00:00:00Z","endsAt":"2026-02-01T00:00:00Z"}],
+         "discord":{"enabled":true,"title":"Link your Discord","url":"https://discord.example/link","rewardText":"Reward shown by the dashboard"},
+         "giveaways":[{"id":"g1","title":"Cape giveaway","endsAt":"2026-03-01T00:00:00Z"}],
+         "news":[{"id":"n1","title":"News","date":"2026-01-05T00:00:00Z"}],
+         "storePromos":[{"id":"s1","text":"20% off"}],
+         "featured":[{"id":"f1","title":"Featured"}],
+         "socials":[{"id":"yt","kind":"youtube","url":"https://youtube.example/c"},{"id":"bad","kind":"myspace","url":"https://x.example"},{"id":"nourl","kind":"x","url":"http://insecure.example"}],
+         "updates":[{"id":"u1","version":"0.2.0","title":"Update","severity":"weird"}]}
+        """;
+
+    @Test void bundledFallbackIsEmptyAndSafe() {
         DashboardConfig c = DashboardRepository.loadBundled();
         assertEquals(1, c.schema());
-        assertEquals(6, c.partners().size());
-        assertEquals(1, c.banners().size());
+        assertTrue(c.partners().isEmpty() && c.banners().isEmpty() && c.news().isEmpty() && c.giveaways().isEmpty() && c.socials().isEmpty());
+        assertNull(c.advertised());
         assertFalse(c.store().enabled(), "store stays disabled until the dashboard provides a url");
-        assertTrue(c.partners().stream().allMatch(p -> p.tagline().startsWith("Sample")), "fallback partners are labelled as samples");
+        assertFalse(c.discord().enabled());
+    }
+
+    @Test void parsesEveryContentType() {
+        DashboardConfig c = DashboardParser.parse(FULL);
+        assertEquals(9, c.revision());
+        assertEquals("SHOP", c.store().label());
+        assertTrue(c.store().enabled());
+        assertEquals("beta", c.partners().get(0).id(), "partners are ordered by 'order'");
+        assertEquals("https://cdn.example/alpha.png", c.partner("alpha").iconUrl());
+        assertEquals("alpha", c.advertisedPartner().id());
+        assertEquals("PLAY", c.advertised().label());
+        assertTrue(c.advertised().startButton());
+        assertEquals(1, c.banners().size());
+        assertTrue(c.discord().enabled());
+        assertEquals("Reward shown by the dashboard", c.discord().rewardText());
+        assertEquals(1, c.giveaways().size());
+        assertEquals(1, c.news().size());
+        assertEquals(1, c.storePromos().size());
+        assertEquals(1, c.featured().size());
+        assertEquals(1, c.socials().size(), "unknown kinds and non-https urls are dropped");
+        assertEquals("info", c.updates().get(0).severity(), "unknown severity falls back to info");
+    }
+
+    @Test void advertisedServerMustNameAListedPartner() {
+        DashboardConfig c = DashboardParser.parse("{\"schema\":1,\"partners\":[{\"id\":\"a\",\"name\":\"A\",\"address\":\"a.example\"}],\"advertised\":{\"partnerId\":\"ghost\"}}");
+        assertNull(c.advertised());
+        assertNull(c.advertisedPartner());
+        DashboardConfig noPartners = DashboardParser.parse("{\"schema\":1,\"advertised\":{\"partnerId\":\"a\"}}");
+        assertNull(noPartners.advertised());
+    }
+
+    @Test void startButtonCanBeHiddenByTheDashboard() {
+        DashboardConfig c = DashboardParser.parse("{\"schema\":1,\"partners\":[{\"id\":\"a\",\"name\":\"A\",\"address\":\"a.example\"}],\"advertised\":{\"partnerId\":\"a\",\"startButton\":false}}");
+        assertNotNull(c.advertisedPartner());
+        assertFalse(c.advertised().startButton());
+    }
+
+    @Test void timeWindowsAreRespected() {
+        DashboardConfig c = DashboardParser.parse(FULL);
+        DashboardConfig.Banner b = c.banners().get(0);
+        assertFalse(b.activeAt(Instant.parse("2025-12-31T23:59:59Z")));
+        assertTrue(b.activeAt(Instant.parse("2026-01-15T00:00:00Z")));
+        assertFalse(b.activeAt(Instant.parse("2026-02-01T00:00:00Z")));
+        DashboardConfig.StorePromo open = c.storePromos().get(0);
+        assertTrue(open.activeAt(Instant.parse("2030-01-01T00:00:00Z")), "no window means always active");
+        DashboardConfig bad = DashboardParser.parse("{\"schema\":1,\"banners\":[{\"id\":\"x\",\"title\":\"T\",\"startsAt\":\"not a date\"}]}");
+        assertNull(bad.banners().get(0).startsAt());
     }
 
     @Test void rejectsWrongSchemaGarbageAndOversizedDocuments() {
@@ -45,7 +110,9 @@ class DashboardParserTest {
         for (String bad : new String[]{"http://cirrus.example", "javascript:alert(1)", "file:///etc/passwd", "https://user:pw@cirrus.example", "https://", "", " ", "ftp://x.example"})
             assertEquals("", DashboardParser.httpsOrEmpty(bad), bad);
         DashboardConfig c = DashboardParser.parse("{\"schema\":1,\"store\":{\"url\":\"http://insecure.example\",\"enabled\":true}}");
-        assertFalse(c.store().enabled(), "an unusable url disables the store button instead of linking somewhere unsafe");
+        assertFalse(c.store().enabled(), "an unusable url disables the button instead of linking somewhere unsafe");
+        DashboardConfig d = DashboardParser.parse("{\"schema\":1,\"partners\":[{\"id\":\"p\",\"name\":\"P\",\"address\":\"p.example\",\"iconUrl\":\"http://insecure.example/i.png\"}]}");
+        assertEquals("", d.partners().get(0).iconUrl(), "image urls follow the same https rule");
     }
 
     @Test void textIsCleanedAndLimited() {
@@ -84,7 +151,7 @@ class DashboardParserTest {
         assertEquals("Cached", cached.partners().get(0).name());
 
         Files.writeString(cache, "{ corrupt");
-        assertEquals(6, new DashboardRepository(dir).get().partners().size(), "corrupt cache falls back to the bundled data");
+        assertTrue(new DashboardRepository(dir).get().partners().isEmpty(), "corrupt cache falls back to the (empty) bundled data");
     }
 
     @Test void refreshWithoutAUsableUrlDoesNothing(@TempDir Path dir) throws Exception {

@@ -68,7 +68,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         DashboardConfig.Store store = dashboard.store();
 
         add(MenuButton.list(b[0].x(), b[0].y(), b[0].w(), b[0].h(), "Singleplayer", Glyphs.SINGLEPLAYER, x -> minecraft.setScreen(new SelectWorldScreen(this))));
-        add(MenuButton.list(b[1].x(), b[1].y(), b[1].w(), b[1].h(), "Multiplayer", Glyphs.MULTIPLAYER, x -> minecraft.setScreen(new CirrusMultiplayerScreen(this))));
+        add(MenuButton.list(b[1].x(), b[1].y(), b[1].w(), b[1].h(), "Multiplayer", Glyphs.MULTIPLAYER, x -> minecraft.setScreen(new CirrusJoinMultiplayerScreen(this))));
         add(MenuButton.list(b[2].x(), b[2].y(), b[2].w(), b[2].h(), "Cosmetics", Glyphs.COSMETICS, x -> minecraft.setScreen(new SkinCustomizationScreen(this, minecraft.options))));
         add(MenuButton.list(b[3].x(), b[3].y(), b[3].w(), b[3].h(), "Screenshots", Glyphs.SCREENSHOTS, x -> PlatformOpen.folder(PlatformOpen.screenshots())));
         MenuButton storeButton = MenuButton.primary(b[4].x(), b[4].y(), b[4].w(), b[4].h(), store.label(), Glyphs.STORE, x -> PlatformOpen.link(this, store.url()));

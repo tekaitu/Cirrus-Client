@@ -62,7 +62,7 @@ public final class DashboardRepository {
             return DashboardParser.parse(new String(in.readNBytes(DashboardParser.MAX_BYTES + 1), StandardCharsets.UTF_8));
         } catch (IOException | IllegalArgumentException e) {
             LOG.error("Bundled dashboard fallback unusable; showing an empty dashboard.", e);
-            return new DashboardConfig(DashboardConfig.SCHEMA, 0, new DashboardConfig.Store("STORE", "", false), java.util.List.of(), java.util.List.of(), java.util.List.of());
+            return DashboardConfig.empty();
         }
     }
 

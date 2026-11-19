@@ -2,8 +2,7 @@ package dev.cirrus.client.gametest;
 
 import dev.cirrus.client.CirrusDashboardScreen;
 import dev.cirrus.client.CirrusMenuScreen;
-import dev.cirrus.client.CirrusMultiplayerScreen;
-import dev.cirrus.client.CirrusServerEditScreen;
+import dev.cirrus.client.CirrusJoinMultiplayerScreen;
 import dev.cirrus.client.CirrusTitleScreen;
 import dev.cirrus.client.CirrusThemesScreen;
 import dev.cirrus.client.HudEditorScreen;
@@ -28,8 +27,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
     public void runTest(ClientGameTestContext context) {
         Map<String, Supplier<Screen>> screens = new LinkedHashMap<>();
         screens.put("title", CirrusTitleScreen::new);
-        screens.put("multiplayer", () -> new CirrusMultiplayerScreen(null));
-        screens.put("server-add", () -> { var mc = net.minecraft.client.Minecraft.getInstance(); return new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.ADD, new net.minecraft.client.multiplayer.ServerList(mc), null); });
+        screens.put("multiplayer", () -> new CirrusJoinMultiplayerScreen(null));
         screens.put("menu", () -> new CirrusMenuScreen(null));
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
         screens.put("themes", () -> new CirrusThemesScreen(null));
@@ -37,6 +35,16 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
 
         context.waitTicks(40);
         context.takeScreenshot("boot");
+        // A labelled test-only dashboard so the partner features can be photographed. These servers do not exist (127.0.0.1 has no
+        // Minecraft server in CI), so their rows honestly show as unreachable; nothing here ships in the mod.
+        context.runOnClient(mc -> {
+            try {
+                var cache = mc.gameDirectory.toPath().resolve("config/cirrus-client/dashboard-cache.json");
+                java.nio.file.Files.createDirectories(cache.getParent());
+                java.nio.file.Files.writeString(cache, FIXTURE);
+            } catch (java.io.IOException e) { throw new IllegalStateException(e); }
+            dev.cirrus.client.dashboard.CirrusDashboard.reloadForTest();
+        });
         context.runOnClient(mc -> dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()).put("onboarding.complete", "true"));
         context.runOnClient(mc -> {      // a couple of saved servers so the Multiplayer screenshots show real rows
             var list = new net.minecraft.client.multiplayer.ServerList(mc);
@@ -77,36 +85,28 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("light-" + entry.getKey() + "-1280x720-gui2");
         }
         context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
-        // Multiplayer states that need interaction: a selected partner row, a selected personal row, the edit dialog.
-        context.setScreen(() -> new CirrusMultiplayerScreen(null));
+        // Multiplayer states that need interaction: a selected personal row, the advertised partner row, a plain partner row.
+        context.setScreen(() -> new CirrusJoinMultiplayerScreen(null));
         context.waitTicks(20);
         context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
-        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
-        context.waitTicks(15);
-        context.takeScreenshot("multiplayer-selected-partner-1280x720-gui2");
-        for (int i = 0; i < 6; i++) context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
-        context.waitTicks(20);
+        context.waitTicks(10);
         context.takeScreenshot("multiplayer-selected-personal-1280x720-gui2");
-        context.setScreen(() -> {
-            var mc = net.minecraft.client.Minecraft.getInstance();
-            var list = new net.minecraft.client.multiplayer.ServerList(mc);
-            list.load();
-            return new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.EDIT, list, list.get(0));
-        });
-        context.waitTicks(15);
-        context.takeScreenshot("server-edit-1280x720-gui2");
-        context.setScreen(() -> new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.ADD, new net.minecraft.client.multiplayer.ServerList(net.minecraft.client.Minecraft.getInstance()), null));
-        context.waitTicks(5);
-        context.runOnClient(mc -> ((CirrusServerEditScreen) mc.screen).fillForTest("", "bad host!"));
+        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
         context.waitTicks(10);
-        context.takeScreenshot("server-invalid-1280x720-gui2");
-        context.runOnClient(mc -> ((CirrusServerEditScreen) mc.screen).fillForTest("Lobby", "survival.example.com"));
+        context.takeScreenshot("multiplayer-selected-advertised-1280x720-gui2");
+        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
         context.waitTicks(10);
-        context.takeScreenshot("server-duplicate-1280x720-gui2");
-        context.setScreen(() -> new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.DIRECT, new net.minecraft.client.multiplayer.ServerList(net.minecraft.client.Minecraft.getInstance()), null));
-        context.waitTicks(10);
-        context.takeScreenshot("server-direct-1280x720-gui2");
+        context.takeScreenshot("multiplayer-selected-partner-1280x720-gui2");
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
     }
+
+    private static final String FIXTURE = """
+        {"schema":1,"revision":1,
+         "partners":[
+           {"id":"fixture-network","name":"Fixture Network","address":"127.0.0.1:25598","tagline":"CI fixture","order":1},
+           {"id":"fixture-minigames","name":"Fixture Minigames","address":"127.0.0.1:25597","tagline":"CI fixture","order":2}],
+         "advertised":{"partnerId":"fixture-network","startButton":true,"label":"START"}}
+        """;
 }
