@@ -40,6 +40,12 @@ public final class CirrusServerEditScreen extends SceneScreen {
         this.existing = existing;
     }
 
+    /** Fills the fields as if typed (used by the screenshot gametest to show validation states). */
+    public void fillForTest(String name, String address) {
+        if (named()) nameBox.setValue(name);
+        addressBox.setValue(address);
+    }
+
     private boolean named() { return mode != Mode.DIRECT; }
 
     @Override protected void init() {

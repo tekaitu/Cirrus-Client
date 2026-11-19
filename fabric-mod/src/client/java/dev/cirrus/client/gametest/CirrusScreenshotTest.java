@@ -95,6 +95,14 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         });
         context.waitTicks(15);
         context.takeScreenshot("server-edit-1280x720-gui2");
+        context.setScreen(() -> new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.ADD, new net.minecraft.client.multiplayer.ServerList(net.minecraft.client.Minecraft.getInstance()), null));
+        context.waitTicks(5);
+        context.runOnClient(mc -> ((CirrusServerEditScreen) mc.screen).fillForTest("", "bad host!"));
+        context.waitTicks(10);
+        context.takeScreenshot("server-invalid-1280x720-gui2");
+        context.runOnClient(mc -> ((CirrusServerEditScreen) mc.screen).fillForTest("Lobby", "survival.example.com"));
+        context.waitTicks(10);
+        context.takeScreenshot("server-duplicate-1280x720-gui2");
         context.setScreen(() -> new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.DIRECT, new net.minecraft.client.multiplayer.ServerList(net.minecraft.client.Minecraft.getInstance()), null));
         context.waitTicks(10);
         context.takeScreenshot("server-direct-1280x720-gui2");
