@@ -241,7 +241,7 @@ public final class CirrusMultiplayerScreen extends Screen {
 
         int icon = 26, ix = x + 5, iy = y + (h - icon) / 2;
         Gfx.fillRound(g, ix, iy, icon, icon, 6, Gfx.mix(0xFF0A0F1A, 0xFF000000 | r.color(), 0.45f));
-        CirrusUi.centeredHeading(g, font, monogram(r.name()), ix + icon / 2, iy + (icon - CirrusUi.LINE) / 2, 0xFFFFFFFF);
+        CirrusUi.centeredFit(g, font, monogram(r.name()), ix + icon / 2, iy + icon / 2, icon - 4, 0xFFFFFFFF);
 
         ServerStatus.State state = ServerStatus.state(r.name(), r.address());
         int online = ServerStatus.online(r.name(), r.address()), max = ServerStatus.max(r.name(), r.address());

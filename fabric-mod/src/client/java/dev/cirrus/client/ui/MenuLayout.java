@@ -36,7 +36,7 @@ public final class MenuLayout {
         int bh = Math.max(16, Math.round(26 * s));
         int bw = Math.max(100, Math.round(151 * s));
         int gap = Math.max(3, Math.round(7.25f * s));
-        int quitH = Math.max(14, Math.round(26 * s)), quitW = Math.max(70, Math.round(118 * s));
+        int quitH = Math.max(14, Math.round(26 * s)), quitW = Math.max(86, Math.round(118 * s));
         int markH = Math.max(16, Math.round(25 * s)), markW = (markH * 640 + 236) / 473;
         int versionGap = Math.max(4, Math.round(13.5f * s));
         int cx = width / 2;

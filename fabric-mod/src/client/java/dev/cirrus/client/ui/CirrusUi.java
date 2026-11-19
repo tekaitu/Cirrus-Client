@@ -122,6 +122,12 @@ public final class CirrusUi {
     public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = body(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
     public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = small(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
     public static void centeredHeading(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = heading(value); g.drawString(f, c, x - f.width(c) / 2, y, color, false); }; }
+    /** Draws short text centred on (cx, cy) in the largest of heading/body/small that fits maxW (monograms in small tiles). */
+    public static void centeredFit(GuiGraphics g, Font f, String value, int cx, int cy, int maxW, int color) {
+        if (headingWidth(f, value) <= maxW) centeredHeading(g, f, value, cx, cy - LINE / 2, color);
+        else if (bodyWidth(f, value) <= maxW) centered(g, f, value, cx, cy - LINE / 2, color);
+        else centeredSmall(g, f, value, cx, cy - LINE / 2, color);
+    }
     public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { g.drawString(f, small(value), right - smallWidth(f, value), y + NUDGE, color, false); }
 
     // ---- icons and brand ------------------------------------------------------------------------------------------

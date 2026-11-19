@@ -2,6 +2,8 @@ package dev.cirrus.client.gametest;
 
 import dev.cirrus.client.CirrusDashboardScreen;
 import dev.cirrus.client.CirrusMenuScreen;
+import dev.cirrus.client.CirrusMultiplayerScreen;
+import dev.cirrus.client.CirrusServerEditScreen;
 import dev.cirrus.client.CirrusTitleScreen;
 import dev.cirrus.client.CirrusThemesScreen;
 import dev.cirrus.client.HudEditorScreen;
@@ -26,6 +28,8 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
     public void runTest(ClientGameTestContext context) {
         Map<String, Supplier<Screen>> screens = new LinkedHashMap<>();
         screens.put("title", CirrusTitleScreen::new);
+        screens.put("multiplayer", () -> new CirrusMultiplayerScreen(null));
+        screens.put("server-add", () -> { var mc = net.minecraft.client.Minecraft.getInstance(); return new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.ADD, new net.minecraft.client.multiplayer.ServerList(mc), null); });
         screens.put("menu", () -> new CirrusMenuScreen(null));
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
         screens.put("themes", () -> new CirrusThemesScreen(null));
@@ -34,6 +38,15 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.waitTicks(40);
         context.takeScreenshot("boot");
         context.runOnClient(mc -> dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()).put("onboarding.complete", "true"));
+        context.runOnClient(mc -> {      // a couple of saved servers so the Multiplayer screenshots show real rows
+            var list = new net.minecraft.client.multiplayer.ServerList(mc);
+            list.load();
+            if (list.size() == 0) {
+                list.add(new net.minecraft.client.multiplayer.ServerData("My Survival World", "survival.example.com", net.minecraft.client.multiplayer.ServerData.Type.OTHER), false);
+                list.add(new net.minecraft.client.multiplayer.ServerData("Friends Realm", "friends.example.com:25570", net.minecraft.client.multiplayer.ServerData.Type.OTHER), false);
+                list.save();
+            }
+        });
         for (int[] combo : SCALES) {
             context.getInput().resizeWindow(combo[0], combo[1]);
             int scale = combo[2];

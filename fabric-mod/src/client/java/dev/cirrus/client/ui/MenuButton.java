@@ -74,13 +74,13 @@ public final class MenuButton extends Button {
 
         Font font = mc.font;
         if (kind == Kind.SQUARE) {
-            int s = Math.max(9, Math.round(h * 0.46f));
+            int s = Math.max(9, Math.round(h * 0.52f));
             Glyphs.draw(g, glyph, x + (w - s) / 2, y + (h - s) / 2, s, icon);
             return;
         }
         String label = getMessage().getString();
-        int ty = y + (h - CirrusUi.LINE) / 2;
-        int gs = Math.max(9, Math.round(h * 0.44f));
+        int ty = y + (h - CirrusUi.LINE) / 2 + (kind == Kind.PRIMARY ? 1 : 0);
+        int gs = Math.max(9, Math.round(h * 0.5f));
         int pad = Math.max(6, Math.round(h * 0.5f));
         int maxText = w - (glyph >= 0 ? pad * 2 + gs + 4 : pad * 2);
         boolean bold = kind == Kind.PRIMARY;

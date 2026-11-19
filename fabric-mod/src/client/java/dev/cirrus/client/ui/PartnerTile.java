@@ -55,7 +55,7 @@ public final class PartnerTile extends Button {
         if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.cyan);
 
         String mono = monogram(partner.name());
-        CirrusUi.centeredHeading(g, mc.font, mono, x + w / 2, y + (h - CirrusUi.LINE) / 2, 0xFFFFFFFF);
+        CirrusUi.centeredFit(g, mc.font, mono, x + w / 2, y + h / 2, w - 4, 0xFFFFFFFF);
 
         ServerStatus.State state = ServerStatus.state(partner.name(), partner.address());
         int dot = state == ServerStatus.State.ONLINE ? t.good : state == ServerStatus.State.CHECKING ? 0xFFE0A93B : 0xFF566176;
