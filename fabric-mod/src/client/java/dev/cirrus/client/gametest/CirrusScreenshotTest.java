@@ -77,6 +77,27 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("light-" + entry.getKey() + "-1280x720-gui2");
         }
         context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
+        // Multiplayer states that need interaction: a selected partner row, a selected personal row, the edit dialog.
+        context.setScreen(() -> new CirrusMultiplayerScreen(null));
+        context.waitTicks(20);
+        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        context.waitTicks(15);
+        context.takeScreenshot("multiplayer-selected-partner-1280x720-gui2");
+        for (int i = 0; i < 6; i++) context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        context.waitTicks(20);
+        context.takeScreenshot("multiplayer-selected-personal-1280x720-gui2");
+        context.setScreen(() -> {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            var list = new net.minecraft.client.multiplayer.ServerList(mc);
+            list.load();
+            return new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.EDIT, list, list.get(0));
+        });
+        context.waitTicks(15);
+        context.takeScreenshot("server-edit-1280x720-gui2");
+        context.setScreen(() -> new CirrusServerEditScreen(null, CirrusServerEditScreen.Mode.DIRECT, new net.minecraft.client.multiplayer.ServerList(net.minecraft.client.Minecraft.getInstance()), null));
+        context.waitTicks(10);
+        context.takeScreenshot("server-direct-1280x720-gui2");
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
     }
