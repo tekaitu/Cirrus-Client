@@ -10,7 +10,6 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.resources.Identifier;
-import dev.cirrus.client.mod.LocalStatusMod;
 import dev.cirrus.client.mod.ModRegistry;
 import dev.cirrus.client.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
@@ -24,7 +23,6 @@ import dev.cirrus.client.asset.CirrusInitializationScreen;
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-        ModRegistry.register(new LocalStatusMod());
         ModRegistry.register(new dev.cirrus.client.mod.FpsMod());
         ModRegistry.register(new dev.cirrus.client.mod.PingMod());
         ModRegistry.register(new dev.cirrus.client.mod.ArmorStatusMod());
@@ -33,7 +31,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
         AssetManager assets = AssetManager.get(Minecraft.getInstance().gameDirectory.toPath());
         assets.initialize();
         CirrusKeyBindings.register();
-        for (String id : new String[] {"local_status", "fps", "ping", "armor_status", "keystrokes"})
+        for (String id : new String[] {"fps", "ping", "armor_status", "keystrokes"})
             dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find(id).orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,

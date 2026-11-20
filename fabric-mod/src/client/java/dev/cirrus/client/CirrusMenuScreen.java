@@ -103,11 +103,11 @@ public final class CirrusMenuScreen extends CirrusScreen {
             Object target = pillTargets.get(i);
             boolean on = target instanceof ModCategory c ? (!favoritesOnly && c == category) : favoritesOnly;
             boolean hover = mx >= r[0] && mx < r[0] + r[2] && my >= r[1] && my < r[1] + r[3];
-            Gfx.fillRound(g, r[0], r[1], r[2], r[3], 7, on ? t.accent : Gfx.mix(t.surface, t.accent, hover ? 0.3f : 0f));
-            if (!on) Gfx.strokeRound(g, r[0], r[1], r[2], r[3], 7, 0.5f, t.border);
+            Gfx.fillRound(g, r[0], r[1], r[2], r[3], 7, on ? 0xFF2C2C2C : (hover ? 0xFF1C1C1C : 0xFF000000));
+            Gfx.strokeRound(g, r[0], r[1], r[2], r[3], 7, 0.5f, on ? 0xFFFFFFFF : t.border);
             String label = target instanceof ModCategory c ? c.label : "Favorites";
             int tw = CirrusUi.smallWidth(font, label);
-            CirrusUi.smallText(g, font, label, r[0] + (r[2] - tw) / 2, r[1] + (r[3] - CirrusUi.LINE) / 2, on ? 0xFFFFFFFF : (hover ? t.text : t.muted), false);
+            CirrusUi.smallText(g, font, label, r[0] + (r[2] - tw) / 2, r[1] + (r[3] - CirrusUi.LINE) / 2, on || hover ? 0xFFFFFFFF : t.muted, false);
         }
         // search
         int searchW = gridW / 3 < 70 ? 70 : Math.min(170, gridW / 3);
@@ -143,7 +143,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         boolean on = m.enabled(cfg);
         float prog = Anim.approach(toggles.getOrDefault(m.id(), on ? 1f : 0f), on ? 1f : 0f, dt, 14f);
         toggles.put(m.id(), prog);
-        CirrusUi.card(g, x, y, cardW, cardH, 10, Gfx.mix(t.surface, t.accent, hover ? 0.14f : 0f), hover ? Gfx.mix(t.border, t.cyan, 0.6f) : t.border);
+        CirrusUi.card(g, x, y, cardW, cardH, 10, hover ? 0xFF121212 : 0xFF000000, hover ? 0xFFFFFFFF : t.border);
         // title and favourite
         int heart = 12;
         CirrusUi.headingText(g, font, CirrusUi.fit(font, m.name(), cardW - 16 - heart - 4, CirrusUi::heading), x + 8, y + 7, t.text);
@@ -152,21 +152,21 @@ public final class CirrusMenuScreen extends CirrusScreen {
         boolean small = compact();
         int tile = small ? 24 : 30;
         int ty = y + (small ? 21 : 24);
-        Gfx.fillRound(g, x + (cardW - tile) / 2f, ty, tile, tile, 8, Gfx.mix(t.glow, t.accent, 0.35f * prog));
+        Gfx.fillRound(g, x + (cardW - tile) / 2f, ty, tile, tile, 8, Gfx.mix(0xFF0D0D0D, 0xFF2C2C2C, prog));
         int is = tile - 8;
         CirrusUi.icon(g, x + (cardW - is) / 2, ty + (tile - is) / 2, is, m.icon(), on ? t.cyan : t.muted);
         // bottom row: settings + enable switch
         int rowY = y + cardH - 26, rowH = 20, gear = 20;
         boolean gearHover = mx >= x + 8 && mx < x + 8 + gear && my >= rowY && my < rowY + rowH && my < gridY + gridH;
-        Gfx.fillRound(g, x + 8, rowY, gear, rowH, 7, Gfx.mix(t.surface, t.accent, gearHover ? 0.4f : 0.1f));
+        Gfx.fillRound(g, x + 8, rowY, gear, rowH, 7, gearHover ? 0xFF1C1C1C : 0xFF000000);
         Gfx.strokeRound(g, x + 8, rowY, gear, rowH, 7, 0.5f, t.border);
         CirrusUi.sliders(g, x + 8 + 5, rowY + 5, 10, m.hasSettings() ? (gearHover ? t.cyan : t.muted) : Gfx.scaleAlpha(t.muted, 0.4f));
         int pillX = x + 8 + gear + 4, pillW = cardW - 16 - gear - 4;
-        Gfx.fillRound(g, pillX, rowY, pillW, rowH, 7, Gfx.mix(Gfx.mix(t.surface, t.panel, 0.3f), t.accent, prog));
-        if (prog < 0.95f) Gfx.strokeRound(g, pillX, rowY, pillW, rowH, 7, 0.5f, t.border);
+        Gfx.fillRound(g, pillX, rowY, pillW, rowH, 7, Gfx.mix(0xFF000000, 0xFF2C2C2C, prog));
+        Gfx.strokeRound(g, pillX, rowY, pillW, rowH, 7, 0.5f, Gfx.mix(t.border, 0xFFFFFFFF, prog));
         String label = on ? "Enabled" : "Disabled";
         int lw = CirrusUi.smallWidth(font, label);
-        CirrusUi.smallText(g, font, label, pillX + (pillW - lw) / 2, rowY + (rowH - CirrusUi.LINE) / 2, Gfx.mix(t.muted, 0xFFFFFFFF, prog), false);
+        CirrusUi.smallText(g, font, label, pillX + (pillW - lw) / 2, rowY + (rowH - CirrusUi.LINE) / 2, 0xFFFFFFFF, false);
     }
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {

@@ -19,7 +19,7 @@ class MenuLayoutTest {
         assertTrue(l.banner.x() > l.buttons[0].right(), "banner sits to the right of the column");
         assertTrue(l.banner.bottom() > l.buttons[4].bottom(), "banner is in the lower right");
         assertTrue(l.sidebar.x() < 8 && l.sidebar.right() < l.buttons[0].x(), "strip hugs the left edge");
-        assertTrue(l.icons[5].right() <= 800 - 6, "icons stay on screen");
+        assertTrue(l.icons[4].right() <= 800 - 6, "icons stay on screen");
         assertTrue(l.profile.right() < l.icons[0].x(), "profile chip is left of the icons");
         assertTrue(l.quit.y() > l.buttons[4].bottom(), "quit is under the column");
     }

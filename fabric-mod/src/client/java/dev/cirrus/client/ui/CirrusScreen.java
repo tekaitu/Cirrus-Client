@@ -25,7 +25,7 @@ public abstract class CirrusScreen extends Screen {
     protected final boolean compact() { return width < 360 || height < 210; }
 
     /** Main navigation. Screens that return a tab get the shared Cirrus header (brand, tabs, player, close). */
-    public enum Tab { MODS, HUD, THEMES, HOME }
+    public enum Tab { MODS, HUD, HOME }
     protected Tab activeTab() { return null; }
     /** Content area below the header, filled in by buildHeader(). */
     protected int margin, contentX, contentY, contentW, contentBottom, headerBottom;
@@ -49,8 +49,8 @@ public abstract class CirrusScreen extends Screen {
         // right cluster: close button, then (roomy only) the player chip
         addRenderableWidget(CirrusButton.icon(width - margin - closeSize, y + (twoRows ? (markSize - closeSize) / 2 : (rowH - closeSize) / 2), closeSize, CirrusUi.ICON_CLOSE, b -> closeAll()));
         // tabs
-        String[] labels = {"Mods", "HUD", "Themes", "Home"};
-        int[] icons = {CirrusUi.ICON_MODS, CirrusUi.ICON_HUD, CirrusUi.ICON_THEMES, CirrusUi.ICON_DASHBOARD};
+        String[] labels = {"Mods", "HUD", "Home"};
+        int[] icons = {CirrusUi.ICON_MODS, CirrusUi.ICON_HUD, CirrusUi.ICON_DASHBOARD};
         Tab[] tabs = Tab.values();
         int left = twoRows ? margin : margin + brandW + 10;
         int right = twoRows ? width - margin : width - margin - closeSize - 6;
@@ -78,7 +78,6 @@ public abstract class CirrusScreen extends Screen {
         minecraft.setScreen(switch (tab) {
             case MODS -> new dev.cirrus.client.CirrusMenuScreen(parent);
             case HUD -> new dev.cirrus.client.HudEditorScreen(this);
-            case THEMES -> new dev.cirrus.client.CirrusThemesScreen(parent);
             case HOME -> new dev.cirrus.client.CirrusDashboardScreen(parent);
         });
     }
@@ -104,7 +103,7 @@ public abstract class CirrusScreen extends Screen {
             int chipW = nameW + 34;
             int cx = width - margin - closeSize - 6 - chipW, cy = y + (headerMark - chipH) / 2;
             CirrusUi.card(g, cx, cy, chipW, chipH, 8, t.surface, t.border);
-            Gfx.fillRound(g, cx + 4, cy + 4, 14, 14, 4, t.accent);
+            Gfx.fillRound(g, cx + 4, cy + 4, 14, 14, 4, 0xFF2A2A2A);
             CirrusUi.centeredSmall(g, font, playerName.substring(0, 1).toUpperCase(java.util.Locale.ROOT), cx + 11, cy + 7, 0xFFFFFFFF);
             CirrusUi.text(g, font, playerName, cx + 24, cy + 6, t.text, false);
         }
@@ -112,12 +111,9 @@ public abstract class CirrusScreen extends Screen {
 
     /** The darkened game when in a world, the Cirrus artwork otherwise. */
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {
-        if (minecraft.level != null) {
-            g.fill(0, 0, width, height, Gfx.withAlpha(theme().shadow, 190));
-            g.fillGradient(0, 0, width, height / 2, Gfx.withAlpha(0xFF000000, 70), Gfx.withAlpha(0xFF000000, 0));
-        } else {
-            CirrusUi.backdrop(g, width, height, theme());
-        }
+        // Flat black: solid over the menu, a heavy black veil over the game when opened in a world.
+        if (minecraft.level != null) g.fill(0, 0, width, height, 0xE6000000);
+        else CirrusUi.backdrop(g, width, height, theme());
     }
 
     @Override public final void render(GuiGraphics g, int mx, int my, float delta) {

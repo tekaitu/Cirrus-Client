@@ -4,7 +4,6 @@ import dev.cirrus.client.CirrusDashboardScreen;
 import dev.cirrus.client.CirrusMenuScreen;
 import dev.cirrus.client.CirrusJoinMultiplayerScreen;
 import dev.cirrus.client.CirrusTitleScreen;
-import dev.cirrus.client.CirrusThemesScreen;
 import dev.cirrus.client.HudEditorScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -30,7 +29,6 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         screens.put("multiplayer", () -> new CirrusJoinMultiplayerScreen(null));
         screens.put("menu", () -> new CirrusMenuScreen(null));
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
-        screens.put("themes", () -> new CirrusThemesScreen(null));
         screens.put("hud-editor", () -> new HudEditorScreen(null));
         for (String id : new String[] {"armor_status", "keystrokes", "fps", "ping"})
             screens.put("settings-" + id, () -> new dev.cirrus.client.ModSettingsScreen(null, dev.cirrus.client.mod.ModRegistry.find(id).orElseThrow()));
@@ -71,23 +69,15 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
                 context.takeScreenshot(entry.getKey() + "-" + combo[0] + "x" + combo[1] + "-gui" + scale);
             }
         }
-        // Light theme and an enabled HUD element, at the most common setup.
+        // Enable the HUD elements at the most common setup.
         context.getInput().resizeWindow(1280, 720);
         context.runOnClient(mc -> {
             mc.options.guiScale().set(2);
             mc.resizeDisplay();
             var cfg = dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath());
-            dev.cirrus.client.ui.CirrusTheme.set(cfg, dev.cirrus.client.ui.CirrusTheme.LIGHT);
-            cfg.put("enabled.local_status", "true");
             cfg.put("enabled.armor_status", "true");
         });
         context.waitTicks(5);
-        for (Map.Entry<String, Supplier<Screen>> entry : screens.entrySet()) {
-            context.setScreen(entry.getValue());
-            context.waitTicks(25);
-            context.takeScreenshot("light-" + entry.getKey() + "-1280x720-gui2");
-        }
-        context.runOnClient(mc -> dev.cirrus.client.ui.CirrusTheme.set(dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()), dev.cirrus.client.ui.CirrusTheme.DARK));
         // Multiplayer states that need interaction: a selected personal row, the advertised partner row, a plain partner row.
         context.setScreen(() -> new CirrusJoinMultiplayerScreen(null));
         context.waitTicks(20);

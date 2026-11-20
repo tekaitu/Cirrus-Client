@@ -36,7 +36,6 @@ public final class CirrusDashboardScreen extends CirrusScreen {
         long on = ModRegistry.all().stream().filter(m -> m.enabled(config())).count();
         row(g, x, y, w, "Minecraft", "1.21.11  ·  " + Minecraft.getInstance().getLaunchedVersion(), t); y += 14;
         row(g, x, y, w, "Mods", on + " of " + ModRegistry.all().size() + " enabled", t); y += 14;
-        row(g, x, y, w, "Theme", t == CirrusTheme.DARK ? "Midnight (dark)" : "Frost (light)", t); y += 14;
         if (ph >= 130) row(g, x, y, w, "Instance", Minecraft.getInstance().gameDirectory.toPath().toString(), t);
     }
 

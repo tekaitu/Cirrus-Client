@@ -16,7 +16,7 @@ public final class MenuLayout {
         public boolean intersects(Rect o) { return x < o.right() && o.x < right() && y < o.bottom() && o.y < bottom(); }
     }
 
-    public static final int BUTTONS = 5, ICONS = 6;
+    public static final int BUTTONS = 5, ICONS = 5;
     public final float scale;
     public final Rect logoMark;
     public final int logoTextX, logoTextY;
