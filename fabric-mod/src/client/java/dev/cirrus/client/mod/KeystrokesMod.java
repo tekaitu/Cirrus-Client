@@ -17,7 +17,7 @@ public final class KeystrokesMod extends HudMod {
     private static final List<Setting> OWN = List.of(
         Setting.toggle("mouse", "Mouse buttons", "Show left and right click.", true),
         Setting.toggle("space", "Space bar", "Show the jump key below the other keys.", true),
-        Setting.slider("speed", "Press animation speed", "How quickly a key lights up and fades.", 5, 1, 10, 1, ""));
+        Setting.slider("speed", "Animation speed", "How quickly a key lights up and fades.", 5, 1, 10, 1, ""));
 
     private final float[] press = new float[7];
     private final Anim.Clock clock = new Anim.Clock();
