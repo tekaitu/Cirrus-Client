@@ -16,7 +16,7 @@ public final class LocalStatusMod implements CirrusMod, HudElement {
     public boolean defaultEnabled() { return false; }
     public boolean hasSettings() { return true; }
     public String label() { return name(); }
-    @Override public int defaultX() { return 160; }
+    @Override public int defaultX() { return 184; }
     public int width() { return 132; }
     public int height() { return 30; }
     public void render(GuiGraphics g, int x, int y, float tick, CirrusConfig c) {

@@ -9,6 +9,7 @@ import dev.cirrus.client.ui.Glyphs;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.client.gui.screens.multiplayer.ServerSelectionList;
@@ -16,6 +17,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -58,6 +60,44 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
         syncPartners();
         for (PartnerEntry e : partnerEntries) e.startVisible = false;
         super.render(g, mouseX, mouseY, delta);
+        drawBlackButtons(g);
+    }
+
+    /**
+     * The only visual change to the vanilla screen besides the partner rows: its buttons are drawn black with white text and a
+     * white icon. Layout, sizes, behaviour, enabled states and tooltips are all still Minecraft's own.
+     */
+    private void drawBlackButtons(GuiGraphics g) {
+        var font = Minecraft.getInstance().font;
+        for (var child : this.children()) {
+            if (!(child instanceof Button b) || !b.visible) continue;
+            int x = b.getX(), y = b.getY(), w = b.getWidth(), h = b.getHeight();
+            boolean lit = b.active && b.isHoveredOrFocused();
+            g.fill(x, y, x + w, y + h, 0xFF000000);
+            int edge = !b.active ? 0xFF2A2F38 : lit ? 0xFFFFFFFF : 0xFF4A515E;
+            g.renderOutline(x, y, w, h, edge);
+            int color = b.active ? 0xFFFFFFFF : 0xFF6B7280;
+            Component label = b.getMessage();
+            int icon = iconFor(label);
+            int textW = font.width(label), iconW = icon >= 0 && textW + 22 <= w ? 10 : 0;
+            int total = textW + (iconW > 0 ? iconW + 4 : 0), left = x + (w - total) / 2, ty = y + (h - 8) / 2;
+            if (iconW > 0) { Glyphs.draw(g, icon, left, y + (h - 10) / 2, 10, color); left += iconW + 4; }
+            g.drawString(font, label, left, ty, color, false);
+        }
+    }
+
+    private static int iconFor(Component label) {
+        if (!(label.getContents() instanceof TranslatableContents tc)) return -1;
+        return switch (tc.getKey()) {
+            case "selectServer.select" -> Glyphs.MULTIPLAYER;
+            case "selectServer.direct" -> Glyphs.GLOBE;
+            case "selectServer.add" -> Glyphs.ADD;
+            case "selectServer.edit" -> Glyphs.EDIT;
+            case "selectServer.delete" -> Glyphs.DELETE;
+            case "selectServer.refresh" -> Glyphs.REFRESH;
+            case "gui.back" -> Glyphs.BACK;
+            default -> -1;
+        };
     }
 
     /** The START button can sit outside the row, where the list does not deliver clicks, so the screen handles it. */
@@ -163,9 +203,8 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
             startY = outside ? y + (h - startH) / 2 : y + h - startH - 1;
             startVisible = true;
             boolean over = mouseX >= startX && mouseX < startX + startW && mouseY >= startY && mouseY < startY + startH;
-            Gfx.fillRound(g, startX, startY + 1, startW, startH, 4, 0x66000000);
-            Gfx.fillRound(g, startX, startY, startW, startH, 4, over ? 0xFF42C8F5 : 0xFF286FE8);
-            Gfx.strokeRound(g, startX, startY, startW, startH, 4, 0.5f, over ? 0xFFFFFFFF : 0xFF42C8F5);
+            g.fill(startX, startY, startX + startW, startY + startH, 0xFF000000);
+            g.renderOutline(startX, startY, startW, startH, over ? 0xFFFFFFFF : ACCENT);
             String label = CirrusUi.fitBody(font, startLabel, startW - 6);
             CirrusUi.centered(g, font, label, startX + startW / 2, startY + (startH - CirrusUi.LINE) / 2, 0xFFFFFFFF);
             if (over) g.setTooltipForNextFrame(Component.literal("Connect to " + partnerName), mouseX, mouseY);
