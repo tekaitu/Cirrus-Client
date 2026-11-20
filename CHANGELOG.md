@@ -2,14 +2,20 @@
 
 Every big change gets its own version number. Small fixes bump the last number (0.3.1), new features and redesigns bump the middle one (0.4.0).
 
-## 0.4.0 — Interface refresh: midnight shell, centred Home
-- New palette: midnight black and deep-navy surfaces, hairline borders, electric blue for actions and cyan for the small highlights. One set of tokens drives every page, in both appearances.
+## 0.4.0 — Interface refresh: monochrome shell, centred Home
+- New palette, taken from the Cirrus mark: pure black and near-black surfaces, white for important text, icons, active states and highlights, and neutral grays for panels, cards, borders and secondary elements. No blue, cyan, purple or other hue anywhere; contrast, spacing and type carry the design. One set of tokens drives every page, in both appearances.
+- The one filled control in the interface is the primary action, painted in the highlight colour with its type cut out of it (white on black in the dark appearance, black on white in the light one). Everything else is a flat gray surface with a hairline border, so the eye always knows where to start.
+- Home's light behind the menu is now a soft shadow rather than a coloured glow, and the backdrop picture is held back toward monochrome so the mark and the white type stay the loudest things on screen.
 - Home is a game menu again: the Cirrus mark and wordmark centred over the picture, the version about to run, one wide Play button with the only light in the interface, then the account line. Installed versions sit in a dock along the bottom.
 - The menu fades up once when Home opens, a beat apart per element; nothing loops. Reduced-motion settings still switch all of it off.
-- Top bar rebuilt around two chips: the page icons in one dark pill with a blue-tinted active tile, and the account as a matching chip. Settings and notifications share their own pill.
-- Buttons, cards, panels, fields and the account drawer all use the same flat skins, hover colours and one-pixel press.
+- Top bar: the page icons sit directly on the strip, gray until their page is open, then white with a short underline. No pill, tile or plate behind them; the account is borderless until it is touched.
+- Pages breathe: a card is a section marked by one hairline and space, not a near-black plate on the page. Browsers and the settings rail are separated by a rule instead of a panel, and the empty states lost their dashed boxes.
+- Selection is a line: segmented controls, the settings list, the mod categories and pagination use white text with a short underline or rule for the active choice. No filled black selection blocks.
+- Icons are free of containers: card, navigation, empty-state, version-picker and mod icons sit straight on the surface in white or gray, with artwork keeping its own proportions.
+- Browse and installed mods read as editorial lists: icon, name, author and description on one line, actions at the end, separated by hairlines. The grid/list switch changes the flow without adding boxes.
+- Buttons, fields and the account drawer keep the same flat skins, hover colours and one-pixel press; only overlays (menus, dialogs, the drawer) keep a solid fill.
 - The Home backdrop's dark layer is now strongest behind the menu, so the picture stays visible at the top and the text stays readable.
-- The in-game Cirrus screen (Fabric) uses the same palette: flat navy panels with hairline borders instead of glass frames, one electric-blue primary action (Singleplayer on the title screen), hover-only accent rails, a two-pixel marker under section headers, and ON/OFF as a state pill in the mod library.
+- The in-game Cirrus screen (Fabric) uses the same palette: flat near-black panels with hairline white borders instead of glass frames, one white filled primary action with black type (Singleplayer on the title screen), hover-only white rails, a two-pixel marker under section headers, and ON/OFF as a state pill in the mod library. The same retuned tokens reach the dashboard, HUD editor and appearance screens, so every Cirrus screen is monochrome.
 - The in-game mod library is one shell: a header with the brand, page name, filter count and theme, a quiet category rail with a hairline divider, a search field with a favourites filter, and a card grid that folds from two columns to one on narrow windows. Cards (drawing and clicking) share one geometry record, so a click always lands on the card it hits; names and descriptions are shortened with an ellipsis instead of running into the toggle.
 
 ## 0.3.2 — Character Studio, icon navigation and a real version picker

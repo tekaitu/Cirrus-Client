@@ -32,3 +32,4 @@ tokens*.json
 Thumbs.db
 coverage/
 /freebuff-sites-build/
+/.preview.vite.config.mjs

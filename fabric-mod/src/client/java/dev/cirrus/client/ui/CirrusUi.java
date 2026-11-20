@@ -26,7 +26,7 @@ public final class CirrusUi {
     public static void backdrop(GuiGraphics g,int width,int height,CirrusTheme t){
         CirrusAssetTextures.drawBackdrop(g,width,height);
         g.fill(0,0,width,height,t.overlay);
-        // A quiet navy wash instead of a bloom: the picture stays visible, the text stays readable.
+        // A quiet neutral wash instead of a bloom: the picture stays visible, the text stays readable.
         g.fill(0,0,width,Math.max(1,height/4),t.highlight);
         g.fill(0,Math.max(0,height-height/5),width,height,Math.max(t.overlay,t.shadow));
         g.fill(0,Math.max(0,height-1),width,height,t.border);
@@ -35,7 +35,7 @@ public final class CirrusUi {
         backdrop(g,width,height,t);
         CirrusAssetTextures.drawDashboardAmbient(g,width,height);
     }
-    /** A flat navy surface with a hairline border and a soft drop shadow. No glass, no frame art. */
+    /** A flat near-black surface with a hairline white border and a soft drop shadow. No glass, no frame art. */
     public static void panel(GuiGraphics g,int x,int y,int w,int h,int radius,CirrusTheme t){
         if(w<=0||h<=0)return;
         rounded(g,x,y+2,w,h,radius,t.shadow);
@@ -52,14 +52,14 @@ public final class CirrusUi {
         outline(g,x,y,w,h,radius,blend(t.border,t.accent,amount*0.8f));
         if(amount>0.02f)g.fill(x+4,y+5,x+6,y+h-5,blend(t.accent,0x00000000,amount));
     }
-    /** The one loud control: solid accent, a light underneath it, nothing else. */
+    /** The one filled control: the highlight colour with its type cut out, a soft shadow underneath, nothing else. */
     public static void primaryButton(GuiGraphics g,int x,int y,int w,int h,float hover,CirrusTheme t){
         float amount=Math.max(0f,Math.min(1f,hover));
         int radius=Math.min(9,h/2);
         rounded(g,x,y+2,w,h,radius,t.glow);
-        rounded(g,x,y,w,h,radius,blend(t.accent,0xFFFFFFFF,amount*0.16f));
-        outline(g,x,y,w,h,radius,blend(t.accent,0xFFFFFFFF,0.35f+amount*0.25f));
-        g.fill(x+radius,y+1,x+w-radius,y+2,blend(t.accent,0xFFFFFFFF,0.28f));
+        // Hover mixes ten percent of the type colour into the fill, so the light
+        // theme (black fill) and the dark theme (white fill) both answer the pointer.
+        rounded(g,x,y,w,h,radius,blend(t.accent,t.onAccent,1f-amount*0.12f));
     }
     /** A small state badge: ON in green, OFF in muted grey. */
     public static void statusPill(GuiGraphics g,Font font,String label,int x,int y,boolean on,CirrusTheme t){

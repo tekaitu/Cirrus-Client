@@ -17,11 +17,11 @@ public final class CirrusThemesScreen extends Screen {
  public void render(GuiGraphics g,int mx,int my,float d){
   renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);
   int shellW=Math.min(500,width-24),shellX=(width-shellW)/2;CirrusUi.panel(g,shellX,Math.max(20,height/2-126),shellW,Math.min(250,height-40),20,t);
-  CirrusUi.centeredHeading(g,font,"APPEARANCE",width/2,Math.max(34,height/2-102),t.cyan);
+  CirrusUi.centeredHeading(g,font,"APPEARANCE",width/2,Math.max(34,height/2-102),t.text);
   int w=Math.min(190,(shellW-48)/2),h=82,y=height/2-34;int left=width/2-w-9,right=width/2+9;
   CirrusUi.panel(g,left,y,w,h,14,CirrusTheme.DARK);CirrusUi.panel(g,right,y,w,h,14,CirrusTheme.LIGHT);
-  CirrusUi.centeredHeading(g,font,"Aa",left+w/2,y+14,CirrusTheme.DARK.text);CirrusUi.centered(g,font,"Midnight glass",left+w/2,y+42,CirrusTheme.DARK.text);
-  CirrusUi.centeredHeading(g,font,"Aa",right+w/2,y+14,CirrusTheme.LIGHT.text);CirrusUi.centered(g,font,"Frost glass",right+w/2,y+42,CirrusTheme.LIGHT.text);super.render(g,mx,my,d);
+  CirrusUi.centeredHeading(g,font,"Aa",left+w/2,y+14,CirrusTheme.DARK.text);CirrusUi.centered(g,font,"Midnight",left+w/2,y+42,CirrusTheme.DARK.text);
+  CirrusUi.centeredHeading(g,font,"Aa",right+w/2,y+14,CirrusTheme.LIGHT.text);CirrusUi.centered(g,font,"Frost",right+w/2,y+42,CirrusTheme.LIGHT.text);super.render(g,mx,my,d);
  }
  private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
  public void onClose(){minecraft.setScreen(parent);}

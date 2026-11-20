@@ -2,11 +2,11 @@
    Cirrus interface refresh: one premium gaming-client look for the whole
    launcher.
 
-   The tokens give the palette; this layer decides the shapes. Deep navy
-   surfaces, hairline borders, one electric-blue accent, and cyan only for the
-   small highlights. Controls are flat until you touch them: hover brightens,
-   pressed moves one pixel. The only glow in the app sits under the primary
-   action, so the eye always knows where to start.
+   The tokens give the palette; this layer decides the shapes. Near-black
+   surfaces, hairline white borders, one white highlight for what is active.
+   Controls are flat until you touch them: hover brightens, pressed moves one
+   pixel. The primary action is the only filled control on a page, so the eye
+   always knows where to start.
 
    Loaded last, so it supersedes the earlier passes without deleting them.
    ========================================================================== */
@@ -19,8 +19,8 @@
    the top, darkest at the bottom, and strongest right behind the menu. */
 .app-bg[data-backdrop="home"] .app-bg-veil {
   background:
-    radial-gradient(115% 85% at 50% 40%, rgba(4, 7, 14, 0.2) 0%, rgba(4, 7, 14, 0.56) 52%, rgba(3, 5, 11, 0.92) 100%),
-    linear-gradient(180deg, rgba(4, 7, 14, 0.72) 0%, rgba(4, 7, 14, 0.26) 38%, rgba(4, 7, 14, 0.9) 100%);
+    radial-gradient(115% 85% at 50% 40%, rgba(9, 9, 9, 0.2) 0%, rgba(9, 9, 9, 0.56) 52%, rgba(7, 7, 7, 0.92) 100%),
+    linear-gradient(180deg, rgba(9, 9, 9, 0.72) 0%, rgba(9, 9, 9, 0.26) 38%, rgba(9, 9, 9, 0.9) 100%);
 }
 
 /* ------------------------------------------------------------ top bar
@@ -30,8 +30,8 @@
   height: 62px;
   gap: 12px;
   padding: 0 clamp(14px, 2vw, 26px);
-  background: linear-gradient(180deg, rgba(4, 7, 13, 0.82), rgba(4, 7, 13, 0));
-  border-bottom: 1px solid rgba(150, 180, 235, 0.05);
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0.82), rgba(8, 8, 8, 0));
+  border-bottom: 1px solid rgba(192, 192, 192, 0.05);
 }
 .hdr-brand {
   gap: 9px;
@@ -41,28 +41,28 @@
   transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease);
 }
 .hdr-brand:hover {
-  background: rgba(18, 26, 42, 0.7);
+  background: rgba(30, 30, 30, 0.7);
   border-color: var(--glass-border);
 }
 .hdr-brand .logo-mark {
   width: auto;
   border-radius: 0;
-  filter: drop-shadow(0 2px 10px rgba(47, 128, 255, 0.35));
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.55));
 }
 .hdr-brand-name {
   font-size: 0.9rem;
   font-weight: 800;
   letter-spacing: 0.3em;
   text-indent: 0.3em;
-  color: #fff;
+  color: #ffffff;
 }
 
 .hdr-tabs ul {
   gap: 3px;
   padding: 4px;
-  border: 1px solid rgba(150, 180, 235, 0.1);
+  border: 1px solid rgba(192, 192, 192, 0.1);
   border-radius: 12px;
-  background: rgba(7, 11, 19, 0.6);
+  background: rgba(13, 13, 13, 0.6);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(14px) saturate(130%);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
@@ -79,9 +79,9 @@
   background: rgba(255, 255, 255, 0.06);
 }
 .hdr-tab.active {
-  color: #fff;
-  background: linear-gradient(180deg, rgba(47, 128, 255, 0.3), rgba(47, 128, 255, 0.14));
-  box-shadow: inset 0 0 0 1px rgba(96, 168, 255, 0.5), 0 4px 16px rgba(18, 74, 190, 0.28);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 .hdr-tab.active::before {
   display: none;
@@ -89,9 +89,9 @@
 .hdr-tools ul {
   gap: 3px;
   padding: 4px;
-  border: 1px solid rgba(150, 180, 235, 0.1);
+  border: 1px solid rgba(192, 192, 192, 0.1);
   border-radius: 12px;
-  background: rgba(7, 11, 19, 0.55);
+  background: rgba(13, 13, 13, 0.55);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -102,13 +102,13 @@
   color: var(--text-soft);
 }
 .hdr .hdr-tool:hover:not(:disabled) {
-  color: #fff;
+  color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
 }
 .hdr .hdr-tool.active {
-  color: #fff;
-  background: linear-gradient(180deg, rgba(47, 128, 255, 0.3), rgba(47, 128, 255, 0.14));
-  box-shadow: inset 0 0 0 1px rgba(96, 168, 255, 0.5);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 .hdr-account {
   height: 40px;
@@ -116,15 +116,15 @@
   padding: 0 13px 0 5px;
   border: 1px solid var(--glass-border);
   border-radius: 10px;
-  background: rgba(9, 14, 24, 0.58);
+  background: rgba(16, 16, 16, 0.58);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   transition: background var(--fast), border-color var(--fast) var(--ease);
 }
 .hdr-account:hover,
 .hdr-account[aria-expanded="true"] {
-  background: rgba(22, 33, 52, 0.85);
-  border-color: rgba(96, 168, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.34);
 }
 .hdr-account .skin-head {
   border-radius: 6px;
@@ -135,17 +135,18 @@
 .hdr-win button {
   border-radius: 8px;
 }
+/* The strip stays dark in both appearances, so its pills stay dark too. */
 :root[data-theme="light"] .hdr-tabs ul,
 :root[data-theme="light"] .hdr-tools ul,
 :root[data-theme="light"] .hdr-account {
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 10px 24px rgba(30, 50, 90, 0.12);
+  background: rgba(8, 8, 8, 0.55);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 }
 /* The top bar is a dark strip in both appearances (it sits on the picture), so
    the brand keeps its white mark and white lettering — including on light pages,
    where the strip is stated explicitly instead of fading into pale chrome. */
 :root[data-theme="light"] .hdr {
-  background: linear-gradient(180deg, rgba(8, 12, 20, 0.94) 0%, rgba(8, 12, 20, 0.72) 68%, rgba(8, 12, 20, 0));
+  background: linear-gradient(180deg, rgba(14, 14, 14, 0.94) 0%, rgba(14, 14, 14, 0.72) 68%, rgba(14, 14, 14, 0));
 }
 
 /* ------------------------------------------------------------ buttons
@@ -172,21 +173,22 @@
 }
 .ui-btn:hover:not(:disabled) {
   background: var(--raised-2);
-  border-color: rgba(96, 168, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 .ui-btn:active:not(:disabled) {
   transform: translateY(1px);
 }
 .ui-btn-primary {
+  /* White on black, black on white: the one filled control in the system. */
   color: var(--on-accent);
-  border-color: rgba(120, 180, 255, 0.45);
-  background: linear-gradient(180deg, #3d8bff 0%, #1f6be8 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 22px rgba(22, 84, 214, 0.3);
+  border-color: transparent;
+  background: var(--accent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 24px rgba(0, 0, 0, 0.42);
 }
 .ui-btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #57a0ff 0%, #2b78f5 100%);
-  border-color: rgba(160, 205, 255, 0.6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 26px rgba(22, 84, 214, 0.42);
+  background: var(--accent-strong);
+  border-color: transparent;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
 }
 .ui-btn-primary:disabled {
   background: rgba(255, 255, 255, 0.07);
@@ -206,7 +208,7 @@
   color: var(--text);
 }
 .ui-btn-secondary {
-  background: rgba(10, 16, 28, 0.7);
+  background: rgba(19, 19, 19, 0.7);
 }
 :root[data-theme="light"] .ui-btn-secondary {
   background: rgba(255, 255, 255, 0.85);
@@ -222,16 +224,17 @@
 .btn:hover:not(:disabled),
 .btn-pill:hover:not(:disabled) {
   background: var(--raised-2);
-  border-color: rgba(96, 168, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 .btn-primary {
-  border-color: rgba(120, 180, 255, 0.45);
-  background: linear-gradient(180deg, #3d8bff 0%, #1f6be8 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 22px rgba(22, 84, 214, 0.28);
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38);
 }
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #57a0ff 0%, #2b78f5 100%);
-  border-color: rgba(160, 205, 255, 0.6);
+  background: var(--accent-strong);
+  border-color: transparent;
 }
 
 /* ------------------------------------------------------------ page frame */
@@ -249,7 +252,7 @@
 .card {
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(15, 22, 37, 0.9), rgba(8, 13, 23, 0.92));
+  background: linear-gradient(180deg, rgba(26, 26, 26, 0.9), rgba(16, 16, 16, 0.92));
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.035);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
@@ -271,8 +274,8 @@
   border-radius: 10px;
 }
 .seg > button.seg-on {
-  background: linear-gradient(180deg, rgba(47, 128, 255, 0.3), rgba(47, 128, 255, 0.16));
-  box-shadow: inset 0 0 0 1px rgba(96, 168, 255, 0.45);
+  background: var(--raised-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 input[type="text"],
 input[type="search"],
@@ -282,7 +285,7 @@ input:not([type]),
 select,
 textarea {
   border-radius: 9px;
-  background: rgba(4, 8, 15, 0.55);
+  background: rgba(10, 10, 10, 0.55);
 }
 :root[data-theme="light"] input[type="text"],
 :root[data-theme="light"] input[type="search"],
@@ -317,7 +320,7 @@ textarea {
   margin: auto auto 0;
   padding: clamp(18px, 5vh, 56px) 0 0;
 }
-/* A single soft light behind the menu; it is depth, not decoration. */
+/* A soft shadow behind the menu so the white type holds on any picture. */
 .home-hero::before {
   content: "";
   position: absolute;
@@ -327,7 +330,7 @@ textarea {
   width: min(760px, 110vw);
   height: 520px;
   transform: translateX(-50%);
-  background: radial-gradient(circle at 50% 42%, rgba(47, 128, 255, 0.2), rgba(47, 128, 255, 0.05) 46%, transparent 72%);
+  background: radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2) 46%, transparent 72%);
   pointer-events: none;
 }
 .home-hero > * {
@@ -335,7 +338,7 @@ textarea {
   z-index: 1;
 }
 :root[data-theme="light"] .home-hero::before {
-  background: radial-gradient(circle at 50% 42%, rgba(31, 111, 240, 0.12), transparent 70%);
+  background: radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 0.42), transparent 70%);
 }
 
 .home-lockup {
@@ -347,7 +350,7 @@ textarea {
 }
 .home-lockup .logo-mark {
   width: auto;
-  filter: drop-shadow(0 14px 34px rgba(20, 80, 200, 0.45)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.6));
 }
 .home-lockup-name {
   display: inline-flex;
@@ -359,7 +362,7 @@ textarea {
   letter-spacing: 0.34em;
   text-indent: 0.34em;
   text-transform: uppercase;
-  color: #fff;
+  color: #ffffff;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
 }
 .home-lockup-name em {
@@ -367,7 +370,8 @@ textarea {
   font-weight: 600;
   font-size: 0.86em;
   letter-spacing: 0.34em;
-  color: var(--accent-2);
+  /* sits on the picture in both appearances, so it stays light */
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .home-title {
@@ -376,7 +380,7 @@ textarea {
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 1;
-  color: #fff;
+  color: #ffffff;
   text-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
 }
 .home-sub {
@@ -407,40 +411,37 @@ textarea {
   min-width: 300px;
   height: 58px;
   border-radius: 12px;
-  border: 1px solid rgba(130, 190, 255, 0.5);
-  background: linear-gradient(180deg, #3f8dff 0%, #1c66e4 100%);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: 1.04rem;
   font-weight: 750;
   letter-spacing: 0.02em;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 16px 40px rgba(20, 82, 210, 0.45);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
   transition: transform var(--fast) var(--ease), box-shadow var(--med) var(--ease), background var(--fast);
 }
 .play-panel.lp-quick .ui-btn.lp-go:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: linear-gradient(180deg, #57a0ff 0%, #2b78f5 100%);
-  border-color: rgba(170, 212, 255, 0.65);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 20px 48px rgba(20, 82, 210, 0.55);
+  background: var(--accent-strong);
+  border-color: transparent;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.58);
 }
 .play-panel.lp-quick .ui-btn.lp-go:active:not(:disabled) {
   transform: translateY(0) scale(0.994);
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.28);
 }
 .play-panel.lp-quick .hero-actions .ui-btn:not(.lp-go) {
   height: 58px;
   min-width: 132px;
   border-radius: 12px;
   border-color: var(--glass-border);
-  background: rgba(8, 13, 23, 0.62);
+  background: rgba(16, 16, 16, 0.62);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 .play-panel.lp-quick .hero-actions .ui-btn:not(.lp-go):hover:not(:disabled) {
-  border-color: rgba(96, 168, 255, 0.45);
-  background: rgba(20, 31, 50, 0.8);
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.1);
 }
 .play-panel.lp-quick .hero-note {
   text-align: center;
@@ -463,19 +464,19 @@ textarea {
   gap: 10px;
   border-radius: 999px;
   border: 1px solid var(--glass-border);
-  background: rgba(6, 10, 18, 0.6);
+  background: rgba(12, 12, 12, 0.6);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   text-align: left;
   transition: border-color var(--fast), background var(--fast);
 }
 .home-identity:hover {
-  border-color: rgba(96, 168, 255, 0.4);
-  background: rgba(12, 19, 32, 0.78);
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.08);
 }
 /* The chip stays dark in both appearances: it sits on the picture, not on a page. */
 :root[data-theme="light"] .home-identity {
-  color: #fff;
+  color: #ffffff;
 }
 :root[data-theme="light"] .home-id-meta {
   color: rgba(255, 255, 255, 0.66);
@@ -487,7 +488,7 @@ textarea {
   font-size: 0.84rem;
 }
 .home-id-name small {
-  color: var(--accent-2);
+  color: rgba(255, 255, 255, 0.62);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.64rem;
@@ -527,24 +528,24 @@ textarea {
 .vc {
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: rgba(8, 13, 23, 0.82);
+  background: rgba(16, 16, 16, 0.82);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
   transition: transform var(--med) var(--ease), border-color var(--med), box-shadow var(--med);
 }
 .vc:hover {
   transform: translateY(-2px);
-  border-color: rgba(96, 168, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.34);
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.46);
 }
 .vc.vc-selected {
-  border-color: rgba(96, 168, 255, 0.85);
-  box-shadow: 0 0 0 1px rgba(96, 168, 255, 0.5), 0 14px 32px rgba(18, 74, 190, 0.32);
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.34), 0 14px 32px rgba(0, 0, 0, 0.45);
 }
 .vc-main {
-  background: #0a1020;
+  background: #151515;
 }
 .vc-shade {
-  background: linear-gradient(180deg, rgba(4, 8, 18, 0.04) 26%, rgba(4, 8, 18, 0.86) 100%);
+  background: linear-gradient(180deg, rgba(11, 11, 11, 0.04) 26%, rgba(11, 11, 11, 0.86) 100%);
 }
 .vc-name {
   font-size: 1.06rem;
@@ -554,7 +555,7 @@ textarea {
   font-size: 0.72rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--accent-2);
+  color: rgba(255, 255, 255, 0.6);
 }
 .vc-more {
   height: 100%;
@@ -562,12 +563,12 @@ textarea {
   border-radius: 12px;
   border-style: solid;
   border-color: var(--border);
-  background: rgba(8, 13, 23, 0.7);
+  background: rgba(16, 16, 16, 0.7);
   color: var(--text-soft);
 }
 .vc-more:hover {
-  border-color: rgba(96, 168, 255, 0.45);
-  background: rgba(18, 28, 46, 0.85);
+  border-color: rgba(255, 255, 255, 0.32);
+  background: var(--raised-2);
   transform: none;
 }
 
@@ -575,8 +576,8 @@ textarea {
    One line at the edge: the build on the left, the community on the right. */
 .footbar {
   padding: 7px clamp(14px, 2vw, 26px);
-  background: rgba(4, 7, 13, 0.5);
-  border-top: 1px solid rgba(150, 180, 235, 0.07);
+  background: rgba(8, 8, 8, 0.5);
+  border-top: 1px solid rgba(192, 192, 192, 0.07);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -605,14 +606,14 @@ textarea {
 /* ------------------------------------------------------------ account panel */
 .acct-drawer {
   width: min(424px, 100%);
-  background: #060a12;
-  border-left: 1px solid rgba(150, 180, 235, 0.12);
+  background: #0c0c0c;
+  border-left: 1px solid rgba(192, 192, 192, 0.12);
   box-shadow: -30px 0 80px rgba(0, 0, 0, 0.6);
 }
 .acct-head {
   padding: 22px 22px 16px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(47, 128, 255, 0.09), transparent);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent);
 }
 .acct-head h2 {
   font-size: 1.45rem;
@@ -623,14 +624,14 @@ textarea {
   padding: 16px 18px 26px;
 }
 .acct-body .card {
-  background: linear-gradient(180deg, rgba(15, 22, 37, 0.9), rgba(9, 14, 24, 0.92));
+  background: linear-gradient(180deg, rgba(26, 26, 26, 0.9), rgba(16, 16, 16, 0.92));
   border-color: var(--border);
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 .acct-body .card:hover {
-  border-color: rgba(96, 168, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 .offline-form .ui-btn {
   align-self: stretch;
@@ -639,12 +640,11 @@ textarea {
 /* ------------------------------------------------------------ startup screen */
 .boot {
   gap: 24px;
-  background: #000;
+  background: #000000;
 }
 .boot-spinner {
   border-color: rgba(255, 255, 255, 0.14);
-  border-top-color: var(--accent-2);
-  box-shadow: 0 0 24px rgba(56, 224, 240, 0.25);
+  border-top-color: #ffffff;
 }
 .boot-text {
   letter-spacing: 0.2em;
@@ -703,5 +703,762 @@ textarea {
   }
   .home-id-meta {
     white-space: normal;
+  }
+}
+
+/* ==========================================================================
+   Open layout: fewer surfaces, one separator at a time
+
+   The palette stays black, white and gray, but it no longer paints a box
+   around everything. Pages sit on one quiet ground; sections are separated by
+   a single hairline instead of stacked panels. Icons are drawn straight on the
+   surface, selection is a white rule or underline, and only overlays (menus,
+   dialogs, the account drawer) keep a solid fill.
+   ========================================================================== */
+
+/* ------------------------------------------------------------ page ground
+   Only Home keeps the picture. Every other page is nearly flat, so the type,
+   the artwork and the hairlines are what the eye reads. */
+.app-bg:not([data-backdrop="home"]) .app-bg-img {
+  opacity: 0;
+}
+.app-bg:not([data-backdrop="home"]) .app-bg-veil {
+  background: radial-gradient(110% 80% at 50% 0%, #1e1e1e 0%, #141414 48%, #0d0d0d 100%);
+}
+.app-bg:not([data-backdrop="home"]) .app-bg-vignette {
+  display: none;
+}
+:root[data-theme="light"] .app-bg:not([data-backdrop="home"]) .app-bg-veil {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 240, 0.94) 64%),
+    linear-gradient(180deg, rgba(246, 246, 246, 0.94) 0%, rgba(238, 238, 238, 0.97) 100%);
+}
+
+/* ------------------------------------------------------------ cards are sections
+   A card is a place in the page, not a plate on it: one top rule, generous
+   space above the title, no border around the sides, no shadow. */
+.card,
+.acct-body .card,
+.accounts-main .account-card {
+  gap: 14px;
+  padding: 24px 0 6px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.card-head {
+  margin-bottom: 2px;
+}
+.card .card-head h2 {
+  font-size: 1.05rem;
+  letter-spacing: -0.012em;
+}
+.card .card-icon {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  color: var(--text-soft);
+}
+.card .card-icon svg {
+  width: 19px;
+  height: 19px;
+}
+.tone-cyan .card-icon,
+.tone-green .card-icon,
+.tone-amber .card-icon,
+.tone-pink .card-icon,
+.tone-blue .card-icon {
+  background: none;
+  color: var(--text-soft);
+}
+.card-desc {
+  max-width: 68ch;
+}
+
+/* ------------------------------------------------------------ quiet controls */
+.ui-btn:not(.ui-btn-primary),
+.ui-btn:not(.ui-btn-primary):hover:not(:disabled),
+.ui-btn-secondary,
+.btn:not(.btn-primary):not(.btn-danger),
+.btn:not(.btn-primary):not(.btn-danger):hover:not(:disabled),
+.btn-pill,
+.btn-pill:hover:not(:disabled),
+.btn-signin {
+  border-color: var(--border);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.ui-btn:not(.ui-btn-primary):hover:not(:disabled),
+.btn:not(.btn-primary):not(.btn-danger):hover:not(:disabled),
+.btn-pill:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+.ui-btn-primary,
+.btn-primary {
+  box-shadow: none;
+}
+.ui-btn-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  box-shadow: none;
+}
+.play-panel.lp-quick .hero-actions .ui-btn:not(.lp-go) {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* inputs sit on the page instead of on a dark plate */
+input[type="text"],
+input[type="search"],
+input[type="number"],
+input[type="url"],
+input:not([type]),
+select,
+textarea {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.035);
+}
+:root[data-theme="light"] input[type="text"],
+:root[data-theme="light"] input[type="search"],
+:root[data-theme="light"] input[type="number"],
+:root[data-theme="light"] input[type="url"],
+:root[data-theme="light"] input:not([type]),
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.search-box {
+  border-color: var(--border);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.search-box:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: none;
+}
+.search-box input,
+.search-box input:focus {
+  background: transparent;
+  box-shadow: none;
+}
+
+.chip {
+  background: transparent;
+}
+.chip-on,
+.chip-accent {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: var(--text);
+}
+
+.banner,
+.banner-good,
+.banner-warn,
+.banner-bad,
+.banner-info {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------ top bar
+   No pill around the page icons: they sit on the strip itself, gray until
+   their page is open, then white with a short underline. */
+.hdr {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0) 100%);
+  border-bottom-color: transparent;
+}
+.hdr-tabs ul,
+.hdr-tools ul {
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.hdr-tools ul {
+  gap: 4px;
+}
+.hdr-tab {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.48);
+}
+.hdr-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+.hdr-tab.active {
+  color: #ffffff;
+  background: transparent;
+  box-shadow: none;
+}
+.hdr-tab.active::before {
+  content: "";
+  display: block;
+  left: 50%;
+  right: auto;
+  bottom: -4px;
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: #ffffff;
+  transform: translateX(-50%);
+}
+.hdr .hdr-tool {
+  border-radius: 6px;
+  background: transparent;
+}
+.hdr .hdr-tool:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+.hdr .hdr-tool.active {
+  color: #ffffff;
+  background: transparent;
+  box-shadow: none;
+}
+.hdr-account {
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.hdr-account:hover,
+.hdr-account[aria-expanded="true"] {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.06);
+}
+.hdr-brand:hover {
+  border-color: transparent;
+  background: transparent;
+}
+:root[data-theme="light"] .hdr-tabs ul,
+:root[data-theme="light"] .hdr-tools ul,
+:root[data-theme="light"] .hdr-account {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* footer: one rule, no strip */
+.footbar {
+  background: transparent;
+  border-top-color: var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+:root[data-theme="light"] .footbar {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------ selection as a rule
+   Segmented controls, settings sections and category lists all use the same
+   language: gray until chosen, then white text with a short white indicator. */
+.seg {
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.seg > button {
+  height: 30px;
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.seg > button:hover:not(:disabled):not(.seg-on),
+.seg > button:active:not(:disabled) {
+  background: transparent;
+  color: var(--text);
+}
+.seg > button.seg-on {
+  border-bottom-color: var(--accent);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+.seg-icons {
+  gap: 10px;
+}
+.seg-icons > button {
+  width: 26px;
+  padding: 0;
+  border-bottom: 0;
+}
+.seg-icons > button.seg-on {
+  color: var(--text);
+}
+.seg-stack {
+  gap: 18px;
+}
+
+/* settings sections: a quiet rail with a white mark on the open one */
+.settings-tabs,
+.settings-glass-nav {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.settings-tab {
+  padding: 8px 12px 8px 14px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.settings-tab:hover {
+  background: transparent;
+  color: var(--text);
+}
+.settings-tab.active {
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+.settings-tab.active::before {
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 2px;
+  background: var(--accent);
+}
+.settings-tab svg {
+  color: currentColor;
+}
+
+/* ------------------------------------------------------------ browse layout
+   The filter column is separated by a rule, not wrapped in a panel. */
+.browse {
+  grid-template-columns: 212px minmax(0, 1fr);
+  gap: 32px;
+}
+.browse-filters {
+  padding: 2px 24px 0 0;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.radio-list {
+  gap: 0;
+}
+.radio-row {
+  position: relative;
+  padding: 8px 0 8px 14px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.radio-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 14px;
+  border-radius: 2px;
+  background: transparent;
+  transform: translateY(-50%);
+}
+.radio-row:hover {
+  background: transparent;
+  color: var(--text);
+}
+.radio-row.radio-on {
+  background: transparent;
+  color: var(--text);
+}
+.radio-row.radio-on::before {
+  background: var(--accent);
+}
+.radio-dot {
+  display: none;
+}
+
+/* ------------------------------------------------------------ mod results
+   One entry per result, on the page: icon, words, then the actions. The grid
+   and list buttons still change the flow, but neither adds a card. */
+.mod-results {
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 0 40px;
+}
+.mod-results .mod-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-areas: "art body foot";
+  align-items: center;
+  gap: 0 16px;
+  padding: 17px 0;
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.mod-results .mod-card:hover {
+  border-color: var(--border);
+  transform: none;
+}
+.mod-results .mod-card-art {
+  grid-area: art;
+  display: block;
+  height: auto;
+  overflow: visible;
+  background: none;
+}
+.mod-card-blur {
+  display: none;
+}
+.mod-results .mod-card-art .mod-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mod-results .mod-icon-empty {
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+.mod-results .mod-body {
+  grid-area: body;
+  padding: 0;
+}
+.mod-results .mod-desc {
+  min-height: 0;
+}
+.mod-results .mod-foot {
+  grid-area: foot;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+}
+.mod-results-list {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+.mod-results-list .mod-card {
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-areas: "art body foot";
+  align-items: center;
+}
+.mod-results-list .mod-card-art {
+  height: auto;
+}
+.mod-results-list .mod-card-art .mod-icon {
+  width: 48px;
+  height: 48px;
+}
+.mod-results-list .mod-card .mod-body {
+  padding: 0;
+}
+.mod-results-list .mod-foot {
+  padding: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+/* An install action belongs to its row, not to the page: outlined, and white
+   only while it is being used. The filled white control stays the page action. */
+.mod-results .mod-card .btn-primary:not(:disabled) {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+.mod-results .mod-card .btn-primary:not(:disabled):hover {
+  border-color: var(--accent);
+  background: transparent;
+  color: var(--text);
+}
+
+.pager-btn {
+  min-width: 30px;
+  height: 32px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--muted);
+}
+.pager-btn:hover:not(:disabled) {
+  background: transparent;
+  color: var(--text);
+}
+.pager-btn.pager-on {
+  border-color: transparent;
+  border-bottom-color: var(--accent);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------ installed mods */
+.mod-grid {
+  gap: 0 32px;
+}
+.mod-tile {
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+.mod-tile:hover {
+  border-color: var(--border);
+  background: transparent;
+  transform: none;
+}
+.mod-tile-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.mod-tile-icon img {
+  border-radius: 0;
+}
+.mod-tile-actions .icon-btn {
+  border-radius: 0;
+}
+.pack-list {
+  gap: 0;
+}
+.pack-list li {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+.pack-list li:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+/* empty states lose their dashed box */
+.empty,
+.empty-big,
+.mp-empty,
+.servers-empty {
+  padding: 30px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.empty > svg,
+.empty-big svg {
+  color: var(--text-soft);
+  opacity: 0.8;
+}
+.skin-head-empty {
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text-soft);
+}
+.crash-icon,
+.studio-library-art {
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+.crash-icon {
+  color: var(--bad);
+}
+.servers-empty-icon,
+.shortcut-icon,
+.vp-trigger-icon,
+.version-mark,
+.account-profile-avatar {
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--text-soft);
+}
+
+/* ------------------------------------------------------------ version cards
+   The artwork is the surface; the action strip is just a rule below it. */
+.vc {
+  border-color: var(--border);
+  background: transparent;
+  box-shadow: none;
+}
+.vc:hover {
+  border-color: var(--border-strong);
+  box-shadow: none;
+  transform: none;
+}
+.vc.vc-selected {
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+}
+.vc-actions {
+  border-top-color: var(--border);
+  background: transparent;
+}
+.vc-more {
+  border-style: solid;
+  border-color: var(--border);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.vc-more:hover {
+  border-color: var(--border-strong);
+  background: transparent;
+  transform: none;
+}
+
+/* ------------------------------------------------------------ settings details */
+.theme-card {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+}
+.theme-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: none;
+  transform: none;
+}
+.theme-card.theme-on {
+  border-color: var(--accent);
+  box-shadow: none;
+}
+.settings-account-row,
+.account-profile-details > div,
+.account-list li {
+  padding: 11px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+.account-list li.on {
+  border-color: var(--border);
+  background: transparent;
+}
+.account-list li.on .account-list-text strong {
+  color: var(--text);
+}
+
+/* menus and dialogs are the one place a fill is still earned */
+.vp-installed-chip.is-active,
+.vp-row.is-selected {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+/* Light appearance: the same quiet selection, with a dark rule on white. */
+:root[data-theme="light"] .seg {
+  background: transparent;
+}
+
+/* The Home picture stays dark in both appearances, so its footer text lightens
+   with it instead of turning into gray-on-gray. */
+:root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar,
+:root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar .pill {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Narrow windows: the settings rail becomes one row of underlined tabs. */
+@media (max-width: 960px) {
+  .settings-tabs,
+  .settings-glass-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 24px;
+    padding: 0 0 12px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-tab-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 24px;
+  }
+  .settings-tab-group + .settings-tab-group {
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+  }
+  .settings-tab-group-label {
+    display: none;
+  }
+  .settings-tab {
+    padding: 6px 0;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+  .settings-tab.active {
+    border-bottom-color: var(--accent);
+  }
+  .settings-tab.active::before {
+    display: none;
+  }
+}
+@media (max-width: 860px) {
+  .browse {
+    gap: 24px;
+  }
+  .browse-filters {
+    padding: 0 0 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
   }
 }

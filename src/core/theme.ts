@@ -9,7 +9,7 @@ export interface ThemeInfo {
 }
 
 export const THEMES: readonly ThemeInfo[] = [
-  { id: "dark", label: "Dark", blurb: "Near-black with Cirrus blue", swatch: ["#0d0e11", "#16181d", "#20232a"] },
+  { id: "dark", label: "Dark", blurb: "Near-black, monochrome", swatch: ["#050505", "#101010", "#1e1e1e"] },
   { id: "light", label: "Light", blurb: "Bright and clean", swatch: ["#eef1f6", "#ffffff", "#e4e8f0"] },
 ];
 

@@ -1,54 +1,63 @@
 /* ==========================================================================
-   Cirrus design tokens. Every colour, radius, blur and timing used by the new
+   Cirrus design tokens. Every colour, radius, blur and timing used by the
    interface lives here, once, for both appearances (Dark and Light).
+
+   The palette is monochrome, taken from the Cirrus mark: pure black and
+   near-black surfaces, pure white for text, icons, active states and
+   highlights, and neutral grays for panels, cards, borders and secondary
+   elements. There is no hue in the system: contrast and spacing carry the
+   design, not colour.
    ========================================================================== */
 :root {
   color-scheme: dark;
 
-  /* surfaces (midnight black and deep navy) */
-  --bg: #05070d;
-  --bg-2: #080c15;
-  --surface: rgba(10, 15, 26, 0.72);
-  --surface-solid: #080c15;
-  --raised: rgba(20, 29, 46, 0.78);
-  --raised-solid: #121b2a;
-  --raised-2: rgba(31, 44, 68, 0.86);
-  --glass: rgba(9, 14, 24, 0.66);
-  --glass-strong: rgba(7, 11, 19, 0.9);
-  --glass-border: rgba(150, 180, 235, 0.13);
+  /* surfaces (pure black and near-black) */
+  --bg: #050505;
+  --bg-2: #0a0a0a;
+  /* Panels are a wash over the page, not another black plate on top of it.
+     Only overlays (menus, dialogs, the account drawer) are solid. */
+  --surface: rgba(255, 255, 255, 0.025);
+  --surface-solid: #0a0a0a;
+  --raised: rgba(255, 255, 255, 0.04);
+  --raised-solid: #161616;
+  --raised-2: rgba(255, 255, 255, 0.075);
+  --glass: rgba(255, 255, 255, 0.025);
+  --glass-strong: rgba(6, 6, 6, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.1);
   --glass-hi: rgba(255, 255, 255, 0.05);
   --blur: 16px;
-  --border: rgba(150, 180, 235, 0.1);
-  --border-strong: rgba(150, 180, 235, 0.24);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.22);
 
-  /* text */
-  --text: #f4f7ff;
-  --text-soft: #c2cce2;
-  --muted: #8896ae;
+  /* text: white for what matters, grays for what supports it */
+  --text: #f5f5f5;
+  --text-soft: #c4c4c4;
+  --muted: #8a8a8a;
 
-  /* accents: electric blue, with cyan for the small highlights */
-  --accent: #2f80ff;
-  --accent-strong: #1a5fe0;
-  --accent-bright: #74b0ff;
-  --accent-2: #38e0f0;
-  --violet: #7c6bff;
-  --accent-rgb: 47 128 255;
-  --accent-soft: rgb(var(--accent-rgb) / 0.16);
-  --on-accent: #ffffff;
-  --good: #37d39a;
-  --warn: #f0b64a;
-  --bad: #ef6b6b;
+  /* the one highlight: white. Grays carry the small labels. */
+  --accent: #ffffff;
+  --accent-strong: #dedede;
+  --accent-bright: #ffffff;
+  --accent-2: #a3a3a3;
+  --violet: #8f8f8f;
+  --accent-rgb: 255 255 255;
+  --accent-soft: rgb(var(--accent-rgb) / 0.12);
+  --on-accent: #0a0a0a;
+  /* status only, never decoration */
+  --good: #4fbf8b;
+  --warn: #d3a24c;
+  --bad: #e06a6a;
 
   /* shape and depth */
   --radius: 12px;
   --radius-sm: 9px;
   --radius-lg: 16px;
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
-  --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.6);
-  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.4);
-  --tooltip: #03060c;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.46);
+  --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.62);
+  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.32);
+  --tooltip: #0b0b0b;
   --tooltip-text: #ffffff;
-  --scrim: rgba(2, 4, 9, 0.78);
+  --scrim: rgba(0, 0, 0, 0.74);
 
   /* type */
   --font: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -59,70 +68,76 @@
   --fast: 130ms;
   --med: 220ms;
 
-  /* the picture behind the window */
-  --scene-veil: linear-gradient(180deg, rgba(4, 7, 14, 0.6) 0%, rgba(4, 7, 14, 0.34) 42%, rgba(4, 7, 14, 0.9) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 38%, rgba(2, 5, 12, 0.78) 100%);
-  --scene-filter: saturate(1.03) brightness(0.97);
+  /* the picture behind the window: held back to near-monochrome so the mark
+     and the white type stay the loudest things on screen */
+  --scene-veil: linear-gradient(180deg, rgba(4, 4, 4, 0.6) 0%, rgba(4, 4, 4, 0.34) 42%, rgba(3, 3, 3, 0.92) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 36%, rgba(0, 0, 0, 0.8) 100%);
+  --scene-filter: grayscale(0.72) contrast(1.04) brightness(0.92);
 
   /* names the older stylesheet still uses */
-  --hero-scrim: linear-gradient(90deg, rgba(4, 7, 14, 0.85), rgba(4, 7, 14, 0.3));
+  --hero-scrim: linear-gradient(90deg, rgba(4, 4, 4, 0.86), rgba(4, 4, 4, 0.3));
   --dock-bg: var(--glass-strong);
   --dock-border: var(--glass-border);
-  --sky-top: #03060e;
-  --sky-mid: #0a1740;
-  --sky-bottom: #123a80;
-  --sky-glow: #5c9dff;
-  --sky-cloud: #b9deff;
+  --sky-top: #020202;
+  --sky-mid: #1c1c1c;
+  --sky-bottom: #333333;
+  --sky-glow: #e8e8e8;
+  --sky-cloud: #dcdcdc;
   --sky-cloud-far: 0.07;
   --sky-cloud-near: 0.13;
-  --sky-hills: #05080f;
-  --sky-stars: 0.6;
-  --sky-sun: #dcebff;
+  --sky-hills: #060606;
+  --sky-stars: 0.55;
+  --sky-sun: #ffffff;
 }
 
+/* Light appearance: the same two colours the other way round. White and pale
+   gray surfaces, near-black type, and a black primary action. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #eaeff9;
-  --bg-2: #f5f8fd;
+  --bg: #f1f1f1;
+  --bg-2: #fafafa;
   --surface: rgba(255, 255, 255, 0.74);
   --surface-solid: #ffffff;
-  --raised: rgba(255, 255, 255, 0.82);
-  --raised-solid: #f4f7fd;
-  --raised-2: rgba(230, 237, 250, 0.92);
-  --glass: rgba(255, 255, 255, 0.64);
-  --glass-strong: rgba(255, 255, 255, 0.9);
-  --glass-border: rgba(40, 70, 130, 0.16);
-  --glass-hi: rgba(255, 255, 255, 0.8);
-  --border: rgba(40, 70, 130, 0.14);
-  --border-strong: rgba(40, 70, 130, 0.3);
-  --text: #0b1424;
-  --text-soft: #283450;
-  --muted: #58657e;
-  --accent: #1f6ff0;
-  --accent-strong: #1455cc;
-  --accent-bright: #1558d4;
-  --accent-2: #0a94ab;
-  --violet: #6150d8;
-  --accent-rgb: 31 111 240;
-  --good: #108a58;
-  --warn: #a9721c;
-  --bad: #cf4242;
-  --shadow: 0 10px 30px rgba(30, 50, 90, 0.14);
-  --shadow-lg: 0 24px 60px rgba(30, 50, 90, 0.22);
-  --tooltip: #0b1424;
-  --scrim: rgba(14, 22, 38, 0.42);
-  --scene-veil: linear-gradient(180deg, rgba(240, 245, 255, 0.55) 0%, rgba(240, 245, 255, 0.4) 40%, rgba(236, 242, 253, 0.86) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(210, 222, 245, 0.7));
-  --scene-filter: saturate(0.95) brightness(1.05);
-  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
-  --sky-top: #7fb4f5;
-  --sky-mid: #b5d7fb;
-  --sky-bottom: #e3f0ff;
+  --raised: rgba(255, 255, 255, 0.84);
+  --raised-solid: #f4f4f4;
+  --raised-2: rgba(228, 228, 228, 0.92);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(12, 12, 12, 0.14);
+  --glass-hi: rgba(255, 255, 255, 0.85);
+  --border: rgba(12, 12, 12, 0.12);
+  --border-strong: rgba(12, 12, 12, 0.28);
+  --text: #101010;
+  --text-soft: #2e2e2e;
+  --muted: #606060;
+  --accent: #0c0c0c;
+  --accent-strong: #2a2a2a;
+  --accent-bright: #101010;
+  --accent-2: #5e5e5e;
+  --violet: #6a6a6a;
+  --accent-rgb: 12 12 12;
+  --accent-soft: rgb(var(--accent-rgb) / 0.09);
+  --on-accent: #ffffff;
+  --good: #10855a;
+  --warn: #94621b;
+  --bad: #bf3b3b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.18);
+  --tooltip: #101010;
+  --tooltip-text: #ffffff;
+  --scrim: rgba(10, 10, 10, 0.42);
+  --scene-veil: linear-gradient(180deg, rgba(246, 246, 246, 0.58) 0%, rgba(246, 246, 246, 0.4) 40%, rgba(242, 242, 242, 0.88) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(214, 214, 214, 0.72));
+  --scene-filter: grayscale(0.72) contrast(1.02) brightness(1.06);
+  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.2));
+  --sky-top: #c9c9c9;
+  --sky-mid: #e2e2e2;
+  --sky-bottom: #f6f6f6;
   --sky-glow: #ffffff;
   --sky-cloud: #ffffff;
   --sky-cloud-far: 0.55;
   --sky-cloud-near: 0.9;
-  --sky-hills: #8fb3e3;
+  --sky-hills: #a3a3a3;
   --sky-stars: 0;
   --sky-sun: #ffffff;
 }

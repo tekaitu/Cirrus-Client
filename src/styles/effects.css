@@ -99,10 +99,10 @@
 }
 .ui-btn-primary {
   --ui-btn-bg: var(--accent);
-  --ui-btn-bg-hover: color-mix(in srgb, var(--accent) 86%, white);
+  --ui-btn-bg-hover: var(--accent-strong);
   --ui-btn-bg-active: var(--accent-strong);
-  --ui-btn-border: rgb(255 255 255 / 0.16);
-  --ui-btn-border-hover: rgb(255 255 255 / 0.24);
+  --ui-btn-border: transparent;
+  --ui-btn-border-hover: transparent;
   --ui-btn-fg: var(--on-accent);
 }
 .ui-btn-secondary { /* the defaults above */ }
@@ -122,7 +122,7 @@
   --ui-btn-bg-active: #a52f30;
   --ui-btn-border: rgb(255 255 255 / 0.14);
   --ui-btn-border-hover: rgb(255 255 255 / 0.22);
-  --ui-btn-fg: #fff;
+  --ui-btn-fg: #ffffff;
 }
 .ui-btn-sm {
   --ui-btn-height: 30px;
@@ -214,16 +214,16 @@
 }
 .btn-primary {
   color: var(--on-accent);
-  border-color: rgb(255 255 255 / 0.16);
+  border-color: transparent;
   background: var(--accent);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.06);
 }
 .btn-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 86%, white);
-  border-color: rgb(255 255 255 / 0.24);
+  background: var(--accent-strong);
+  border-color: transparent;
 }
 .btn-primary:active:not(:disabled) { background: var(--accent-strong); }
-.btn-danger { background: #bf3b3c; border-color: rgb(255 255 255 / 0.14); color: #fff; }
+.btn-danger { background: #bf3b3c; border-color: rgb(255 255 255 / 0.14); color: #ffffff; }
 .btn-danger:hover:not(:disabled) { background: #cd4748; border-color: rgb(255 255 255 / 0.22); }
 .btn-quiet { background: transparent; border-color: transparent; color: var(--text-soft); }
 .btn-quiet:hover:not(:disabled) { background: rgb(255 255 255 / 0.07); border-color: transparent; color: var(--text); }
@@ -248,12 +248,12 @@
 }
 .btn.btn-signin .signin-icons { border-right-color: rgb(255 255 255 / 0.14); }
 .btn.btn-discord {
-  color: #fff;
-  background: #5865f2;
+  color: #ffffff;
+  background: #a5a5a5;
   border-color: rgb(255 255 255 / 0.18);
 }
-.btn.btn-discord:hover:not(:disabled) { background: #6772f4; border-color: rgb(255 255 255 / 0.26); }
-.btn.btn-discord:active:not(:disabled) { background: #4651d8; }
+.btn.btn-discord:hover:not(:disabled) { background: #aeaeae; border-color: rgb(255 255 255 / 0.26); }
+.btn.btn-discord:active:not(:disabled) { background: #8f8f8f; }
 /* Footer and brand marks never wobble or bob on hover. */
 .pill-community:hover svg,
 .hdr-brand:hover .logo-mark,
@@ -485,7 +485,6 @@
 .install-bar progress::-webkit-progress-value {
   border-radius: 999px;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 14px rgb(var(--accent-rgb) / 0.55);
   transition: width 0.3s var(--ease);
 }
 .install-bar.is-indeterminate::after {
@@ -842,7 +841,7 @@
   padding: 3px;
   border-radius: 9px;
   border: 1px solid rgb(255 255 255 / 0.07);
-  background: rgb(6 10 20 / 0.55);
+  background: rgb(13 13 13 / 0.55);
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -864,7 +863,7 @@
   width: 16px;
   height: 2px;
   transform: translateX(-50%);
-  background: linear-gradient(90deg, transparent, #fff, transparent);
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
 }
 .hdr-account {
   border: 1px solid transparent;
@@ -909,28 +908,28 @@
 :root[data-theme="light"] .btn,
 :root[data-theme="light"] .btn-pill {
   --ui-btn-bg: rgb(255 255 255 / 0.86);
-  --ui-btn-bg-hover: #fff;
-  --ui-btn-bg-active: rgb(232 240 252 / 0.95);
-  --ui-btn-border: rgb(24 48 92 / 0.18);
-  --ui-btn-border-hover: rgb(24 48 92 / 0.3);
+  --ui-btn-bg-hover: #ffffff;
+  --ui-btn-bg-active: rgb(242 242 242 / 0.95);
+  --ui-btn-border: rgb(58 58 58 / 0.18);
+  --ui-btn-border-hover: rgb(58 58 58 / 0.3);
   --ui-btn-fg: var(--text);
   border-color: var(--ui-btn-border);
   background: var(--ui-btn-bg);
   color: var(--ui-btn-fg);
-  box-shadow: inset 0 1px 0 #fff;
+  box-shadow: inset 0 1px 0 #ffffff;
 }
 :root[data-theme="light"] .ui-btn-primary {
   --ui-btn-bg: var(--accent);
-  --ui-btn-bg-hover: #3f8dff;
+  --ui-btn-bg-hover: var(--accent-strong);
   --ui-btn-bg-active: var(--accent-strong);
-  --ui-btn-border: rgb(24 48 92 / 0.12);
-  --ui-btn-border-hover: rgb(24 48 92 / 0.2);
+  --ui-btn-border: transparent;
+  --ui-btn-border-hover: transparent;
   --ui-btn-fg: var(--on-accent);
 }
 :root[data-theme="light"] .ui-btn-ghost {
   --ui-btn-bg: transparent;
-  --ui-btn-bg-hover: rgb(24 48 92 / 0.06);
-  --ui-btn-bg-active: rgb(24 48 92 / 0.1);
+  --ui-btn-bg-hover: rgb(58 58 58 / 0.06);
+  --ui-btn-bg-active: rgb(58 58 58 / 0.1);
   --ui-btn-border: transparent;
   --ui-btn-border-hover: transparent;
 }
@@ -992,7 +991,7 @@
   padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid rgb(255 255 255 / 0.07);
-  background: rgb(4 8 16 / 0.4);
+  background: rgb(10 10 10 / 0.4);
 }
 .home-identity .skin-head {
   border-radius: 7px;

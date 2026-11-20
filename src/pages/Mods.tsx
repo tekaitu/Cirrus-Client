@@ -547,7 +547,6 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
                   return (
                     <li key={key} className="mod-card">
                       <div className="mod-card-art" aria-hidden="true">
-                        {h.iconUrl && <img className="mod-card-blur" src={h.iconUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />}
                         {h.iconUrl ? (
                           <img className="mod-icon" src={h.iconUrl} alt="" loading="lazy" width={72} height={72} referrerPolicy="no-referrer" />
                         ) : (

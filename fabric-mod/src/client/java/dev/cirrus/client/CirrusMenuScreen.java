@@ -109,7 +109,7 @@ public final class CirrusMenuScreen extends Screen {
    CirrusUi.headingText(g,font,CirrusUi.fit(font,m.name(),textW,false),textX,y+7,t.text);
    CirrusUi.smallText(g,font,m.category().label,textX,y+21,t.cyan,false);
    CirrusUi.smallText(g,font,CirrusUi.fit(font,m.description(),f.cardW-56,true),x+9,y+48,t.muted,false);
-   CirrusUi.icon(g,x+f.cardW-58,y+9,14,5,m.favorite(config())?0xFFF5B942:t.muted);
+   CirrusUi.icon(g,x+f.cardW-58,y+9,14,5,m.favorite(config())?t.text:t.muted);
    CirrusUi.statusPill(g,font,m.enabled(config())?"ON":"OFF",x+f.cardW-44,y+9,m.enabled(config()),t);
    if(m.hasSettings())CirrusUi.smallText(g,font,"SETTINGS  ›",x+f.cardW-72,y+26,t.muted,false);
   }

@@ -26,7 +26,7 @@ public final class CirrusDashboardScreen extends Screen {
  public void render(GuiGraphics g,int mx,int my,float d){
   renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.dashboardBackdrop(g,width,height,t);
   CirrusUi.panel(g,8,8,width-16,height-16,18,t);CirrusUi.panel(g,14,14,134,height-28,16,t);CirrusUi.brand(g,25,21,28,t);
-  int headerX=Math.max(158,width/4);CirrusUi.panel(g,headerX,16,Math.max(120,width-headerX-20),36,12,t);CirrusUi.headingText(g,font,"DASHBOARD",headerX+16,27,t.cyan);
+  int headerX=Math.max(158,width/4);CirrusUi.panel(g,headerX,16,Math.max(120,width-headerX-20),36,12,t);CirrusUi.headingText(g,font,"DASHBOARD",headerX+16,27,t.text);
   int x=Math.max(174,width/4+12);CirrusUi.panel(g,x-12,height/2-82,Math.max(140,width-x-24),166,16,t);
   CirrusUi.section(g,x,height/2-64,Math.max(120,width-x-48),"YOUR GAME",t);
   CirrusUi.text(g,font,"Minecraft  "+Minecraft.getInstance().getLaunchedVersion(),x,height/2-40,t.text,true);
