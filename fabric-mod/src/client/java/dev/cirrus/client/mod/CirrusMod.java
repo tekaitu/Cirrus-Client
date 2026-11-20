@@ -24,6 +24,8 @@ public interface CirrusMod {
     default void onEnable(Minecraft client) {}
     default void onDisable(Minecraft client) {}
     default void render(GuiGraphics graphics, float tickDelta, CirrusConfig config) {}
-    default boolean hasSettings() { return false; }
+    /** The options this feature exposes; each feature has its own list and its own settings page. */
+    default java.util.List<Setting> settings() { return java.util.List.of(); }
+    default boolean hasSettings() { return !settings().isEmpty(); }
     default void openSettings(net.minecraft.client.gui.screens.Screen parent) {}
 }
