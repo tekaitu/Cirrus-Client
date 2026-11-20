@@ -9,6 +9,7 @@ Every big change gets its own version number. Small fixes bump the last number (
 - Top bar rebuilt around two chips: the page icons in one dark pill with a blue-tinted active tile, and the account as a matching chip. Settings and notifications share their own pill.
 - Buttons, cards, panels, fields and the account drawer all use the same flat skins, hover colours and one-pixel press.
 - The Home backdrop's dark layer is now strongest behind the menu, so the picture stays visible at the top and the text stays readable.
+- The in-game Cirrus screen (Fabric) uses the same palette: flat navy panels with hairline borders instead of glass frames, one electric-blue primary action (Singleplayer on the title screen), hover-only accent rails, a two-pixel marker under section headers, and ON/OFF as a state pill in the mod library.
 
 ## 0.3.2 — Character Studio, icon navigation and a real version picker
 - Home opens on the new forest-lantern artwork (`src/assets/backgrounds/home.jpg`) with a lighter dark layer over it, so the picture shows behind the title and Play button.

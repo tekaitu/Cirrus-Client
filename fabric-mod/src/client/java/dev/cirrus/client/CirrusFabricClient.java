@@ -51,7 +51,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
                 int buttonWidth=Math.min(220,Math.max(150,scaledWidth/3));
                 int x=(scaledWidth-buttonWidth)/2;
                 int y=Math.max(116,scaledHeight/2-8);
-                buttons.add(CirrusButton.nav(x,y,buttonWidth,22,Component.literal("Singleplayer"),CirrusUi.ICON_SINGLEPLAYER,b->client.setScreen(new SelectWorldScreen(screen))));
+                buttons.add(CirrusButton.primaryNav(x,y,buttonWidth,22,Component.literal("Singleplayer"),CirrusUi.ICON_SINGLEPLAYER,b->client.setScreen(new SelectWorldScreen(screen))));
                 buttons.add(CirrusButton.nav(x,y+29,buttonWidth,22,Component.literal("Multiplayer"),CirrusUi.ICON_MULTIPLAYER,b->client.setScreen(new JoinMultiplayerScreen(screen))));
                 buttons.add(CirrusButton.nav(x,y+58,buttonWidth,22,Component.literal("Cirrus Client  ·  Right Shift"),CirrusUi.ICON_DASHBOARD,b->client.setScreen(new CirrusDashboardScreen(screen))));
                 buttons.add(CirrusButton.nav(x,y+87,buttonWidth/2-3,22,Component.literal("Options"),CirrusUi.ICON_SETTINGS,b->client.setScreen(new net.minecraft.client.gui.screens.options.OptionsScreen(screen,client.options))));

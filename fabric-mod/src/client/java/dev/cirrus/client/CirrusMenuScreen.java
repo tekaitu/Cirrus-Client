@@ -36,18 +36,19 @@ public final class CirrusMenuScreen extends Screen {
   renderBackground(g,mx,my,d);var theme=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,theme);
   int rail=Math.min(104,Math.max(74,width/5)),left=22+rail, right=width-12, y=61;
   CirrusUi.panel(g,6,6,width-12,height-12,18,theme);CirrusUi.panel(g,12,12,rail+8,height-24,16,theme);CirrusUi.panel(g,left-8,12,right-left+8,38,13,theme);
-  CirrusUi.brand(g,20,17,22,theme);CirrusUi.headingText(g,font,"MOD LIBRARY",left,25,theme.cyan);
+  CirrusUi.brand(g,20,17,22,theme);CirrusUi.headingText(g,font,"MOD LIBRARY",left,25,theme.cyan);g.fill(left,38,left+26,39,theme.accent);
   CirrusUi.panel(g,left,34,Math.max(70,right-left),22,9,theme);
   CirrusUi.icon(g,left+6,37,14,CirrusUi.ICON_SEARCH,theme.cyan);
   List<CirrusMod> entries=ModRegistry.all().stream().filter(m->category==ModCategory.ALL||m.category()==category).filter(m->!favoritesOnly||m.favorite(config())).filter(m->(m.name()+" "+m.description()).toLowerCase(Locale.ROOT).contains(query.toLowerCase(Locale.ROOT))).toList();
   int cardW=Math.max(110,right-left), cardH=55, gap=7;CirrusUi.smallText(g,font,category.label+"  /  "+entries.size()+" available",left,y,theme.muted,false); y+=17;
   g.enableScissor(left,y,right,Math.max(y,height-38)); int idx=0;
   for(CirrusMod m:entries){int cy=y+idx*(cardH+gap)-scroll;if(cy+cardH<y||cy>height-38){idx++;continue;}
-   boolean hover=mx>=left&&mx<right&&my>=cy&&my<=cy+cardH;CirrusUi.panel(g,left,cy,cardW,cardH,12,theme);if(hover)CirrusUi.outline(g,left,cy,cardW,cardH,12,theme.accent);
-   int ax=left+7,ay=cy+9;CirrusUi.rounded(g,ax,ay,28,28,9,theme.glow);CirrusUi.icon(g,ax+3,ay+3,22,categoryIcon(m.category()),theme.cyan);
+   boolean hover=mx>=left&&mx<right&&my>=cy&&my<=cy+cardH;CirrusUi.panel(g,left,cy,cardW,cardH,12,theme);
+   if(hover){CirrusUi.outline(g,left,cy,cardW,cardH,12,theme.accent);g.fill(left+1,cy+9,left+3,cy+cardH-9,theme.accent);}
+   int ax=left+7,ay=cy+9;CirrusUi.rounded(g,ax,ay,28,28,9,theme.accentSoft);CirrusUi.outline(g,ax,ay,28,28,9,theme.border);CirrusUi.icon(g,ax+3,ay+3,22,categoryIcon(m.category()),hover?theme.accent:theme.cyan);
    int tx=left+42;CirrusUi.headingText(g,font,m.name(),tx,cy+6,theme.text);CirrusUi.smallText(g,font,m.category().label,tx,cy+21,theme.cyan,false);CirrusUi.smallText(g,font,m.description(),tx,cy+34,theme.muted,false);
    CirrusUi.icon(g,right-49,cy+8,16,5,m.favorite(config())?0xFFF5B942:theme.muted);
-   CirrusUi.smallText(g,font,m.enabled(config())?"ON":"OFF",right-25,cy+11,m.enabled(config())?0xFF3DDC97:theme.muted,false);
+   CirrusUi.statusPill(g,font,m.enabled(config())?"ON":"OFF",right-34,cy+9,m.enabled(config()),theme);
    if(m.hasSettings())CirrusUi.smallText(g,font,"SETTINGS  ›",right-75,cy+36,theme.accent,false);
    idx++;
   }
@@ -57,8 +58,8 @@ public final class CirrusMenuScreen extends Screen {
  public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){
   double mx=event.x(),my=event.y();int button=event.button();
   int rail=Math.min(104,Math.max(74,width/5)),left=22+rail,right=width-12,y=78,cardH=55,gap=7;
-  if(button==0&&mx>=left&&mx<right&&my>=y){int row=(int)(my-y+scroll)/(cardH+gap);var list=filtered();if(row>=0&&row<list.size()){var mod=list.get(row);int cardTop=y+row*(cardH+gap)-scroll;
-   if(mx>right-30){if(my<cardTop+23)mod.setEnabled(config(),!mod.enabled(config()));else mod.setFavorite(config(),!mod.favorite(config()));return true;}
+     if(button==0&&mx>=left&&mx<right&&my>=y){int row=(int)(my-y+scroll)/(cardH+gap);var list=filtered();if(row>=0&&row<list.size()){var mod=list.get(row);int cardTop=y+row*(cardH+gap)-scroll;
+   if(mx>right-38){if(my<cardTop+23)mod.setEnabled(config(),!mod.enabled(config()));else mod.setFavorite(config(),!mod.favorite(config()));return true;}
    if(mod.hasSettings())mod.openSettings(this);return true;}}
   return super.mouseClicked(event,doubleClick);
  }

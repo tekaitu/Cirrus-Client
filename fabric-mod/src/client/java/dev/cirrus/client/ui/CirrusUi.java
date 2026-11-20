@@ -26,36 +26,52 @@ public final class CirrusUi {
     public static void backdrop(GuiGraphics g,int width,int height,CirrusTheme t){
         CirrusAssetTextures.drawBackdrop(g,width,height);
         g.fill(0,0,width,height,t.overlay);
-        rounded(g,Math.max(8,width/2-240),Math.max(6,height/2-170),480,340,72,t.glow);
-        g.fill(0,0,width,Math.max(1,height/3),t.highlight);
+        // A quiet navy wash instead of a bloom: the picture stays visible, the text stays readable.
+        g.fill(0,0,width,Math.max(1,height/4),t.highlight);
+        g.fill(0,Math.max(0,height-height/5),width,height,Math.max(t.overlay,t.shadow));
         g.fill(0,Math.max(0,height-1),width,height,t.border);
     }
     public static void dashboardBackdrop(GuiGraphics g,int width,int height,CirrusTheme t){
         backdrop(g,width,height,t);
         CirrusAssetTextures.drawDashboardAmbient(g,width,height);
     }
+    /** A flat navy surface with a hairline border and a soft drop shadow. No glass, no frame art. */
     public static void panel(GuiGraphics g,int x,int y,int w,int h,int radius,CirrusTheme t){
         if(w<=0||h<=0)return;
-        rounded(g,x+1,y+6,w,h,radius,t.shadow);
-        rounded(g,x,y,w,h,radius,t.surface);
-        rounded(g,x+1,y+1,w-2,h-2,Math.max(1,radius-1),t.panel);
-        rounded(g,x+2,y+2,w-4,Math.min(25,h-4),Math.max(1,radius-2),t.highlight);
+        rounded(g,x,y+2,w,h,radius,t.shadow);
+        rounded(g,x,y,w,h,radius,t.panel);
+        g.fill(x+radius,y+1,x+w-radius,y+2,t.highlight);
         outline(g,x,y,w,h,radius,t.border);
-        g.fill(x+radius,y+1,x+w-radius,y+2,0x18FFFFFF);
-        g.fill(x+radius,y+h-2,x+w-radius,y+h-1,blend(t.shadow,t.border,0.18f));
-        CirrusAssetTextures.drawPanelFrame(g,x,y,w,h,radius);
     }
+    /** Quiet control: flat surface, hairline border, accent on hover, one-pixel press. */
     public static void button(GuiGraphics g,int x,int y,int w,int h,float hover,boolean active,CirrusTheme t){
         float amount=Math.max(0f,Math.min(1f,hover));
-        rounded(g,x,y+2,w,h-2,Math.min(10,h/2),blend(t.glow,active?t.surface:t.panel,amount));
-        rounded(g,x,y,w,h,Math.min(10,h/2),blend(blend(t.accent,t.panel,0.62f),t.panel,amount));
-        outline(g,x,y,w,h,Math.min(10,h/2),blend(t.cyan,t.border,amount));
-        rounded(g,x+2,y+3,2,h-6,1,blend(t.accent,0x00000000,amount));
-        CirrusAssetTextures.drawButtonFrame(g,x,y,w,h,amount,active);
+        int radius=Math.min(9,h/2);
+        int fill=blend(active?t.surface:t.panel,t.accentSoft,amount*0.9f);
+        rounded(g,x,y,w,h,radius,fill);
+        outline(g,x,y,w,h,radius,blend(t.border,t.accent,amount*0.8f));
+        if(amount>0.02f)g.fill(x+4,y+5,x+6,y+h-5,blend(t.accent,0x00000000,amount));
+    }
+    /** The one loud control: solid accent, a light underneath it, nothing else. */
+    public static void primaryButton(GuiGraphics g,int x,int y,int w,int h,float hover,CirrusTheme t){
+        float amount=Math.max(0f,Math.min(1f,hover));
+        int radius=Math.min(9,h/2);
+        rounded(g,x,y+2,w,h,radius,t.glow);
+        rounded(g,x,y,w,h,radius,blend(t.accent,0xFFFFFFFF,amount*0.16f));
+        outline(g,x,y,w,h,radius,blend(t.accent,0xFFFFFFFF,0.35f+amount*0.25f));
+        g.fill(x+radius,y+1,x+w-radius,y+2,blend(t.accent,0xFFFFFFFF,0.28f));
+    }
+    /** A small state badge: ON in green, OFF in muted grey. */
+    public static void statusPill(GuiGraphics g,Font font,String label,int x,int y,boolean on,CirrusTheme t){
+        int w=Math.max(32,font.width(label)+12),h=13;
+        rounded(g,x,y,w,h,6,blend(t.surface,on?t.good:t.muted,0.22f));
+        outline(g,x,y,w,h,6,on?blend(t.good,t.border,0.35f):t.border);
+        centeredSmall(g,font,label,x+w/2,y+3,on?t.good:t.muted);
     }
     public static void section(GuiGraphics g,int x,int y,int w,String label,CirrusTheme t){
         headingText(g,net.minecraft.client.Minecraft.getInstance().font,label,x,y,t.text);
         g.fill(x,y+14,x+w,y+15,t.border);
+        g.fill(x,y+14,x+Math.min(28,w),y+15,t.accent);
     }
     public static Component body(String value){return Component.literal(value).withStyle(s->s.withFont(UI_FONT_DESC));}
     public static Component small(String value){return Component.literal(value).withStyle(s->s.withFont(UI_SMALL_DESC));}
