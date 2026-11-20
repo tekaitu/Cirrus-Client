@@ -7,6 +7,7 @@ import { VersionCard } from "../components/VersionCard";
 import { loaderLabel, loaderOf, useInstances } from "../hooks/useInstances";
 import type { PageId } from "../components/Navigation";
 import { GridIcon } from "../components/Icons";
+import { LogoMark } from "../components/Logo";
 import type { AppData } from "../hooks/useAppData";
 import { usePlayAs } from "../hooks/usePlayAs";
 
@@ -71,18 +72,31 @@ function Identity({
   );
 }
 
+/** The mark and the name, centred over the picture the way a game menu opens. */
+function Lockup() {
+  return (
+    <div className="home-lockup" aria-hidden="true">
+      <LogoMark size={72} />
+      <span className="home-lockup-name">
+        Cirrus <em>Client</em>
+      </span>
+    </div>
+  );
+}
+
 /** The big title, the Play button and nothing else: what you are about to play and a way to start it. */
 function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: (page: PageId) => void; onOpenAccount: () => void }) {
   const { selection } = data;
   const recent = readRecent();
   return (
     <section className="home-hero" aria-labelledby="hero-title">
-      <Identity data={data} onOpenAccount={onOpenAccount} />
+      <Lockup />
       <h1 id="hero-title" className="home-title">
         {selection.version} {loaderLabel(selection.loader)}
       </h1>
       <p className="home-sub">{selection.profile ? selection.profile.name : "Minecraft Java Edition"}</p>
       <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
+      <Identity data={data} onOpenAccount={onOpenAccount} />
       {recent && (
         <p className="home-last">
           Last played {recent.version} {loaderLabel(recent.loader)} · {formatAgo(recent.at)}

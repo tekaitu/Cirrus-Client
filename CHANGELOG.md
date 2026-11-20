@@ -2,6 +2,14 @@
 
 Every big change gets its own version number. Small fixes bump the last number (0.3.1), new features and redesigns bump the middle one (0.4.0).
 
+## 0.4.0 — Interface refresh: midnight shell, centred Home
+- New palette: midnight black and deep-navy surfaces, hairline borders, electric blue for actions and cyan for the small highlights. One set of tokens drives every page, in both appearances.
+- Home is a game menu again: the Cirrus mark and wordmark centred over the picture, the version about to run, one wide Play button with the only light in the interface, then the account line. Installed versions sit in a dock along the bottom.
+- The menu fades up once when Home opens, a beat apart per element; nothing loops. Reduced-motion settings still switch all of it off.
+- Top bar rebuilt around two chips: the page icons in one dark pill with a blue-tinted active tile, and the account as a matching chip. Settings and notifications share their own pill.
+- Buttons, cards, panels, fields and the account drawer all use the same flat skins, hover colours and one-pixel press.
+- The Home backdrop's dark layer is now strongest behind the menu, so the picture stays visible at the top and the text stays readable.
+
 ## 0.3.2 — Character Studio, icon navigation and a real version picker
 - Home opens on the new forest-lantern artwork (`src/assets/backgrounds/home.jpg`) with a lighter dark layer over it, so the picture shows behind the title and Play button.
 - The account chip opens a panel on the side of the window instead of a menu in the middle. It offers both ways to play in one place: an offline ("cracked") username with validation and a "Use this name" step, and the Microsoft account.

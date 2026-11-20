@@ -11,6 +11,7 @@ import "./styles/shell.css";
 import "./styles/pages.css";
 import "./styles/effects.css";
 import "./styles/studio.css";
+import "./styles/ui.css";
 
 initTheme();
 initWindowFrame();

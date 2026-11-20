@@ -1,0 +1,707 @@
+/* ==========================================================================
+   Cirrus interface refresh: one premium gaming-client look for the whole
+   launcher.
+
+   The tokens give the palette; this layer decides the shapes. Deep navy
+   surfaces, hairline borders, one electric-blue accent, and cyan only for the
+   small highlights. Controls are flat until you touch them: hover brightens,
+   pressed moves one pixel. The only glow in the app sits under the primary
+   action, so the eye always knows where to start.
+
+   Loaded last, so it supersedes the earlier passes without deleting them.
+   ========================================================================== */
+
+/* ------------------------------------------------------------ scene behind the window */
+.app-bg[data-backdrop="home"] .app-bg-img {
+  filter: var(--scene-filter);
+}
+/* The Home column sits in the middle of the picture, so the veil is lighter at
+   the top, darkest at the bottom, and strongest right behind the menu. */
+.app-bg[data-backdrop="home"] .app-bg-veil {
+  background:
+    radial-gradient(115% 85% at 50% 40%, rgba(4, 7, 14, 0.2) 0%, rgba(4, 7, 14, 0.56) 52%, rgba(3, 5, 11, 0.92) 100%),
+    linear-gradient(180deg, rgba(4, 7, 14, 0.72) 0%, rgba(4, 7, 14, 0.26) 38%, rgba(4, 7, 14, 0.9) 100%);
+}
+
+/* ------------------------------------------------------------ top bar
+   A quiet strip that blends into the picture, with the page icons in a single
+   dark pill and the account as a matching chip on the right. */
+.hdr {
+  height: 62px;
+  gap: 12px;
+  padding: 0 clamp(14px, 2vw, 26px);
+  background: linear-gradient(180deg, rgba(4, 7, 13, 0.82), rgba(4, 7, 13, 0));
+  border-bottom: 1px solid rgba(150, 180, 235, 0.05);
+}
+.hdr-brand {
+  gap: 9px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+.hdr-brand:hover {
+  background: rgba(18, 26, 42, 0.7);
+  border-color: var(--glass-border);
+}
+.hdr-brand .logo-mark {
+  width: auto;
+  border-radius: 0;
+  filter: drop-shadow(0 2px 10px rgba(47, 128, 255, 0.35));
+}
+.hdr-brand-name {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: #fff;
+}
+
+.hdr-tabs ul {
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid rgba(150, 180, 235, 0.1);
+  border-radius: 12px;
+  background: rgba(7, 11, 19, 0.6);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+}
+.hdr-tab {
+  width: 38px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--muted);
+  transition: color var(--fast), background var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+.hdr-tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+.hdr-tab.active {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(47, 128, 255, 0.3), rgba(47, 128, 255, 0.14));
+  box-shadow: inset 0 0 0 1px rgba(96, 168, 255, 0.5), 0 4px 16px rgba(18, 74, 190, 0.28);
+}
+.hdr-tab.active::before {
+  display: none;
+}
+.hdr-tools ul {
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid rgba(150, 180, 235, 0.1);
+  border-radius: 12px;
+  background: rgba(7, 11, 19, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.hdr .hdr-tool {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--text-soft);
+}
+.hdr .hdr-tool:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.hdr .hdr-tool.active {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(47, 128, 255, 0.3), rgba(47, 128, 255, 0.14));
+  box-shadow: inset 0 0 0 1px rgba(96, 168, 255, 0.5);
+}
+.hdr-account {
+  height: 40px;
+  gap: 9px;
+  padding: 0 13px 0 5px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(9, 14, 24, 0.58);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: background var(--fast), border-color var(--fast) var(--ease);
+}
+.hdr-account:hover,
+.hdr-account[aria-expanded="true"] {
+  background: rgba(22, 33, 52, 0.85);
+  border-color: rgba(96, 168, 255, 0.45);
+}
+.hdr-account .skin-head {
+  border-radius: 6px;
+}
+.hdr-account-text small {
+  color: var(--accent-2);
+}
+.hdr-win button {
+  border-radius: 8px;
+}
+:root[data-theme="light"] .hdr-tabs ul,
+:root[data-theme="light"] .hdr-tools ul,
+:root[data-theme="light"] .hdr-account {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 24px rgba(30, 50, 90, 0.12);
+}
+/* The top bar is a dark strip in both appearances (it sits on the picture), so
+   the brand keeps its white mark and white lettering — including on light pages,
+   where the strip is stated explicitly instead of fading into pale chrome. */
+:root[data-theme="light"] .hdr {
+  background: linear-gradient(180deg, rgba(8, 12, 20, 0.94) 0%, rgba(8, 12, 20, 0.72) 68%, rgba(8, 12, 20, 0));
+}
+
+/* ------------------------------------------------------------ buttons
+   One control: fixed height, hairline border, flat surface. Only the primary
+   action carries a light, and it is the same light everywhere. */
+.ui-btn {
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 9px;
+  border: 1px solid var(--glass-border);
+  background: var(--raised);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 650;
+  letter-spacing: 0.005em;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast),
+    box-shadow var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.ui-btn:hover:not(:disabled) {
+  background: var(--raised-2);
+  border-color: rgba(96, 168, 255, 0.4);
+}
+.ui-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.ui-btn-primary {
+  color: var(--on-accent);
+  border-color: rgba(120, 180, 255, 0.45);
+  background: linear-gradient(180deg, #3d8bff 0%, #1f6be8 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 22px rgba(22, 84, 214, 0.3);
+}
+.ui-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #57a0ff 0%, #2b78f5 100%);
+  border-color: rgba(160, 205, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 26px rgba(22, 84, 214, 0.42);
+}
+.ui-btn-primary:disabled {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.09);
+  color: var(--muted);
+  box-shadow: none;
+}
+.ui-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-soft);
+  backdrop-filter: none;
+}
+.ui-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--glass-border);
+  color: var(--text);
+}
+.ui-btn-secondary {
+  background: rgba(10, 16, 28, 0.7);
+}
+:root[data-theme="light"] .ui-btn-secondary {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* the older .btn class, kept for the few places that still use it */
+.btn,
+.btn-pill {
+  border-radius: 9px;
+  border-color: var(--glass-border);
+  background: var(--raised);
+}
+.btn:hover:not(:disabled),
+.btn-pill:hover:not(:disabled) {
+  background: var(--raised-2);
+  border-color: rgba(96, 168, 255, 0.4);
+}
+.btn-primary {
+  border-color: rgba(120, 180, 255, 0.45);
+  background: linear-gradient(180deg, #3d8bff 0%, #1f6be8 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 22px rgba(22, 84, 214, 0.28);
+}
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #57a0ff 0%, #2b78f5 100%);
+  border-color: rgba(160, 205, 255, 0.6);
+}
+
+/* ------------------------------------------------------------ page frame */
+.page-head h1 {
+  font-size: 1.9rem;
+  letter-spacing: -0.03em;
+}
+.page-head p {
+  color: var(--text-soft);
+}
+.eyebrow {
+  color: var(--accent-2);
+  letter-spacing: 0.18em;
+}
+.card {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(15, 22, 37, 0.9), rgba(8, 13, 23, 0.92));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+:root[data-theme="light"] .card {
+  background: rgba(255, 255, 255, 0.82);
+}
+.card-icon {
+  border-radius: 9px;
+}
+.card-desc {
+  color: var(--muted);
+}
+.banner {
+  border-radius: 10px;
+  background: var(--glass-strong);
+}
+.seg {
+  border-radius: 10px;
+}
+.seg > button.seg-on {
+  background: linear-gradient(180deg, rgba(47, 128, 255, 0.3), rgba(47, 128, 255, 0.16));
+  box-shadow: inset 0 0 0 1px rgba(96, 168, 255, 0.45);
+}
+input[type="text"],
+input[type="search"],
+input[type="number"],
+input[type="url"],
+input:not([type]),
+select,
+textarea {
+  border-radius: 9px;
+  background: rgba(4, 8, 15, 0.55);
+}
+:root[data-theme="light"] input[type="text"],
+:root[data-theme="light"] input[type="search"],
+:root[data-theme="light"] input[type="number"],
+:root[data-theme="light"] input[type="url"],
+:root[data-theme="light"] input:not([type]),
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea {
+  background: rgba(255, 255, 255, 0.86);
+}
+
+/* ------------------------------------------------------------ Home
+   The menu is one centred column over the picture: mark, wordmark, the
+   version about to run, the play button, then who is playing. The installed
+   versions sit along the bottom as a dock. */
+.home {
+  max-width: 1240px;
+}
+.home-screen {
+  /* exactly the space the window gives it: header, footer and content padding */
+  min-height: calc(100vh - 136px);
+  justify-content: space-between;
+  gap: 18px;
+}
+.home-hero {
+  position: relative;
+  width: min(720px, 100%);
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  max-width: 720px;
+  margin: auto auto 0;
+  padding: clamp(18px, 5vh, 56px) 0 0;
+}
+/* A single soft light behind the menu; it is depth, not decoration. */
+.home-hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -80px;
+  left: 50%;
+  width: min(760px, 110vw);
+  height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 50% 42%, rgba(47, 128, 255, 0.2), rgba(47, 128, 255, 0.05) 46%, transparent 72%);
+  pointer-events: none;
+}
+.home-hero > * {
+  position: relative;
+  z-index: 1;
+}
+:root[data-theme="light"] .home-hero::before {
+  background: radial-gradient(circle at 50% 42%, rgba(31, 111, 240, 0.12), transparent 70%);
+}
+
+.home-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.home-lockup .logo-mark {
+  width: auto;
+  filter: drop-shadow(0 14px 34px rgba(20, 80, 200, 0.45)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+.home-lockup-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.42em;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+.home-lockup-name em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.86em;
+  letter-spacing: 0.34em;
+  color: var(--accent-2);
+}
+
+.home-title {
+  margin-top: 10px;
+  font-size: clamp(2.5rem, 5.4vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+}
+.home-sub {
+  margin: 0 0 16px;
+  font-size: 0.94rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.72);
+}
+:root[data-theme="light"] .home-sub {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* the one loud control on the page */
+.play-panel.lp-quick {
+  align-items: center;
+  width: auto;
+  max-width: 100%;
+}
+.play-panel.lp-quick .play-dock {
+  align-items: center;
+}
+.play-panel.lp-quick .hero-actions {
+  justify-content: center;
+  gap: 10px;
+}
+.play-panel.lp-quick .ui-btn.lp-go {
+  min-width: 300px;
+  height: 58px;
+  border-radius: 12px;
+  border: 1px solid rgba(130, 190, 255, 0.5);
+  background: linear-gradient(180deg, #3f8dff 0%, #1c66e4 100%);
+  font-size: 1.04rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 16px 40px rgba(20, 82, 210, 0.45);
+  transition: transform var(--fast) var(--ease), box-shadow var(--med) var(--ease), background var(--fast);
+}
+.play-panel.lp-quick .ui-btn.lp-go:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #57a0ff 0%, #2b78f5 100%);
+  border-color: rgba(170, 212, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 20px 48px rgba(20, 82, 210, 0.55);
+}
+.play-panel.lp-quick .ui-btn.lp-go:active:not(:disabled) {
+  transform: translateY(0) scale(0.994);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.play-panel.lp-quick .hero-actions .ui-btn:not(.lp-go) {
+  height: 58px;
+  min-width: 132px;
+  border-radius: 12px;
+  border-color: var(--glass-border);
+  background: rgba(8, 13, 23, 0.62);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.play-panel.lp-quick .hero-actions .ui-btn:not(.lp-go):hover:not(:disabled) {
+  border-color: rgba(96, 168, 255, 0.45);
+  background: rgba(20, 31, 50, 0.8);
+}
+.play-panel.lp-quick .hero-note {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.62);
+  max-width: 52ch;
+}
+:root[data-theme="light"] .play-panel.lp-quick .hero-note {
+  color: rgba(255, 255, 255, 0.66);
+}
+.lp .banner {
+  margin-top: 4px;
+}
+
+/* the account line under the play button */
+.home-identity {
+  width: auto;
+  max-width: 100%;
+  margin: 18px auto 0;
+  padding: 6px 14px 6px 6px;
+  gap: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(6, 10, 18, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  text-align: left;
+  transition: border-color var(--fast), background var(--fast);
+}
+.home-identity:hover {
+  border-color: rgba(96, 168, 255, 0.4);
+  background: rgba(12, 19, 32, 0.78);
+}
+/* The chip stays dark in both appearances: it sits on the picture, not on a page. */
+:root[data-theme="light"] .home-identity {
+  color: #fff;
+}
+:root[data-theme="light"] .home-id-meta {
+  color: rgba(255, 255, 255, 0.66);
+}
+.home-identity .skin-head {
+  border-radius: 50%;
+}
+.home-id-name {
+  font-size: 0.84rem;
+}
+.home-id-name small {
+  color: var(--accent-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.64rem;
+}
+.home-id-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.home-id-actions .ui-btn {
+  height: 30px;
+  border-radius: 999px;
+  padding: 0 14px;
+}
+.home-last {
+  margin: 12px auto 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+/* ------------------------------------------------------------ the version dock */
+.home-versions {
+  margin-top: auto;
+}
+.vrow {
+  gap: 12px;
+  /* Room for the selected ring and the hover shadow inside the scroll box, with
+     the extra padding taken back by the margins so the dock keeps its height. */
+  padding: 12px 14px 14px;
+  margin: -6px -14px -4px;
+  /* the dock scrolls sideways only; a vertical bar here would be noise */
+  overflow-y: hidden;
+}
+.vrow > li {
+  flex: 0 0 clamp(200px, 19vw, 260px);
+}
+.vc {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(8, 13, 23, 0.82);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  transition: transform var(--med) var(--ease), border-color var(--med), box-shadow var(--med);
+}
+.vc:hover {
+  transform: translateY(-2px);
+  border-color: rgba(96, 168, 255, 0.45);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.46);
+}
+.vc.vc-selected {
+  border-color: rgba(96, 168, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(96, 168, 255, 0.5), 0 14px 32px rgba(18, 74, 190, 0.32);
+}
+.vc-main {
+  background: #0a1020;
+}
+.vc-shade {
+  background: linear-gradient(180deg, rgba(4, 8, 18, 0.04) 26%, rgba(4, 8, 18, 0.86) 100%);
+}
+.vc-name {
+  font-size: 1.06rem;
+  letter-spacing: -0.015em;
+}
+.vc-line {
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+.vc-more {
+  height: 100%;
+  min-height: 92px;
+  border-radius: 12px;
+  border-style: solid;
+  border-color: var(--border);
+  background: rgba(8, 13, 23, 0.7);
+  color: var(--text-soft);
+}
+.vc-more:hover {
+  border-color: rgba(96, 168, 255, 0.45);
+  background: rgba(18, 28, 46, 0.85);
+  transform: none;
+}
+
+/* ------------------------------------------------------------ footer
+   One line at the edge: the build on the left, the community on the right. */
+.footbar {
+  padding: 7px clamp(14px, 2vw, 26px);
+  background: rgba(4, 7, 13, 0.5);
+  border-top: 1px solid rgba(150, 180, 235, 0.07);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.footbar .pill {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.footbar .pill-button:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+:root[data-theme="light"] .footbar {
+  background: rgba(255, 255, 255, 0.6);
+}
+/* The Home footer sits under the same dark picture as the menu, so its text stays readable. */
+:root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar,
+:root[data-theme="light"]:has(.app-bg[data-backdrop="home"]) .footbar .pill {
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------ account panel */
+.acct-drawer {
+  width: min(424px, 100%);
+  background: #060a12;
+  border-left: 1px solid rgba(150, 180, 235, 0.12);
+  box-shadow: -30px 0 80px rgba(0, 0, 0, 0.6);
+}
+.acct-head {
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(47, 128, 255, 0.09), transparent);
+}
+.acct-head h2 {
+  font-size: 1.45rem;
+  letter-spacing: -0.025em;
+}
+.acct-body {
+  gap: 12px;
+  padding: 16px 18px 26px;
+}
+.acct-body .card {
+  background: linear-gradient(180deg, rgba(15, 22, 37, 0.9), rgba(9, 14, 24, 0.92));
+  border-color: var(--border);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.acct-body .card:hover {
+  border-color: rgba(96, 168, 255, 0.3);
+}
+.offline-form .ui-btn {
+  align-self: stretch;
+}
+
+/* ------------------------------------------------------------ startup screen */
+.boot {
+  gap: 24px;
+  background: #000;
+}
+.boot-spinner {
+  border-color: rgba(255, 255, 255, 0.14);
+  border-top-color: var(--accent-2);
+  box-shadow: 0 0 24px rgba(56, 224, 240, 0.25);
+}
+.boot-text {
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ------------------------------------------------------------ motion
+   The menu arrives once, from the bottom, a beat apart. Nothing loops. */
+@keyframes home-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.home-hero > * {
+  animation: home-in 0.55s var(--ease) both;
+}
+.home-hero > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.home-hero > *:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.home-hero > *:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.home-hero > *:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.home-hero > *:nth-child(5) {
+  animation-delay: 0.26s;
+}
+
+/* ------------------------------------------------------------ small screens */
+@media (max-width: 900px) {
+  .home-hero {
+    padding-top: clamp(12px, 3vh, 32px);
+  }
+  .home-title {
+    font-size: clamp(2.1rem, 8vw, 3rem);
+  }
+  .play-panel.lp-quick .ui-btn.lp-go {
+    min-width: min(300px, 78vw);
+  }
+  .home-lockup .logo-mark {
+    height: 60px !important;
+  }
+}
+@media (max-width: 620px) {
+  .home-identity {
+    border-radius: 12px;
+  }
+  .home-id-meta {
+    white-space: normal;
+  }
+}
