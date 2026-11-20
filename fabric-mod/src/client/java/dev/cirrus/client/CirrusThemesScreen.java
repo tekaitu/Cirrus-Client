@@ -13,17 +13,39 @@ import net.minecraft.network.chat.Component;
 public final class CirrusThemesScreen extends Screen {
  private final Screen parent;
  public CirrusThemesScreen(Screen parent){super(Component.literal("Cirrus Themes"));this.parent=parent;}
- protected void init(){int x=width/2-170,y=height/2-34;addRenderableWidget(CirrusButton.nav(x,y,150,28,Component.literal("Dark  ·  Midnight"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.DARK)));addRenderableWidget(CirrusButton.nav(x+190,y,150,28,Component.literal("Light  ·  Frost"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));addRenderableWidget(CirrusButton.nav(width/2-70,y+58,140,22,Component.literal("Back"),CirrusUi.ICON_BACK,b->minecraft.setScreen(parent)));}
- public void render(GuiGraphics g,int mx,int my,float d){
-  renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);
-  int shellW=Math.min(500,width-24),shellX=(width-shellW)/2;CirrusUi.panel(g,shellX,Math.max(20,height/2-126),shellW,Math.min(250,height-40),20,t);
-  CirrusUi.centeredHeading(g,font,"APPEARANCE",width/2,Math.max(34,height/2-102),t.text);
-  int w=Math.min(190,(shellW-48)/2),h=82,y=height/2-34;int left=width/2-w-9,right=width/2+9;
-  CirrusUi.panel(g,left,y,w,h,14,CirrusTheme.DARK);CirrusUi.panel(g,right,y,w,h,14,CirrusTheme.LIGHT);
-  CirrusUi.centeredHeading(g,font,"Aa",left+w/2,y+14,CirrusTheme.DARK.text);CirrusUi.centered(g,font,"Midnight",left+w/2,y+42,CirrusTheme.DARK.text);
-  CirrusUi.centeredHeading(g,font,"Aa",right+w/2,y+14,CirrusTheme.LIGHT.text);CirrusUi.centered(g,font,"Frost",right+w/2,y+42,CirrusTheme.LIGHT.text);super.render(g,mx,my,d);
+
+ private int tileW(){return Math.min(190,Math.max(90,(width-64)/2));}
+ private int tileY(){return 52;}
+ private int tileH(){return 78;}
+ private int choiceY(){return tileY()+tileH()+10;}
+
+ protected void init(){
+  int w=tileW(), left=width/2-w-6, right=width/2+6, y=choiceY();
+  addRenderableWidget(CirrusButton.of(left,y,w,22,Component.literal("Dark  ·  Midnight"),b->CirrusTheme.set(config(),CirrusTheme.DARK)));
+  addRenderableWidget(CirrusButton.of(right,y,w,22,Component.literal("Light  ·  Frost"),b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));
+  addRenderableWidget(CirrusButton.of(width/2-70,y+32,140,22,Component.literal("Back"),b->minecraft.setScreen(parent)));
  }
+
+ public void render(GuiGraphics g,int mx,int my,float d){
+  renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.page(g,width,height,t);
+
+  CirrusUi.centeredHeading(g,font,"APPEARANCE",width/2,22,t.text);
+  g.fill(20,44,width-20,45,t.border);
+
+  int w=tileW(), h=tileH(), y=tileY();
+  int left=width/2-w-6, right=width/2+6;
+  CirrusUi.panel(g,left,y,w,h,12,CirrusTheme.DARK);CirrusUi.panel(g,right,y,w,h,12,CirrusTheme.LIGHT);
+  CirrusUi.centeredHeading(g,font,"Aa",left+w/2,y+16,CirrusTheme.DARK.text);
+  CirrusUi.centeredSmall(g,font,"Cirrus Client",left+w/2,y+46,CirrusTheme.DARK.muted);
+  CirrusUi.centeredHeading(g,font,"Aa",right+w/2,y+16,CirrusTheme.LIGHT.text);
+  CirrusUi.centeredSmall(g,font,"Cirrus Client",right+w/2,y+46,CirrusTheme.LIGHT.muted);
+
+  // the chosen appearance gets one short white rule, not a filled tile
+  if(t==CirrusTheme.DARK)g.fill(left,y+h+3,left+w,y+h+5,t.accent);
+  else g.fill(right,y+h+3,right+w,y+h+5,t.accent);
+  super.render(g,mx,my,d);
+ }
+
  private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
  public void onClose(){minecraft.setScreen(parent);}
 }
-

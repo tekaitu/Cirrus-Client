@@ -9,7 +9,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.resources.Identifier;
 import dev.cirrus.client.asset.CirrusAssetTextures;
 
-/** Shared scalable glass surfaces and official Cirrus brand assets for Fabric screens. */
+/** Shared scalable surfaces and official Cirrus brand assets for Fabric screens. */
 public final class CirrusUi {
     private static final Identifier MARK=Identifier.fromNamespaceAndPath("cirrus_fabric","textures/gui/cirrus-mark.png");
     private static final Identifier UI_FONT=Identifier.fromNamespaceAndPath("cirrus_fabric","ui");
@@ -35,6 +35,10 @@ public final class CirrusUi {
         backdrop(g,width,height,t);
         CirrusAssetTextures.drawDashboardAmbient(g,width,height);
     }
+    /** The open page: one quiet ground from top to bottom, with no frame around the screen. */
+    public static void page(GuiGraphics g,int width,int height,CirrusTheme t){
+        gradient(g,0,0,width,height,t.pageTop,t.pageBottom);
+    }
     /** A flat near-black surface with a hairline white border and a soft drop shadow. No glass, no frame art. */
     public static void panel(GuiGraphics g,int x,int y,int w,int h,int radius,CirrusTheme t){
         if(w<=0||h<=0)return;
@@ -42,6 +46,14 @@ public final class CirrusUi {
         rounded(g,x,y,w,h,radius,t.panel);
         g.fill(x+radius,y+1,x+w-radius,y+2,t.highlight);
         outline(g,x,y,w,h,radius,t.border);
+    }
+    /** Navigation without a plate: a quiet wash on hover and a short white rule when chosen. */
+    public static void railButton(GuiGraphics g,int x,int y,int w,int h,float hover,boolean selected,boolean active,CirrusTheme t){
+        if(w<=0||h<=0)return;
+        float amount=active?Math.max(0f,Math.min(1f,hover)):0f;
+        if(selected||amount>0.02f)g.fill(x,y,x+w,y+h,t.accentSoft);
+        if(selected)g.fill(x,y+4,x+2,y+h-4,t.accent);
+        else if(amount>0.02f)g.fill(x,y+h/2-7,x+2,y+h/2+7,blend(t.accent,0x00000000,amount));
     }
     /** Quiet control: flat surface, hairline border, accent on hover, one-pixel press. */
     public static void button(GuiGraphics g,int x,int y,int w,int h,float hover,boolean active,CirrusTheme t){
@@ -123,6 +135,14 @@ public final class CirrusUi {
             g.fill(x+inset,y+h-dy-1,x+w-inset,y+h-dy,color);
         }
         g.fill(x,y+r,x+1,y+h-r,color);g.fill(x+w-1,y+r,x+w,y+h-r,color);
+    }
+    private static void gradient(GuiGraphics g,int x,int y,int w,int h,int top,int bottom){
+        if(w<=0||h<=0)return;
+        int steps=Math.min(32,Math.max(1,h));
+        for(int i=0;i<steps;i++){
+            int y1=y+h*i/steps,y2=y+h*(i+1)/steps;
+            g.fill(x,y1,x+w,y2,blend(top,bottom,(i+0.5f)/steps));
+        }
     }
     private static int blend(int a,int b,float weight){
         float other=1f-weight;
