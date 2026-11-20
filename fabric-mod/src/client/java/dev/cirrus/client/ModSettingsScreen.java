@@ -54,11 +54,12 @@ public final class ModSettingsScreen extends CirrusScreen {
         ph = Math.min(height - 16, 320);
         px = (width - pw) / 2;
         py = (height - ph) / 2;
-        wide = pw >= 400 && mod instanceof HudElement;
         listX = px + 18;
-        previewH = Math.min(120, ph - 150);
         previewX = px + pw - 18 - PREVIEW_W;
         previewY = py + 56;
+        int buttonsTop = py + ph - 18 - 20 * 3 - 8;
+        previewH = Math.min(120, buttonsTop - 16 - previewY);
+        wide = pw >= 400 && mod instanceof HudElement && previewH >= 40;
         listRight = wide ? previewX - 14 : px + pw - 18;
         listTop = py + 56;
         int btnH = 20;
@@ -162,8 +163,15 @@ public final class ModSettingsScreen extends CirrusScreen {
             if (((cx / 10) + (cy / 10)) % 2 == 0) g.fill(previewX + cx, previewY + cy, previewX + cx + 10, previewY + cy + 10, 0xFF141B27);
         }
         HudElement e = (HudElement) mod;
-        int ex = previewX + Math.max(4, (PREVIEW_W - e.width()) / 2), ey = previewY + Math.max(4, (previewH - e.height()) / 2);
-        e.render(g, ex, ey, 0, config());
+        // Shrink the preview (never the real element) when a large scale would not fit the card.
+        float fit = Math.min(1f, Math.min((PREVIEW_W - 12f) / e.width(), (previewH - 12f) / e.height()));
+        float cx = previewX + PREVIEW_W / 2f, cy = previewY + previewH / 2f;
+        var pose = g.pose();
+        pose.pushMatrix();
+        pose.translate(cx, cy);
+        pose.scale(fit, fit);
+        e.render(g, -e.width() / 2, -e.height() / 2, 0, config());
+        pose.popMatrix();
         g.disableScissor();
         Gfx.strokeRound(g, previewX, previewY, PREVIEW_W, previewH, 8, 0.5f, t.border);
         CirrusUi.centeredSmall(g, font, "Preview", previewX + PREVIEW_W / 2, previewY + previewH + 4, t.muted);
