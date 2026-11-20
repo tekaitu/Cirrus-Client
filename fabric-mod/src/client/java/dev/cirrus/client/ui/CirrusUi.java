@@ -73,6 +73,14 @@ public final class CirrusUi {
         g.fill(x,y+14,x+w,y+15,t.border);
         g.fill(x,y+14,x+Math.min(28,w),y+15,t.accent);
     }
+    /** Shortens a line with an ellipsis so it never runs past the width it is given. */
+    public static String fit(Font font,String value,int maxWidth,boolean small){
+        if(value==null||value.isEmpty()||maxWidth<=0)return "";
+        if(font.width(small?small(value):body(value))<=maxWidth)return value;
+        String dots="…";int low=0,high=value.length();
+        while(low<high){int mid=(low+high+1)/2;String cut=value.substring(0,mid)+dots;if(font.width(small?small(cut):body(cut))<=maxWidth)low=mid;else high=mid-1;}
+        return low<=0?dots:value.substring(0,low)+dots;
+    }
     public static Component body(String value){return Component.literal(value).withStyle(s->s.withFont(UI_FONT_DESC));}
     public static Component small(String value){return Component.literal(value).withStyle(s->s.withFont(UI_SMALL_DESC));}
     public static Component heading(String value){return Component.literal(value).withStyle(s->s.withFont(UI_DISPLAY_DESC));}
