@@ -14,16 +14,19 @@ public final class CirrusThemesScreen extends Screen {
  private final Screen parent;
  public CirrusThemesScreen(Screen parent){super(Component.literal("Cirrus Themes"));this.parent=parent;}
 
+ /** Short windows get a lower, shallower preview pair so both controls still fit on the page. */
+ private boolean compact(){return height<260;}
  private int tileW(){return Math.min(190,Math.max(90,(width-64)/2));}
- private int tileY(){return 52;}
- private int tileH(){return 78;}
- private int choiceY(){return tileY()+tileH()+10;}
+ private int tileY(){return compact()?48:52;}
+ private int tileH(){return compact()?54:78;}
+ private int choiceY(){return tileY()+tileH()+(compact()?8:10);}
+ private int backY(){return choiceY()+(compact()?26:32);}
 
  protected void init(){
-  int w=tileW(), left=width/2-w-6, right=width/2+6, y=choiceY();
+  int w=tileW(), left=Math.max(6,width/2-w-6), right=left+w+12, y=choiceY();
   addRenderableWidget(CirrusButton.of(left,y,w,22,Component.literal("Dark  ·  Midnight"),b->CirrusTheme.set(config(),CirrusTheme.DARK)));
   addRenderableWidget(CirrusButton.of(right,y,w,22,Component.literal("Light  ·  Frost"),b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));
-  addRenderableWidget(CirrusButton.of(width/2-70,y+32,140,22,Component.literal("Back"),b->minecraft.setScreen(parent)));
+  addRenderableWidget(CirrusButton.of(width/2-70,backY(),140,22,Component.literal("Back"),b->minecraft.setScreen(parent)));
  }
 
  public void render(GuiGraphics g,int mx,int my,float d){
@@ -33,7 +36,7 @@ public final class CirrusThemesScreen extends Screen {
   g.fill(20,44,width-20,45,t.border);
 
   int w=tileW(), h=tileH(), y=tileY();
-  int left=width/2-w-6, right=width/2+6;
+  int left=Math.max(6,width/2-w-6), right=left+w+12;
   CirrusUi.panel(g,left,y,w,h,12,CirrusTheme.DARK);CirrusUi.panel(g,right,y,w,h,12,CirrusTheme.LIGHT);
   CirrusUi.centeredHeading(g,font,"Aa",left+w/2,y+16,CirrusTheme.DARK.text);
   CirrusUi.centeredSmall(g,font,"Cirrus Client",left+w/2,y+46,CirrusTheme.DARK.muted);
