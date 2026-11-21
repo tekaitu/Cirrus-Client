@@ -52,7 +52,7 @@ public final class ClickGuiLayout {
         boolean roomy = cw >= 300;
         hudLabel = roomy;
         int hudW = hudLabel ? 92 : HEADER_H;
-        boolean wantProfile = cw >= 440;
+        boolean wantProfile = cw >= 400;
         profileLabel = wantProfile;
         int profW = profileLabel ? 112 : HEADER_H;
         hudButton = new Rect(content.right() - hudW, hy, hudW, HEADER_H);
