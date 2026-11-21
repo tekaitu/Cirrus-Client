@@ -50,7 +50,7 @@ public final class ModKeys {
         KeyMapping key = KEYS.get(modId);
         if (key == null) return;
         Minecraft mc = Minecraft.getInstance();
-        mc.options.setKey(key, glfwKey < 0 ? InputConstants.UNKNOWN : InputConstants.Type.KEYSYM.getOrCreate(glfwKey));
+        key.setKey(glfwKey < 0 ? InputConstants.UNKNOWN : InputConstants.Type.KEYSYM.getOrCreate(glfwKey));
         KeyMapping.resetMapping();
         mc.options.save();
     }
