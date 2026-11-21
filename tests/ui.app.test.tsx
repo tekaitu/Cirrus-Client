@@ -1743,14 +1743,19 @@ describe("Skins page", () => {
   });
 
   it("zooms the character preview without touching the account", async () => {
+    signedIn();
     mocked.listSkins.mockResolvedValue([skin()]);
     render(<App />);
+    await settled();
     goTo("Character");
-    const zoom = (await screen.findByLabelText("Zoom")) as HTMLInputElement;
-    expect(zoom.value).toBe("12");
-    fireEvent.change(zoom, { target: { value: "14" } });
-    expect(zoom.value).toBe("14");
-    expect(screen.getByText("140%")).toBeTruthy();
+    const zoomIn = await screen.findByRole("button", { name: "Zoom in" });
+    const zoomOut = screen.getByRole("button", { name: "Zoom out" });
+    expect(screen.getByText("100%")).toBeTruthy();
+    fireEvent.click(zoomIn);
+    fireEvent.click(zoomIn);
+    expect(screen.getByText("118%")).toBeTruthy();
+    fireEvent.click(zoomOut);
+    expect(screen.getByText("109%")).toBeTruthy();
     expect(mocked.applySkin).not.toHaveBeenCalled();
   });
 
