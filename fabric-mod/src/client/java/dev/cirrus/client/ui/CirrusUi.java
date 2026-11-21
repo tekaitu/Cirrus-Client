@@ -30,23 +30,17 @@ public final class CirrusUi {
     // ---- surfaces -------------------------------------------------------------------------------------------------
 
     public static void backdrop(GuiGraphics g, int width, int height, CirrusTheme t) {
-        CirrusAssetTextures.drawBackdrop(g, width, height);
         g.fill(0, 0, width, height, t.overlay);
-        g.fillGradient(0, 0, width, Math.max(1, height / 3), t.highlight, Gfx.withAlpha(t.highlight, 0));
-        g.fillGradient(0, height * 2 / 3, width, height, Gfx.withAlpha(t.shadow, 0), t.shadow);
     }
 
     public static void dashboardBackdrop(GuiGraphics g, int width, int height, CirrusTheme t) {
         backdrop(g, width, height, t);
-        CirrusAssetTextures.drawDashboardAmbient(g, width, height);
     }
 
     /** Glass panel: soft shadow, translucent body, top sheen and a hairline border. */
     public static void panel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
         if (w <= 0 || h <= 0) return;
-        Gfx.shadow(g, x, y, w, h, radius, 6, t.shadow);
         Gfx.fillRound(g, x, y, w, h, radius, t.panel);
-        if (w > radius * 2) Gfx.hairline(g, x + radius, y + 1, w - radius * 2, Gfx.scaleAlpha(t.highlight, 2.2f));
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 
@@ -70,10 +64,10 @@ public final class CirrusUi {
     /** Toggle switch with an animated knob (progress 0..1). */
     public static void toggle(GuiGraphics g, int x, int y, boolean on, float progress, CirrusTheme t) {
         int w = 24, h = 12;
-        Gfx.fillRound(g, x, y, w, h, h / 2f, Gfx.mix(t.surface, t.accent, progress));
-        Gfx.strokeRound(g, x, y, w, h, h / 2f, 0.5f, Gfx.mix(t.border, t.cyan, progress));
+        Gfx.fillRound(g, x, y, w, h, h / 2f, Gfx.mix(0xFF000000, 0xFFFFFFFF, progress));
+        Gfx.strokeRound(g, x, y, w, h, h / 2f, 0.5f, Gfx.mix(t.border, 0xFFFFFFFF, progress));
         float kx = x + 2 + (w - h) * progress;
-        Gfx.fillRound(g, kx, y + 2, h - 4, h - 4, (h - 4) / 2f, Gfx.mix(t.muted, 0xFFFFFFFF, progress));
+        Gfx.fillRound(g, kx, y + 2, h - 4, h - 4, (h - 4) / 2f, Gfx.mix(0xFF8A8A8A, 0xFF000000, progress));
     }
 
     public static void scrollbar(GuiGraphics g, int x, int y, int h, float offset, float visible, CirrusTheme t) {
@@ -113,6 +107,22 @@ public final class CirrusUi {
         while (s.length() > 1 && f.width(style.apply(s + "…")) > maxWidth) s = s.substring(0, s.length() - 1);
         return s + "…";
     }
+    /** Word-wraps text to maxWidth in the small style; at most maxLines lines, the last one ellipsised if the text does not fit. */
+    public static java.util.List<String> wrapSmall(Font f, String value, int maxWidth, int maxLines) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        if (value == null || value.isBlank() || maxWidth <= 0 || maxLines <= 0) return lines;
+        StringBuilder line = new StringBuilder();
+        String[] words = value.trim().split("\\s+");
+        for (int i = 0; i < words.length; i++) {
+            String candidate = line.isEmpty() ? words[i] : line + " " + words[i];
+            if (smallWidth(f, candidate) <= maxWidth || line.isEmpty()) { line = new StringBuilder(candidate); continue; }
+            lines.add(line.toString());
+            if (lines.size() == maxLines) { lines.set(maxLines - 1, fitSmall(f, lines.get(maxLines - 1) + " " + String.join(" ", java.util.Arrays.copyOfRange(words, i, words.length)), maxWidth)); return lines; }
+            line = new StringBuilder(words[i]);
+        }
+        if (!line.isEmpty()) lines.add(fitSmall(f, line.toString(), maxWidth));
+        return lines;
+    }
     public static String fitBody(Font f, String v, int w) { return fit(f, v, w, CirrusUi::body); }
     public static String fitSmall(Font f, String v, int w) { return fit(f, v, w, CirrusUi::small); }
 
@@ -148,7 +158,7 @@ public final class CirrusUi {
     }
 
     /** The mark art is white; on light themes it is tinted with the accent so it stays visible. */
-    private static int markColor(CirrusTheme t) { return t == CirrusTheme.LIGHT ? t.accent : 0xFFFFFFFF; }
+    private static int markColor(CirrusTheme t) { return 0xFFFFFFFF; }
 
     public static void brand(GuiGraphics g, int x, int y, int markSize, CirrusTheme t) {
         int markWidth = Math.max(1, (markSize * 640 + 236) / 473);

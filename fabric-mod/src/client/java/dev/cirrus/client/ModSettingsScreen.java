@@ -156,11 +156,11 @@ public final class ModSettingsScreen extends CirrusScreen {
     }
 
     private void drawPreview(GuiGraphics g, CirrusTheme t) {
-        Gfx.fillRound(g, previewX, previewY, PREVIEW_W, previewH, 8, 0xFF0C1018);
+        Gfx.fillRound(g, previewX, previewY, PREVIEW_W, previewH, 8, 0xFF050505);
         g.enableScissor(previewX + 1, previewY + 1, previewX + PREVIEW_W - 1, previewY + previewH - 1);
         // A checker backdrop so a transparent or low-opacity background is visible as such.
         for (int cy = 0; cy < previewH; cy += 10) for (int cx = 0; cx < PREVIEW_W; cx += 10) {
-            if (((cx / 10) + (cy / 10)) % 2 == 0) g.fill(previewX + cx, previewY + cy, previewX + cx + 10, previewY + cy + 10, 0xFF141B27);
+            if (((cx / 10) + (cy / 10)) % 2 == 0) g.fill(previewX + cx, previewY + cy, previewX + cx + 10, previewY + cy + 10, 0xFF141414);
         }
         HudElement e = (HudElement) mod;
         // Shrink the preview (never the real element) when a large scale would not fit the card.

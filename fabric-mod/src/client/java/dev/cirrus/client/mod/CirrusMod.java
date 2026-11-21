@@ -7,14 +7,18 @@ import net.minecraft.client.gui.GuiGraphics;
 /** A self-contained feature contribution. Render and lifecycle hooks are optional. */
 public interface CirrusMod {
     String id(); String name(); String description(); ModCategory category();
-    /** Index into the Cirrus icon sheet (see CirrusUi.ICON_*). */
-    default int icon() {
-        return switch (category()) { case ALL -> dev.cirrus.client.ui.CirrusUi.ICON_LIBRARY; case HUD -> dev.cirrus.client.ui.CirrusUi.ICON_HUD; case PVP -> dev.cirrus.client.ui.CirrusUi.ICON_PVP; case VISUALS -> dev.cirrus.client.ui.CirrusUi.ICON_VISUALS; case PERFORMANCE -> dev.cirrus.client.ui.CirrusUi.ICON_PERFORMANCE; case UTILITY -> dev.cirrus.client.ui.CirrusUi.ICON_UTILITY; case INTERFACE -> dev.cirrus.client.ui.CirrusUi.ICON_SETTINGS; };
-    }
+    /** Index into the Cirrus glyph sheet (ui/Glyphs). Defaults to the category's glyph; modules override it with their own. */
+    default int icon() { return category().glyph; }
+    /** AVAILABLE modules work in game; PLANNED ones are catalogue entries that can never be switched on. */
+    default ModStatus status() { return ModStatus.AVAILABLE; }
+    default boolean available() { return status() == ModStatus.AVAILABLE; }
+    /** Optional one-line note shown with the module, for example who provides a platform feature. */
+    default String note() { return ""; }
     default boolean defaultEnabled() { return false; }
     default boolean favorite(CirrusConfig config) { return config.getBoolean("favorite." + id(), false); }
-    default boolean enabled(CirrusConfig config) { return config.getBoolean("enabled." + id(), defaultEnabled()); }
+    default boolean enabled(CirrusConfig config) { return available() && config.getBoolean("enabled." + id(), defaultEnabled()); }
     default void setEnabled(CirrusConfig config, boolean enabled) {
+        if (!available()) return;
         boolean wasEnabled = enabled(config);
         if (wasEnabled == enabled) return;
         config.put("enabled." + id(), Boolean.toString(enabled));

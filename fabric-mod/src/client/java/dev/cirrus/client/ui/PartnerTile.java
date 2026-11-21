@@ -47,11 +47,9 @@ public final class PartnerTile extends Button {
         hover = Anim.approach(hover, isHoveredOrFocused() ? 1f : 0f, clock.tick(), 16f);
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         float radius = Math.min(6f, h * 0.24f);
-        int tint = 0xFF000000 | partner.color();
-        Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(0xFF0A0F1A, tint, 0.38f + 0.2f * hover));
-        Gfx.hairline(g, x + radius, y + 1, w - radius * 2, Gfx.scaleAlpha(t.highlight, 2.2f));
-        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, Gfx.mix(Gfx.scaleAlpha(t.border, 0.8f), t.cyan, hover));
-        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.cyan);
+        Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(0xFF000000, 0xFF1C1C1C, hover));
+        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, Gfx.mix(t.border, 0xFFFFFFFF, hover));
+        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, 0xFFFFFFFF);
 
         String mono = monogram(partner.name());
         CirrusUi.centeredFit(g, mc.font, mono, x + w / 2, y + h / 2, w - 4, 0xFFFFFFFF);
@@ -60,7 +58,7 @@ public final class PartnerTile extends Button {
         int dot = state == ServerStatus.State.ONLINE ? t.good : state == ServerStatus.State.CHECKING ? 0xFFE0A93B : 0xFF566176;
         int d = Math.max(5, Math.round(h * 0.28f));
         int dx = x + w - d + 1, dy = y + h - d + 1;
-        Gfx.fillRound(g, dx - 1, dy - 1, d + 2, d + 2, (d + 2) / 2f, 0xFF070B14);
+        Gfx.fillRound(g, dx - 1, dy - 1, d + 2, d + 2, (d + 2) / 2f, 0xFF000000);
         Gfx.fillRound(g, dx, dy, d, d, d / 2f, dot);
     }
 

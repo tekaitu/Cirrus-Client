@@ -24,8 +24,8 @@ public final class KeystrokesMod extends HudMod {
     public String id() { return "keystrokes"; }
     public String name() { return "Keystrokes"; }
     public String description() { return "Shows movement keys, jump and mouse buttons as you press them."; }
-    public ModCategory category() { return ModCategory.PVP; }
-    @Override public int icon() { return dev.cirrus.client.ui.CirrusUi.ICON_UTILITY; }
+    public ModCategory category() { return ModCategory.HUD; }
+    @Override public int icon() { return dev.cirrus.client.ui.Glyphs.KEYCAP; }
     @Override protected List<Setting> featureSettings() { return OWN; }
     @Override protected int baseWidth(CirrusConfig c) { return KEY * 3 + GAP * 2; }
     @Override protected int baseHeight(CirrusConfig c) { return KEY * 2 + GAP + (on(c, "mouse") ? GAP + 18 : 0) + (on(c, "space") ? GAP + 14 : 0); }
@@ -61,11 +61,11 @@ public final class KeystrokesMod extends HudMod {
     /** With the background on each key is a filled box; with it off only a pressed key is highlighted. */
     private void key(GuiGraphics g, Minecraft mc, int x, int y, int w, int h, String label, float p, CirrusConfig c, CirrusTheme t) {
         int base = backgroundColor(c, t);
-        int lit = Gfx.withAlpha(t.accent, Math.round(255 * Math.max(p, 0f) * (backgroundOn(c) ? 1f : 0.85f)));
+        int lit = Gfx.withAlpha(0xFFFFFFFF, Math.round(255 * Math.max(p, 0f)));
         if (base != 0) Gfx.fillRound(g, x, y, w, h, 5, base);
-        if (p > 0.01f) Gfx.fillRound(g, x, y, w, h, 5, Gfx.scaleAlpha(lit, p));
-        if (borderOn(c)) Gfx.strokeRound(g, x, y, w, h, 5, 0.5f, Gfx.mix(t.border, t.cyan, p));
-        int color = Gfx.mix(backgroundOn(c) ? t.muted : t.text, 0xFFFFFFFF, p);
-        CirrusUi.centeredSmall(g, mc.font, label, x + w / 2, y + (h - CirrusUi.LINE) / 2, color);
+        if (p > 0.01f) Gfx.fillRound(g, x, y, w, h, 5, lit);
+        if (borderOn(c)) Gfx.strokeRound(g, x, y, w, h, 5, 0.5f, Gfx.mix(t.border, 0xFFFFFFFF, p));
+        int color = Gfx.mix(0xFFFFFFFF, 0xFF000000, Math.min(1f, p * 1.2f));
+        CirrusUi.smallText(g, mc.font, label, x + (w - CirrusUi.smallWidth(mc.font, label)) / 2, y + (h - CirrusUi.LINE) / 2, color, shadowOn(c) && p < 0.5f);
     }
 }

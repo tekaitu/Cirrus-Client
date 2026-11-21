@@ -43,25 +43,21 @@ public final class CirrusButton extends Button {
         press = Anim.approach(press, isHovered() && active && mc.mouseHandler.isLeftPressed() ? 1f : 0f, dt, 30f);
 
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
-        float radius = Math.min(8f, h / 2f);
+        float radius = Math.min(6f, h / 2f);
         selectedBlend = Anim.approach(selectedBlend, selected ? 1f : 0f, dt, 16f);
         boolean primary = style == Style.PRIMARY || selectedBlend > 0.5f;
-        int base = primary ? Gfx.mix(t.accent, t.panel, 0.15f) : Gfx.mix(t.surface, t.panel, 0.4f);
-        int lit = primary ? Gfx.mix(t.accent, t.cyan, 0.35f) : Gfx.mix(t.surface, t.accent, 0.45f);
-        int fill = Gfx.mix(Gfx.mix(base, lit, hover), 0xFF000000, press * 0.18f);
-        if (style == Style.TAB) fill = Gfx.mix(fill, t.accent, selectedBlend);
-        int edge = Gfx.mix(t.border, t.cyan, hover);
-        if (!active) { fill = Gfx.scaleAlpha(fill, 0.55f); edge = Gfx.scaleAlpha(edge, 0.55f); }
+        // Flat black. Hover lifts the fill slightly and whitens the outline; primary and selected buttons get a white outline.
+        int fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
+        int edge = Gfx.mix(primary ? 0xFFFFFFFF : t.border, 0xFFFFFFFF, hover);
+        if (!active) { fill = 0xFF000000; edge = Gfx.scaleAlpha(t.border, 0.6f); }
 
-        Gfx.fillRound(g, x, y + 1, w, h, radius, Gfx.scaleAlpha(t.shadow, 0.35f + 0.3f * hover));
         Gfx.fillRound(g, x, y, w, h, radius, fill);
-        if (w > radius * 2) Gfx.hairline(g, x + radius, y + 1, w - radius * 2, Gfx.scaleAlpha(t.highlight, 2.2f));
-        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
-        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.cyan);
+        Gfx.strokeRound(g, x, y, w, h, radius, primary ? 1f : 0.5f, edge);
+        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, 0xFFFFFFFF);
 
         Font font = mc.font;
-        int textColor = !active ? t.muted : primary ? 0xFFFFFFFF : Gfx.mix(t.text, 0xFFFFFFFF, hover * 0.4f);
-        int iconColor = !active ? t.muted : (hover > 0.5f || primary ? t.cyan : t.muted);
+        int textColor = active ? 0xFFFFFFFF : 0xFF7A7A7A;
+        int iconColor = active ? 0xFFFFFFFF : 0xFF7A7A7A;
         int ty = y + (h - CirrusUi.LINE) / 2;
         String label = getMessage().getString();
         int pad = w < 90 ? 6 : 8;
