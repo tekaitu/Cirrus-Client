@@ -8,7 +8,7 @@ import { PackageIcon, PlayArrowIcon, SettingsIcon, StopIcon, TerminalIcon } from
 import { Banner } from "./ui";
 import { InstallProgress } from "./InstallProgress";
 import { Button } from "./Button";
-import { VersionSelector } from "./VersionSelector";
+import { LaunchConfig } from "./LaunchConfig";
 import type { PageId } from "./Navigation";
 
 /** Version, loader and player choice, plus the one button that sets up, signs in, or starts the game. */
@@ -16,11 +16,14 @@ export function PlayPanel({
   data,
   onNavigate,
   onOpenAccount,
+  onChangeVersion,
   variant = "full",
 }: {
   data: AppData;
   onNavigate: (page: PageId) => void;
   onOpenAccount: () => void;
+  /** Opens the version catalogue; the library owns version choice in the full panel. */
+  onChangeVersion?: () => void;
   /** "quick" (Home) is the big Play button and a one-line summary; "full" (Play page) adds every choice. */
   variant?: "quick" | "full";
 }) {
@@ -40,8 +43,9 @@ export function PlayPanel({
   const acct = data.account.state;
   const signedIn = acct.phase === "signedIn";
   const checkingAccount = acct.phase === "checking";
-  // Online play needs the Microsoft account. Offline play needs no sign-in at all.
-  const accountReady = mode === "offline" || signedIn;
+  // Online play needs the Microsoft account; offline play needs a valid name and nothing else.
+  const offlineReady = mode === "offline" && name.trim().length > 0 && usernameError(name) === null;
+  const accountReady = mode === "offline" ? offlineReady : signedIn;
 
   const javaState = data.java;
   const java = javaState.status === "ready" ? javaState.data.selected : null;
@@ -67,6 +71,15 @@ export function PlayPanel({
   latest.current = { game, installer: data.installer, mode, name, javaPath: java?.path ?? null };
   const javaPath = java?.path ?? null;
   const gameInstalled = game.status?.installed ?? null;
+  const fabric = selection.loader === "fabric";
+  // The version summary says what the game status of the chosen version is, in the same words everywhere.
+  const installedNote = !game.status
+    ? "Game status is only available in the desktop app."
+    : game.status.installed
+      ? fabric && game.status.loader
+        ? `Fabric ${game.status.loader} is installed for ${selection.version}.`
+        : `Minecraft ${selection.version} is installed and ready to play.`
+      : `Minecraft ${selection.version}${fabric ? " with Fabric" : ""} is not downloaded yet. Play sets it up first.`;
 
   useEffect(() => {
     if (!auto.current) return;
@@ -174,66 +187,117 @@ export function PlayPanel({
           </button>
         </div>
       )}
-      {variant === "full" && (<>
-      <VersionSelector data={data} disabled={running || installing} />
-      <details className="why-optifine">
-        <summary>Why is there no OptiFine?</summary>
-        <p className="muted small">
-          OptiFine can&apos;t be downloaded automatically: its own download page requires a person to click through
-          it, and its license does not allow other launchers to redistribute it. On Fabric, the Mods tab can install
-          Sodium, Lithium and similar mods, which give the same kind of FPS boost.
-        </p>
-      </details>
+      {variant === "full" && (
+        <>
+          <section className="launch-block launch-account" aria-label="Account">
+            <div className="launch-block-head">
+              <span className="launch-block-title">Account</span>
+              <span className={`launch-status launch-status-${accountReady ? "good" : "warn"}`}>
+                {mode === "offline"
+                  ? name.trim()
+                    ? "Offline identity"
+                    : "No name yet"
+                  : signedIn
+                    ? "Microsoft connected"
+                    : checkingAccount
+                      ? "Checking account…"
+                      : "Not signed in"}
+              </span>
+            </div>
+            <div className="seg seg-wide" role="radiogroup" aria-label="Play as">
+              {(["microsoft", "offline"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === m}
+                  className={mode === m ? "seg-on" : ""}
+                  onClick={() => setMode(m)}
+                >
+                  {m === "microsoft" ? "Microsoft account" : "Offline name"}
+                </button>
+              ))}
+            </div>
 
-      <div className="seg" role="radiogroup" aria-label="Play as">
-        {(["microsoft", "offline"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="radio"
-            aria-checked={mode === m}
-            className={mode === m ? "seg-on" : ""}
-            onClick={() => setMode(m)}
-          >
-            {m === "microsoft" ? "Microsoft account" : "Offline name"}
-          </button>
-        ))}
-      </div>
+            {mode === "offline" ? (
+              <div className="name-field">
+                <label htmlFor="player-name">Player name</label>
+                <input
+                  id="player-name"
+                  type="text"
+                  value={name}
+                  maxLength={16}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="Steve"
+                  aria-invalid={touched && nameProblem ? true : undefined}
+                  aria-describedby="name-help"
+                  onChange={(e) => setName(e.target.value)}
+                  onBlur={() => setTouched(true)}
+                />
+                <p id="name-help" className={touched && nameProblem ? "error-text" : "muted small"}>
+                  {touched && nameProblem
+                    ? nameProblem
+                    : "Unverified offline identity. Offline play works for singleplayer and offline-mode servers; servers that check Microsoft accounts will refuse it, and it has no account skin or cape."}
+                </p>
+              </div>
+            ) : (
+              <p className="play-as muted small">
+                {signedIn ? (
+                  <>
+                    Playing as <strong>{acct.profile.name}</strong>
+                  </>
+                ) : (
+                  "Sign in with Microsoft to play online with your own account and skin, or choose Offline name to play without signing in."
+                )}
+              </p>
+            )}
+          </section>
 
-      {mode === "offline" ? (
-        <div className="name-field">
-          <label htmlFor="player-name">Player name</label>
-          <input
-            id="player-name"
-            type="text"
-            value={name}
-            maxLength={16}
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Steve"
-            aria-invalid={touched && nameProblem ? true : undefined}
-            aria-describedby="name-help"
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => setTouched(true)}
-          />
-          <p id="name-help" className={touched && nameProblem ? "error-text" : "muted small"}>
-            {touched && nameProblem
-              ? nameProblem
-              : "Offline play works for singleplayer and offline-mode servers. Servers that check Microsoft accounts will refuse it."}
-          </p>
-        </div>
-      ) : (
-        <p className="play-as muted small">
-          {signedIn ? (
-            <>
-              Playing as <strong>{acct.profile.name}</strong>
-            </>
-          ) : (
-            "Sign in with Microsoft to play online with your own account and skin, or choose Offline name to play without signing in."
-          )}
-        </p>
+          <section className="launch-block launch-version" aria-label="Selected version">
+            <div className="launch-block-head">
+              <span className="launch-block-title">Selected version</span>
+              {onChangeVersion && (
+                <button type="button" className="link-inline" onClick={onChangeVersion}>
+                  Change
+                </button>
+              )}
+            </div>
+            <p className="launch-version-line" aria-label="Selected Minecraft version">
+              <strong>{selection.version}</strong>
+              <span className="vp-chip">{fabric ? "Fabric" : "Vanilla"}</span>
+              {selection.profile && <span className="muted small">{selection.profile.name}</span>}
+              <span className={`launch-status launch-status-${game.status?.installed ? "good" : "warn"}`}>
+                {game.status?.installed ? "Installed · Ready to play" : "Not installed"}
+              </span>
+            </p>
+            <div className="seg seg-wide" role="radiogroup" aria-label="Loader for this version">
+              {(["fabric", "vanilla"] as const).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  role="radio"
+                  aria-checked={selection.loader === l}
+                  className={selection.loader === l ? "seg-on" : ""}
+                  disabled={running || installing}
+                  onClick={() => selection.setLoader(l)}
+                >
+                  {l === "fabric" ? "Fabric" : "Vanilla"}
+                </button>
+              ))}
+            </div>
+            <p className="launch-version-note muted small">{installedNote}</p>
+            <details className="why-optifine">
+              <summary>Why is there no OptiFine?</summary>
+              <p className="muted small">
+                OptiFine can&apos;t be downloaded automatically: its own download page requires a person to click
+                through it, and its license does not allow other launchers to redistribute it. On Fabric, the Mods tab
+                can install Sodium, Lithium and similar mods, which give the same kind of FPS boost.
+              </p>
+            </details>
+          </section>
+        </>
       )}
-      </>)}
 
       <div className="play-dock" aria-busy={launching || installing || undefined}>
       {progress ? (
@@ -273,6 +337,12 @@ export function PlayPanel({
         </div>
       )}
       </div>
+      {variant === "full" && (
+        <details className="launch-advanced">
+          <summary>Advanced launch options</summary>
+          <LaunchConfig data={data} onNavigate={onNavigate} />
+        </details>
+      )}
       {!progress && (action.hint || running || launching) && (
         <p className="muted small hero-note" role="status">
           {action.hint ?? (running ? "Minecraft is running." : "Minecraft is starting…")}

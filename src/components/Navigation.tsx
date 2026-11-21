@@ -15,6 +15,7 @@ import { LogoMark } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
 import { SkinHead } from "./SkinHead";
 import { useCustomFrame, windowActions } from "../core/windowFrame";
+import { usePlayAs } from "../hooks/usePlayAs";
 import { useRef } from "react";
 
 export type PageId =
@@ -63,6 +64,8 @@ interface Props {
   page: PageId;
   onNavigate: (page: PageId) => void;
   onAccount: () => void;
+  /** Opens the account panel, used when Offline is chosen without a name yet. */
+  onOpenAccount: () => void;
   accountOpen: boolean;
   /** The account Minecraft will start as; `offline` names have no Minecraft id or skin. */
   player: { name: string; id: string | null; offline?: boolean } | null;
@@ -78,8 +81,10 @@ interface Props {
  * opens the page; the current page is marked with `aria-current` and a visible
  * selected tile.
  */
-export function TopNav({ page, onNavigate, onAccount, accountOpen, player }: Props) {
+export function TopNav({ page, onNavigate, onAccount, onOpenAccount, accountOpen, player }: Props) {
   const customFrame = useCustomFrame();
+  const playAs = usePlayAs();
+  const offline = playAs.mode === "offline";
   const tabsRef = useRef<HTMLUListElement>(null);
 
   const moveFocus = (event: React.KeyboardEvent<HTMLUListElement>) => {
@@ -132,6 +137,34 @@ export function TopNav({ page, onNavigate, onAccount, accountOpen, player }: Pro
       </nav>
 
       <div className="hdr-right" data-tauri-drag-region>
+        <div className="mode-switch" role="radiogroup" aria-label="Play mode">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={!offline}
+            aria-label="Online mode (Microsoft account)"
+            data-tip="Online: Microsoft account"
+            className={!offline ? "is-on" : ""}
+            onClick={() => playAs.useMicrosoft()}
+          >
+            Online
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={offline}
+            aria-label="Offline mode"
+            data-tip="Offline: unverified name, no account skin"
+            className={offline ? "is-on" : ""}
+            onClick={() => {
+              playAs.setMode("offline");
+              // Without a name the game cannot start, so the account panel opens on the field.
+              if (!playAs.name.trim()) onOpenAccount();
+            }}
+          >
+            Offline
+          </button>
+        </div>
         <NotificationBell />
         <button
           type="button"

@@ -125,7 +125,7 @@ public final class CirrusMenuScreen extends Screen {
    int textX=f.left+34, textW=Math.max(40,f.cardW-34-80);
    CirrusUi.headingText(g,font,CirrusUi.fit(font,m.name(),textW,false),textX,y+9,t.text);
    CirrusUi.smallText(g,font,m.category().label,textX,y+23,t.cyan,false);
-   CirrusUi.smallText(g,font,CirrusUi.fit(font,m.description(),textW,true),textX,y+36,t.muted,false);
+   CirrusUi.text(g,font,CirrusUi.fit(font,m.description(),textW,false),textX,y+36,t.muted,false);
    boolean on=m.enabled(config()), fav=m.favorite(config());
    CirrusUi.icon(g,f.right-64,y+10,13,CirrusUi.ICON_FAVORITE,fav?t.text:t.muted);
    String state=on?"ON":"OFF";int stateW=font.width(CirrusUi.small(state));

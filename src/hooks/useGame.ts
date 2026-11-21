@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { GameStatus } from "../api/types";
 import { appendLog, type GameInstallerState, type LoaderId, type PlayMode, type RunState } from "../core/game";
+import { createSingleFlight } from "../core/singleFlight";
 
 export interface Game {
   status: GameStatus | null;
@@ -26,9 +27,11 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [installer, setInstaller] = useState<GameInstallerState>({ phase: "idle" });
   const [run, setRun] = useState<RunState>({ phase: "idle" });
-  const installing = useRef(false);
-  // A launch is in flight, so a second click cannot start Minecraft twice.
-  const launching = useRef(false);
+  // One action, one instance: a second click while a download, launch or stop is
+  // still in flight is dropped at this layer, and the gate opens when it settles.
+  const installGate = useRef(createSingleFlight()).current;
+  const playGate = useRef(createSingleFlight()).current;
+  const stopGate = useRef(createSingleFlight()).current;
   const mounted = useRef(true);
   const [log, setLog] = useState("");
   const [panel, setPanel] = useState<"none" | "log" | "crash">("none");
@@ -100,10 +103,9 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
   }, [refresh, readLog]);
 
   const install = useCallback(() => {
-    if (installing.current) return;
-    installing.current = true;
+    if (installGate.busy) return;
     setInstaller({ phase: "running", progress: null, cancelling: false });
-    void (async () => {
+    void installGate.run(async () => {
       let unlisten: () => void = () => {};
       try {
         unlisten = await api.onGameProgress((progress) => {
@@ -130,10 +132,9 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
         if (mounted.current) setInstaller({ phase: "error", message: errorMessage(e) });
       } finally {
         unlisten();
-        installing.current = false;
       }
-    })();
-  }, [version, loader]);
+    });
+  }, [version, loader, installGate]);
 
   const cancelInstall = useCallback(() => {
     setInstaller((prev) => (prev.phase === "running" ? { ...prev, cancelling: true } : prev));
@@ -141,31 +142,29 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
   }, []);
 
   const play = useCallback((javaPath: string, mode: PlayMode, username: string) => {
-    if (launching.current) return;
-    launching.current = true;
+    if (playGate.busy) return;
     setRun({ phase: "starting" });
     setLog("");
     logOffset.current = 0;
     const who = mode === "offline" ? username.trim() : null;
-    (profileId
-      ? api.launchGame(javaPath, mode, who, version, loader, profileId)
-      : api.launchGame(javaPath, mode, who, version, loader)
-    )
+    void playGate
+      .run(() =>
+        profileId
+          ? api.launchGame(javaPath, mode, who, version, loader, profileId)
+          : api.launchGame(javaPath, mode, who, version, loader),
+      )
       .then((r) => {
-        if (!mounted.current) return;
+        if (!mounted.current || !r) return;
         setRun(r.started ? { phase: "running" } : { phase: "error", message: r.message ?? "Minecraft could not be started." });
       })
       .catch((e) => {
         if (mounted.current) setRun({ phase: "error", message: errorMessage(e) });
-      })
-      .finally(() => {
-        launching.current = false;
       });
-  }, [version, loader, profileId]);
+  }, [version, loader, profileId, playGate]);
 
   const stop = useCallback(() => {
-    api.stopGame().catch(() => {});
-  }, []);
+    void stopGate.run(() => api.stopGame()).catch(() => {});
+  }, [stopGate]);
 
   const dismissRun = useCallback(() => {
     setRun({ phase: "idle" });

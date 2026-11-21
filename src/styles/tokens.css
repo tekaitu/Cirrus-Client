@@ -141,3 +141,46 @@
   --sky-stars: 0;
   --sky-sun: #ffffff;
 }
+
+/* Offline mode: the same monochrome system taken to ink and paper. Pure black
+   ground, white hairlines, no picture and no colour at all — clearly a different
+   mode from the signed-in launcher, while every control keeps its contrast and
+   its size. It applies over both appearances. */
+:root[data-play-mode="offline"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --bg-2: #050505;
+  --surface: rgba(255, 255, 255, 0.02);
+  --surface-solid: #060606;
+  --raised: rgba(255, 255, 255, 0.035);
+  --raised-solid: #101010;
+  --raised-2: rgba(255, 255, 255, 0.07);
+  --glass: rgba(255, 255, 255, 0.018);
+  --glass-strong: rgba(0, 0, 0, 0.94);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.36);
+  --text: #ffffff;
+  --text-soft: #d4d4d4;
+  --muted: #9a9a9a;
+  --accent: #ffffff;
+  --accent-strong: #ededed;
+  --accent-2: #c9c9c9;
+  --accent-rgb: 255 255 255;
+  --accent-soft: rgb(255 255 255 / 0.1);
+  --on-accent: #000000;
+  --radius: 5px;
+  --radius-sm: 4px;
+  --radius-lg: 7px;
+  --shadow: none;
+  --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.8);
+  --scene-veil: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.94) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 30%, rgba(0, 0, 0, 0.9) 100%);
+  --scene-filter: grayscale(1) contrast(1.1) brightness(0.4);
+  --hero-scrim: linear-gradient(90deg, rgba(0, 0, 0, 0.94), rgba(0, 0, 0, 0.72));
+  --dock-bg: #000000;
+  --dock-border: rgba(255, 255, 255, 0.18);
+  --tooltip: #ffffff;
+  --tooltip-text: #000000;
+  --scrim: rgba(0, 0, 0, 0.86);
+}

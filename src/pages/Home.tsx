@@ -26,10 +26,11 @@ function Identity({
 }) {
   const account = data.account.state;
   const playAs = usePlayAs();
-  // An offline name that was chosen on purpose wins over a saved Microsoft account,
-  // because that is exactly who Minecraft will start as.
-  const offline = playAs.mode === "offline" ? playAs.name.trim() : "";
-  const player = offline ? null : account.phase === "signedIn" ? account.profile : null;
+  // Offline mode is the identity while it is on, name or not: the Microsoft profile is
+  // never shown as if it were the player when the game would start offline.
+  const offlineMode = playAs.mode === "offline";
+  const offline = offlineMode ? playAs.name.trim() : "";
+  const player = offlineMode ? null : account.phase === "signedIn" ? account.profile : null;
   const appearance = usePlayerAppearance(player?.id ?? null);
   const install =
     data.game.installer.phase === "running"
@@ -46,8 +47,8 @@ function Identity({
         appearance.appearance?.cape ? "Cape equipped" : null,
         install,
       ].filter(Boolean).join(" · ")
-    : offline
-      ? `Offline account · singleplayer and offline servers · ${install}`
+    : offlineMode
+      ? `Offline account${offline ? "" : " · no name chosen yet"} · singleplayer and offline servers · ${install}`
       : `No account chosen · play offline or sign in with Microsoft · ${install}`;
 
   return (
@@ -55,13 +56,13 @@ function Identity({
       <SkinHead uuid={player?.id ?? null} name={player?.name ?? offline ?? null} size={38} />
       <div className="home-id-text">
         <span className="home-id-name">
-          {player ? player.name : offline || "Not signed in"}
+          {player ? player.name : offline || (offlineMode ? "No offline name" : "Not signed in")}
           {player && <small>Minecraft: Java Edition</small>}
           {!player && offline && <small>Offline</small>}
         </span>
         <span className="home-id-meta">{facts}</span>
       </div>
-      {!player && !offline && (
+      {!player && !offlineMode && (
         <div className="home-id-actions">
           <Button size="sm" variant="primary" onClick={onOpenAccount}>
             Sign in

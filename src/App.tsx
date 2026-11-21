@@ -92,13 +92,20 @@ export default function App() {
 
   const accountState = data.account.state;
   const microsoftName = accountState.phase === "signedIn" ? accountState.profile : null;
-  const offlineName = playAs.mode === "offline" ? playAs.name.trim() : "";
-  // The chosen offline name is what the game uses, so it is what the header shows.
-  const identity = offlineName
-    ? { name: offlineName, id: null, offline: true }
+  const offlineMode = playAs.mode === "offline";
+  const offlineName = offlineMode ? playAs.name.trim() : "";
+  // The header shows who the game will start as: the offline identity while that mode is on,
+  // even before a name is chosen, and never the Microsoft profile behind its back.
+  const identity = offlineMode
+    ? { name: offlineName || "Choose a name", id: null, offline: true }
     : microsoftName
       ? { name: microsoftName.name, id: microsoftName.id }
       : null;
+
+  // The network mode is a property of the whole window: Offline gets its own ink-and-paper surface.
+  useEffect(() => {
+    document.documentElement.dataset.playMode = playAs.mode;
+  }, [playAs.mode]);
 
   // Signing in means playing online from now on; choosing a name in the panel switches it back.
   const accountPhase = data.account.state.phase;
@@ -211,6 +218,7 @@ export default function App() {
           page={page}
           onNavigate={navigate}
           onAccount={toggleAccount}
+          onOpenAccount={openAccount}
           accountOpen={accountOpen}
           player={identity}
         />

@@ -23,7 +23,16 @@ import {
  * visible but not selectable, with the reason, and the Java check compares the
  * version's requirement with the Java Cirrus actually found.
  */
-export function VersionSelector({ data, disabled = false }: { data: AppData; disabled?: boolean }) {
+export function VersionSelector({
+  data,
+  disabled = false,
+  onPicked,
+}: {
+  data: AppData;
+  disabled?: boolean;
+  /** Called after a choice is made, so a dialog around the picker can close itself. */
+  onPicked?: () => void;
+}) {
   const { selection, game } = data;
   const instances = useInstances(data);
   const [catalog, setCatalog] = useState<VersionEntry[] | null>(null);
@@ -150,12 +159,14 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
     if (!option.supported) return;
     selection.setVersion(option.id);
     setOpen(false);
+    onPicked?.();
   };
 
   const pickInstance = (minecraft: string, loader: "fabric" | "vanilla") => {
     selection.setVersion(minecraft);
     selection.setLoader(loader);
     setOpen(false);
+    onPicked?.();
   };
 
   const rows = (list: VersionOption[]) =>

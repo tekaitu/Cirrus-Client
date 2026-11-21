@@ -72,6 +72,16 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
+/** Opens the version catalogue from the library (its Add Version button). */
+function openAddVersion() {
+  fireEvent.click(screen.getByRole("button", { name: "Add Version" }));
+}
+
+/** Expands the launch panel's advanced section (memory, Java, game folder). */
+function openAdvanced() {
+  fireEvent.click(screen.getByText("Advanced launch options"));
+}
+
 function goTo(name: "Home" | "Versions" | "Browse" | "Modpacks" | "Mods" | "Character" | "Servers" | "Settings") {
   fireEvent.click(screen.getByRole("button", { name }));
 }
@@ -1021,6 +1031,7 @@ describe("Play", () => {
     render(<App />);
     await waitReady();
     goTo("Versions");
+    openAddVersion();
     const trigger = screen.getByLabelText("Minecraft version");
     expect(trigger.textContent).toContain("1.21.11");
     fireEvent.click(trigger);
@@ -1279,9 +1290,9 @@ describe("Installed versions", () => {
     goTo("Versions");
     expect(await screen.findByText("Loader 0.17.0 · 3 mods")).toBeTruthy();
     expect(screen.getAllByText("Vanilla").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Play Minecraft 1.20.6 vanilla" }));
-    expect(await screen.findByLabelText("Minecraft version")).toBeTruthy(); // stays on Play, with the choice applied
-    expect(screen.getByLabelText("Minecraft version").textContent).toContain("1.20.6");
+    fireEvent.click(screen.getByRole("button", { name: "Select Minecraft 1.20.6 vanilla" }));
+    // stays on the Versions page, with the choice applied to the launch panel
+    expect((await screen.findByLabelText("Selected Minecraft version")).textContent).toContain("1.20.6");
     expect(window.localStorage.getItem("unlimited.loader")).toBe("vanilla");
   });
 });
@@ -1827,7 +1838,7 @@ describe("Versions page", () => {
     render(<App />);
     goTo("Versions");
     expect(await screen.findByRole("heading", { level: 1, name: "Versions" })).toBeTruthy();
-    expect(screen.getByLabelText("Minecraft version")).toBeTruthy();
+    expect(screen.getByLabelText("Selected Minecraft version").textContent).toContain("1.21.11");
     expect(await screen.findByText("Launch configuration")).toBeTruthy();
     expect(await screen.findByText("Nothing installed yet")).toBeTruthy();
   });
@@ -1836,6 +1847,7 @@ describe("Versions page", () => {
     mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ memoryMb: 6144 }) });
     render(<App />);
     goTo("Versions");
+    openAdvanced();
     fireEvent.click(await screen.findByRole("button", { name: "6 GB" }));
     await waitFor(() =>
       expect(mocked.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ memoryMb: 6144 })),
@@ -1847,6 +1859,7 @@ describe("Versions page", () => {
     render(<App />);
     goTo("Versions");
     await screen.findByText("Launch configuration");
+    openAdvanced();
     const changes = await screen.findAllByRole("button", { name: "Change" });
     fireEvent.click(changes[changes.length - 1]);
     expect((await screen.findByRole("tab", { name: "Game directory" })).getAttribute("aria-selected")).toBe("true");
@@ -1862,6 +1875,7 @@ describe("Version selection", () => {
     ]);
     render(<App />);
     goTo("Versions");
+    openAddVersion();
     await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
     fireEvent.click(screen.getByLabelText("Minecraft version"));
     const snapshot = await screen.findByRole("option", { name: /25w45a/ });
@@ -1880,6 +1894,7 @@ describe("Version selection", () => {
     ]);
     render(<App />);
     goTo("Versions");
+    openAddVersion();
     await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
     fireEvent.click(screen.getByLabelText("Minecraft version"));
     fireEvent.change(await screen.findByLabelText("Filter versions"), { target: { value: "25w" } });

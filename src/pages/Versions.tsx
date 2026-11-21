@@ -1,112 +1,80 @@
-import { useMemo, useState } from "react";
-import { api, errorMessage } from "../api/client";
+import { useEffect, useMemo, useState } from "react";
 import type { InstanceSummary } from "../api/types";
-import { CubeIcon, FolderIcon, JavaIcon, MemoryIcon, SearchIcon } from "../components/Icons";
+import { CloseIcon, CubeIcon, PlayArrowIcon, SearchIcon } from "../components/Icons";
 import { PlayPanel } from "../components/PlayPanel";
 import { VersionCard } from "../components/VersionCard";
+import { VersionSelector } from "../components/VersionSelector";
 import type { PageId } from "../components/Navigation";
-import { formatMemory } from "../core/format";
-import { javaTitle } from "../components/JavaStatus";
 import { Badge, Banner, Card, Skeleton } from "../components/ui";
+import { usernameError } from "../core/game";
+import type { LoaderId } from "../core/game";
 import type { AppData } from "../hooks/useAppData";
 import { loaderLabel, loaderOf, useInstances } from "../hooks/useInstances";
+import { usePlayAs } from "../hooks/usePlayAs";
 
 function instanceName(i: InstanceSummary): string {
   return `Minecraft ${i.minecraft}`;
 }
 
-const MEMORY_PRESETS_MB = [2048, 4096, 6144, 8192];
-
-/** Memory, Java and game folder at a glance. Memory changes are saved at once through the real settings. */
-function LaunchConfig({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId, section?: string) => void }) {
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const settings = data.settings.status === "ready" ? data.settings.data : null;
-  const java = data.java.status === "ready" ? data.java.data.selected : null;
-
-  const setMemory = async (mb: number) => {
-    if (!settings) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const outcome = await api.saveSettings({ ...settings.settings, memoryMb: mb });
-      if (outcome.ok && outcome.state) data.applySettings(outcome.state);
-      else setError(outcome.errors[0]?.message ?? "The memory setting was not saved.");
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setSaving(false);
-    }
-  };
+/** "Add a version" opens the same catalogue the launcher always used, without leaving the library. */
+function AddVersionDialog({ data, onClose }: { data: AppData; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
-    <Card className="play-config" id="launch-config" title="Launch configuration" icon={<CubeIcon />} description="What the game starts with.">
-      {!settings ? (
-        <Skeleton label="Loading launch settings" lines={3} />
-      ) : (
-        <dl className="config-list">
+    <div
+      className="modal-backdrop"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="modal add-version-modal" role="dialog" aria-modal="true" aria-label="Add a version">
+        <header className="add-version-head">
           <div>
-            <dt>
-              <MemoryIcon /> Memory
-            </dt>
-            <dd>
-              <strong>{formatMemory(settings.settings.memoryMb)}</strong>
-              <span className="muted small"> of {formatMemory(settings.totalRamMb)} installed</span>
-              <div className="presets" role="group" aria-label="Memory for the game">
-                {MEMORY_PRESETS_MB.filter((mb) => mb >= settings.minMemoryMb && mb <= settings.maxMemoryMb).map((mb) => (
-                  <button
-                    key={mb}
-                    type="button"
-                    className={`chip ${settings.settings.memoryMb === mb ? "chip-on" : ""}`}
-                    aria-pressed={settings.settings.memoryMb === mb}
-                    disabled={saving}
-                    onClick={() => void setMemory(mb)}
-                  >
-                    {mb / 1024} GB
-                  </button>
-                ))}
-              </div>
-            </dd>
+            <h2 className="modal-title">Add a version</h2>
+            <p className="muted small">
+              Pick any Minecraft release or snapshot. Versions already on this PC are marked; Play downloads what is
+              missing.
+            </p>
           </div>
-          <div>
-            <dt>
-              <JavaIcon /> Java
-            </dt>
-            <dd>
-              {java ? <strong>{javaTitle(java)}</strong> : <span className="muted">Not found yet. Set up &amp; play installs it.</span>}
-              <button type="button" className="link-inline" onClick={() => onNavigate("settings", "performance")}>
-                Change
-              </button>
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <FolderIcon /> Game folder
-            </dt>
-            <dd>
-              <span className="path">{settings.settings.gameDir}</span>
-              <button type="button" className="link-inline" onClick={() => onNavigate("settings", "folder")}>
-                Change
-              </button>
-            </dd>
-          </div>
-        </dl>
-      )}
-      {error && (
-        <p className="error-text" role="alert">
-          {error}
-        </p>
-      )}
-    </Card>
+          <button type="button" className="icon-btn" aria-label="Close add version" onClick={onClose}>
+            <CloseIcon />
+          </button>
+        </header>
+        <VersionSelector data={data} onPicked={onClose} />
+      </div>
+    </div>
   );
 }
 
-/** Every version on this PC as a card, with a search box and a loader filter. */
-function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId, section?: string) => void }) {
-  const { selection } = data;
+/** Every installed version as a card, with search, a loader filter and Add Version in one toolbar. */
+function Installations({
+  data,
+  onNavigate,
+  onAddVersion,
+}: {
+  data: AppData;
+  onNavigate: (page: PageId, section?: string) => void;
+  onAddVersion: () => void;
+}) {
+  const { selection, game } = data;
+  const playAs = usePlayAs();
   const list = useInstances(data);
   const [text, setText] = useState("");
   const [only, setOnly] = useState<"all" | "fabric" | "vanilla">("all");
+  // A Launch click selects first; this remembers which card should start once its status is known.
+  const [pending, setPending] = useState<{ version: string; loader: LoaderId } | null>(null);
+
+  const java = data.java.status === "ready" ? data.java.data.selected : null;
+  const running = game.run.phase === "running" || game.run.phase === "starting";
+  const installing = game.installer.phase === "running";
+  const nameProblem = playAs.mode === "offline" ? usernameError(playAs.name) : null;
+  const canLaunch = java !== null && !nameProblem && !running && !installing;
 
   const shown = useMemo(() => {
     if (list.state.status !== "ready") return [];
@@ -122,12 +90,53 @@ function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page:
     if (page) onNavigate(page);
   };
 
+  // The launch of a card runs here, once the game status belongs to the chosen version.
+  useEffect(() => {
+    if (!pending) return;
+    if (selection.version !== pending.version || selection.loader !== pending.loader) return;
+    if (!game.status) return;
+    setPending(null);
+    if (!java || !game.status.installed) return;
+    game.play(java.path, playAs.mode, playAs.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, selection.version, selection.loader, game.status, java, playAs.mode, playAs.name]);
+
+  const launch = (i: InstanceSummary) => {
+    setPending({ version: i.minecraft, loader: loaderOf(i) });
+    pick(i, null);
+  };
+
   return (
-    <section className="play-installations" id="installations" aria-label="Installed versions">
+    <section className="play-installations version-library" id="installations" aria-labelledby="library-title">
+      <div className="library-head">
+        <div>
+          <h2 id="library-title" className="library-title">
+            Your library
+          </h2>
+          <p className="muted small">
+            {list.state.status === "ready"
+              ? `${list.state.data.length} installed ${list.state.data.length === 1 ? "version" : "versions"} on this PC`
+              : "Versions installed on this PC"}
+          </p>
+        </div>
+        <button type="button" className="btn btn-primary btn-small add-version-btn" onClick={onAddVersion}>
+          <span className="add-version-plus" aria-hidden="true">
+            +
+          </span>
+          Add Version
+        </button>
+      </div>
+
       <div className="toolbar">
         <div className="search-box">
           <SearchIcon />
-          <input type="text" aria-label="Search installed versions" placeholder="Search versions…" value={text} onChange={(e) => setText(e.target.value)} />
+          <input
+            type="text"
+            aria-label="Search installed versions"
+            placeholder="Search versions…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
         </div>
         <div className="seg" role="radiogroup" aria-label="Show loader">
           {(
@@ -137,12 +146,21 @@ function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page:
               ["vanilla", "Vanilla"],
             ] as const
           ).map(([id, label]) => (
-            <button key={id} type="button" role="radio" aria-label={`Show ${label.toLowerCase()} versions`} aria-checked={only === id} className={only === id ? "seg-on" : ""} onClick={() => setOnly(id)}>
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-label={`Show ${label.toLowerCase()} versions`}
+              aria-checked={only === id}
+              className={only === id ? "seg-on" : ""}
+              onClick={() => setOnly(id)}
+            >
               {label}
             </button>
           ))}
         </div>
       </div>
+
       {list.state.status === "loading" && <Skeleton label="Loading library" lines={3} />}
       {list.state.status === "error" && (
         <Banner
@@ -161,10 +179,17 @@ function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page:
         <div className="empty empty-big">
           <CubeIcon />
           <h2>Nothing installed yet</h2>
-          <p className="muted">Press “Set up &amp; play” on the right. The version you pick is downloaded and shows up here.</p>
+          <p className="muted">
+            Press “Add Version” to pick a Minecraft version and loader. It downloads, then shows up here as a card.
+          </p>
+          <button type="button" className="btn btn-primary" onClick={onAddVersion}>
+            Add your first version
+          </button>
         </div>
       )}
-      {list.state.status === "ready" && list.state.data.length > 0 && shown.length === 0 && <p className="muted">No installed version matches.</p>}
+      {list.state.status === "ready" && list.state.data.length > 0 && shown.length === 0 && (
+        <p className="muted">No installed version matches.</p>
+      )}
       {shown.length > 0 && (
         <ul className="vgrid">
           {shown.map((i) => {
@@ -178,18 +203,27 @@ function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page:
                   line={l === "fabric" ? `Loader ${i.loader} · ${i.modCount} ${i.modCount === 1 ? "mod" : "mods"}` : "Vanilla"}
                   selected={current}
                   badge={current ? <Badge tone="info">Selected</Badge> : undefined}
+                  onSelect={() => pick(i, null)}
+                  selectLabel={`Select ${instanceName(i)} ${l === "fabric" ? "with Fabric" : "vanilla"}`}
                   actions={
                     <>
                       <button
                         type="button"
                         className="btn btn-primary btn-small"
-                        aria-label={`Play ${instanceName(i)} ${l === "fabric" ? "with Fabric" : "vanilla"}`}
-                        onClick={() => pick(i, null)}
+                        aria-label={`Launch ${instanceName(i)} ${l === "fabric" ? "with Fabric" : "vanilla"}`}
+                        disabled={!canLaunch}
+                        title={canLaunch ? "Start Minecraft with this version" : launchHint({ java: java !== null, nameProblem, running, installing })}
+                        onClick={() => launch(i)}
                       >
-                        Select
+                        <PlayArrowIcon /> Launch
                       </button>
                       {l === "fabric" && (
-                        <button type="button" className="btn btn-small" aria-label={`Mods for ${instanceName(i)}`} onClick={() => pick(i, "mods")}>
+                        <button
+                          type="button"
+                          className="btn btn-small"
+                          aria-label={`Mods for ${instanceName(i)}`}
+                          onClick={() => pick(i, "mods")}
+                        >
                           Mods
                         </button>
                       )}
@@ -205,7 +239,14 @@ function Installations({ data, onNavigate }: { data: AppData; onNavigate: (page:
   );
 }
 
-/** Pick, install and launch versions; the launch settings sit beside them. */
+function launchHint(state: { java: boolean; nameProblem: string | null; running: boolean; installing: boolean }): string {
+  if (state.running) return "Minecraft is already starting or running.";
+  if (state.installing) return "Game files are still downloading.";
+  if (!state.java) return "Java is needed first. Set up and play installs it.";
+  return state.nameProblem ?? "Fix the offline name before playing.";
+}
+
+/** The library on the left; the launch panel on the right, with nothing repeated between them. */
 export function VersionsPage({
   data,
   onNavigate,
@@ -215,6 +256,7 @@ export function VersionsPage({
   onNavigate: (page: PageId, section?: string) => void;
   onOpenAccount: () => void;
 }) {
+  const [addOpen, setAddOpen] = useState(false);
   return (
     <div className="page versions-page">
       <header className="page-head">
@@ -223,14 +265,14 @@ export function VersionsPage({
         <p>Every Minecraft version on this PC, one card per version and loader. Pick one, then press Play.</p>
       </header>
       <div className="versions-layout">
-        <Installations data={data} onNavigate={onNavigate} />
+        <Installations data={data} onNavigate={onNavigate} onAddVersion={() => setAddOpen(true)} />
         <aside className="versions-side">
-          <Card className="play-launch" id="launch" title="Launch" icon={<CubeIcon />} description="Version, loader, player and the Play button.">
-            <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="full" />
+          <Card className="play-launch" id="launch" title="Launch" icon={<CubeIcon />} description="Account, selected version and the Play button.">
+            <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="full" onChangeVersion={() => setAddOpen(true)} />
           </Card>
-          <LaunchConfig data={data} onNavigate={onNavigate} />
         </aside>
       </div>
+      {addOpen && <AddVersionDialog data={data} onClose={() => setAddOpen(false)} />}
     </div>
   );
 }

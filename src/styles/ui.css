@@ -2209,3 +2209,155 @@ textarea {
     padding: 18px 8px 24px;
   }
 }
+
+/* ==========================================================================
+   v0.4: library-first versions, a calmer launch panel, an explicit play mode
+   ========================================================================== */
+
+/* ------------------------------------------------------------ Online / Offline */
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  background: rgb(8 8 8 / 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.mode-switch button {
+  height: 26px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(255 255 255 / 0.62);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color var(--fast), background var(--fast);
+}
+.mode-switch button:hover { color: #ffffff; }
+.mode-switch button.is-on { background: #ffffff; color: #0b0b0b; }
+.mode-switch button:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+@media (max-width: 1040px) {
+  .mode-switch button { padding: 0 8px; font-size: 0.68rem; }
+}
+@media (max-width: 760px) {
+  .mode-switch { padding: 2px; }
+  .mode-switch button { height: 24px; padding: 0 7px; }
+}
+
+/* ------------------------------------------------------------ version library */
+.versions-page .versions-layout { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: 22px; }
+.version-library { display: flex; flex-direction: column; gap: 14px; }
+.library-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.library-title { margin: 0; font-family: var(--font-display); font-size: 1.12rem; font-weight: 750; letter-spacing: -0.01em; }
+.library-head p { margin: 3px 0 0; }
+.add-version-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 16px; border-radius: 999px; font-weight: 700; }
+.add-version-plus { font-size: 1.02rem; line-height: 1; margin-top: -1px; }
+.version-library .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.version-library .toolbar .search-box { flex: 1 1 220px; min-width: 0; }
+.version-library .vgrid { margin-top: 2px; }
+.version-library .empty-big .ui-btn, .version-library .empty-big .btn { margin-top: 4px; }
+
+/* Add Version: the catalogue in a window of its own, so the page stays two columns. */
+.add-version-modal {
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(86vh, 780px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+.add-version-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.add-version-head p { margin: 4px 0 0; max-width: 54ch; }
+.add-version-modal .version-selector { min-height: 0; }
+.add-version-modal .version-options { flex-wrap: nowrap; }
+
+/* ------------------------------------------------------------ launch panel */
+.launch-block { display: flex; flex-direction: column; gap: 9px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: rgb(255 255 255 / 0.02); }
+:root[data-theme="light"] .launch-block { background: rgb(12 12 12 / 0.025); }
+.launch-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.launch-block-title { font-size: 0.68rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.launch-status { font-size: 0.72rem; font-weight: 650; color: var(--muted); }
+.launch-status-good { color: var(--good); }
+.launch-status-warn { color: var(--warn); }
+.seg-wide { display: flex; width: 100%; }
+.seg-wide > button { flex: 1 1 0; justify-content: center; }
+.launch-version-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 9px; margin: 0; }
+.launch-version-line strong { font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+.launch-version-line .launch-status { margin-left: auto; }
+.launch-version-note { margin: 0; }
+.launch-version .why-optifine { margin-top: 2px; }
+
+/* Memory, Java and the game folder only when they are wanted. */
+.launch-advanced { border: 1px solid var(--border); border-radius: 12px; background: rgb(255 255 255 / 0.02); }
+.launch-advanced > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 13px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.86rem;
+  font-weight: 650;
+  color: var(--text-soft);
+}
+.launch-advanced > summary::-webkit-details-marker { display: none; }
+.launch-advanced > summary::after { content: "+"; font-size: 1rem; color: var(--muted); }
+.launch-advanced[open] > summary { border-bottom: 1px solid var(--border); color: var(--text); }
+.launch-advanced[open] > summary::after { content: "–"; }
+.launch-advanced .play-config { padding: 4px 13px 13px; border: 0; background: none; box-shadow: none; }
+.launch-advanced .play-config .card-head { display: none; }
+
+/* ------------------------------------------------------------ offline (ink) mode */
+:root[data-play-mode="offline"] .app-bg-img { opacity: 0.16; }
+:root[data-play-mode="offline"] .app-bg-veil { background: linear-gradient(180deg, rgb(0 0 0 / 0.9), rgb(0 0 0 / 0.97)); }
+:root[data-play-mode="offline"] .app-bg-vignette { background: radial-gradient(ellipse at 50% 40%, transparent 26%, #000000 100%); }
+:root[data-play-mode="offline"] .card,
+:root[data-play-mode="offline"] .vc,
+:root[data-play-mode="offline"] .modal,
+:root[data-play-mode="offline"] .acct-drawer,
+:root[data-play-mode="offline"] .launch-block,
+:root[data-play-mode="offline"] .launch-advanced,
+:root[data-play-mode="offline"] .studio-stage-card {
+  border-radius: 5px;
+  box-shadow: none;
+}
+:root[data-play-mode="offline"] .vc-selected,
+:root[data-play-mode="offline"] .vc.vc-selected { box-shadow: 0 0 0 1px #ffffff; }
+:root[data-play-mode="offline"] .eyebrow { color: #ffffff; }
+:root[data-play-mode="offline"] .hdr { background: linear-gradient(180deg, rgb(0 0 0 / 0.92), rgb(0 0 0 / 0)); }
+:root[data-play-mode="offline"] .hdr-brand-name { letter-spacing: 0.28em; }
+:root[data-play-mode="offline"] .btn-primary,
+:root[data-play-mode="offline"] .ui-btn-primary { box-shadow: none; }
+:root[data-play-mode="offline"] .boot { background: #000000; }
+:root[data-play-mode="offline"] .mode-switch { border-color: #ffffff; background: #000000; }
+:root[data-play-mode="offline"] .mode-switch button.is-on { background: #ffffff; color: #000000; }
+
+/* A quiet marker that this identity is not a Microsoft account. */
+.offline-flag { display: inline-flex; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-soft); }
+
+@media (max-width: 1080px) {
+  .versions-page .versions-layout { grid-template-columns: 1fr; }
+}
+
+/* Type never wraps inside a segmented control, and the library toolbar stacks
+   its filter on a narrow window instead of squeezing it past the search box. */
+.seg > button { white-space: nowrap; }
+.launch-account .seg > button { padding-inline: 6px; font-size: 0.8rem; }
+:root[data-play-mode="offline"] .vc-art,
+:root[data-play-mode="offline"] .app-bg-img,
+:root[data-play-mode="offline"] .mod-card-art img,
+:root[data-play-mode="offline"] .studio-stage img {
+  filter: grayscale(1) contrast(1.05);
+}
+@media (max-width: 720px) {
+  .version-library .toolbar .search-box { flex: 1 1 100%; }
+  .version-library .toolbar .seg { width: 100%; }
+  .version-library .toolbar .seg > button { flex: 1 1 0; }
+}

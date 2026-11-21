@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { reportText } from "../core/game";
+import { createSingleFlight } from "../core/singleFlight";
 import type { AppData } from "../hooks/useAppData";
 import { CloseIcon, CopyIcon, FolderIcon, WarningIcon } from "./Icons";
 
@@ -34,8 +35,11 @@ function useCopy() {
   return { copied, copy };
 }
 
+// One click opens one window: a second click while the desktop is still opening
+// the folder is dropped, and the gate opens again as soon as it answers.
+const folderGate = createSingleFlight();
 function openFolder(kind: "logs" | "crash-reports" | "game") {
-  void api.openGameFolder(kind).catch(() => {});
+  void folderGate.run(() => api.openGameFolder(kind)).catch(() => {});
 }
 
 /** Monospace text that follows the end of the log until the person scrolls up. */
