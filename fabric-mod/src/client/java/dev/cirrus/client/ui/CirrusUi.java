@@ -107,6 +107,22 @@ public final class CirrusUi {
         while (s.length() > 1 && f.width(style.apply(s + "…")) > maxWidth) s = s.substring(0, s.length() - 1);
         return s + "…";
     }
+    /** Word-wraps text to maxWidth in the small style; at most maxLines lines, the last one ellipsised if the text does not fit. */
+    public static java.util.List<String> wrapSmall(Font f, String value, int maxWidth, int maxLines) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        if (value == null || value.isBlank() || maxWidth <= 0 || maxLines <= 0) return lines;
+        StringBuilder line = new StringBuilder();
+        String[] words = value.trim().split("\\s+");
+        for (int i = 0; i < words.length; i++) {
+            String candidate = line.isEmpty() ? words[i] : line + " " + words[i];
+            if (smallWidth(f, candidate) <= maxWidth || line.isEmpty()) { line = new StringBuilder(candidate); continue; }
+            lines.add(line.toString());
+            if (lines.size() == maxLines) { lines.set(maxLines - 1, fitSmall(f, lines.get(maxLines - 1) + " " + String.join(" ", java.util.Arrays.copyOfRange(words, i, words.length)), maxWidth)); return lines; }
+            line = new StringBuilder(words[i]);
+        }
+        if (!line.isEmpty()) lines.add(fitSmall(f, line.toString(), maxWidth));
+        return lines;
+    }
     public static String fitBody(Font f, String v, int w) { return fit(f, v, w, CirrusUi::body); }
     public static String fitSmall(Font f, String v, int w) { return fit(f, v, w, CirrusUi::small); }
 

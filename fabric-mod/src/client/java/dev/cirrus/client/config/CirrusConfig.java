@@ -36,6 +36,20 @@ public final class CirrusConfig {
     }
     public String getString(String key, String fallback) { return values.getProperty(key, fallback); }
     public void put(String key, String value) { values.setProperty(key, value); save(); }
+
+    /** A copy of every setting whose key passes the filter. */
+    public synchronized java.util.Map<String, String> snapshot(java.util.function.Predicate<String> keys) {
+        java.util.Map<String, String> out = new java.util.TreeMap<>();
+        for (String k : values.stringPropertyNames()) if (keys.test(k)) out.put(k, values.getProperty(k));
+        return out;
+    }
+
+    /** Replaces every setting matching the filter with the given values, saving once. Used to switch profiles. */
+    public synchronized void replace(java.util.function.Predicate<String> keys, java.util.Map<String, String> newValues) {
+        for (String k : new java.util.ArrayList<>(values.stringPropertyNames())) if (keys.test(k)) values.remove(k);
+        for (var e : newValues.entrySet()) if (keys.test(e.getKey())) values.setProperty(e.getKey(), e.getValue());
+        save();
+    }
     private void load() {
         if (!Files.isRegularFile(file)) {
             Path legacy = file.getParent().getParent().resolve("cirrus-client.properties");

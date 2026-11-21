@@ -19,7 +19,7 @@ public final class PingMod extends HudMod {
     public String name() { return "Ping"; }
     public String description() { return "Shows your latency to the server in milliseconds."; }
     public ModCategory category() { return ModCategory.HUD; }
-    @Override public int icon() { return dev.cirrus.client.ui.CirrusUi.ICON_MULTIPLAYER; }
+    @Override public int icon() { return dev.cirrus.client.ui.Glyphs.SIGNAL; }
     @Override protected List<Setting> featureSettings() { return OWN; }
     @Override protected int baseWidth(CirrusConfig c) { return (on(c, "label") ? 44 : 16) + (on(c, "unit") ? 40 : 28); }
     @Override protected int baseHeight(CirrusConfig c) { return 20; }

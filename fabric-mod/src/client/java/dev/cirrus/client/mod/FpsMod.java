@@ -15,10 +15,10 @@ public final class FpsMod extends HudMod {
         Setting.toggle("colorize", "Color by value", "Green when smooth, amber when borderline, red when low.", true));
 
     public String id() { return "fps"; }
-    public String name() { return "FPS Counter"; }
+    public String name() { return "FPS"; }
     public String description() { return "Shows your current frames per second."; }
     public ModCategory category() { return ModCategory.HUD; }
-    @Override public int icon() { return dev.cirrus.client.ui.CirrusUi.ICON_PERFORMANCE; }
+    @Override public int icon() { return dev.cirrus.client.ui.Glyphs.GAUGE; }
     @Override protected List<Setting> featureSettings() { return OWN; }
     @Override protected int baseWidth(CirrusConfig c) { return on(c, "label") ? 70 : 44; }
     @Override protected int baseHeight(CirrusConfig c) { return 20; }

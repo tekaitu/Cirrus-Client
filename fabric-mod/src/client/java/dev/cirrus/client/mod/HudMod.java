@@ -17,10 +17,10 @@ import java.util.List;
 public abstract class HudMod implements CirrusMod, HudElement {
     public static final List<Setting> APPEARANCE = List.of(
         Setting.slider("scale", "Scale", "Size of this element on screen.", 100, 50, 200, 10, "%").group("Appearance"),
-        Setting.toggle("background", "Background", "Draw a panel behind the element.", true).group("Appearance"),
+        Setting.toggle("background", "Background", "Draw a panel behind the element. Off shows plain text.", false).group("Appearance"),
         Setting.slider("opacity", "Background opacity", "How solid the background is.", 80, 10, 100, 5, "%").requires("background", "true").group("Appearance"),
         Setting.toggle("border", "Border", "Thin outline around the background.", true).requires("background", "true").group("Appearance"),
-        Setting.toggle("shadow", "Text shadow", "Keeps text readable when the background is off.", false).group("Appearance"));
+        Setting.toggle("shadow", "Text shadow", "Keeps text readable when the background is off.", true).group("Appearance"));
 
     private List<Setting> all;
 

@@ -28,6 +28,10 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         screens.put("title", CirrusTitleScreen::new);
         screens.put("multiplayer", () -> new CirrusJoinMultiplayerScreen(null));
         screens.put("menu", () -> new CirrusMenuScreen(null));
+        screens.put("menu-profiles", () -> new CirrusMenuScreen(null, true));
+        screens.put("menu-fps", () -> new CirrusMenuScreen(null).withModule("fps"));
+        screens.put("menu-armor_status", () -> new CirrusMenuScreen(null).withModule("armor_status"));
+        screens.put("menu-planned", () -> new CirrusMenuScreen(null).withModule("zoom"));
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
         screens.put("hud-editor", () -> new HudEditorScreen(null));
         for (String id : new String[] {"armor_status", "keystrokes", "fps", "ping"})
@@ -113,9 +117,41 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.setScreen(() -> new HudEditorScreen(null, "armor_status"));
         context.waitTicks(15);
         context.takeScreenshot("hud-editor-custom-1280x720-gui2");
+        // Real profile round trip: save two setups, switch between them, share one as a code and import it again.
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath());
+            var profiles = new dev.cirrus.client.profile.Profiles(mc);
+            var fps = dev.cirrus.client.mod.ModRegistry.find("fps").orElseThrow();
+            var scale = fps.settings().stream().filter(st -> st.key().equals("scale")).findFirst().orElseThrow();
+            try {
+                dev.cirrus.client.mod.ModSettings.set(cfg, "fps", scale, "150");
+                fps.setEnabled(cfg, true);
+                profiles.create("PvP");
+                dev.cirrus.client.mod.ModSettings.set(cfg, "fps", scale, "80");
+                fps.setEnabled(cfg, false);
+                profiles.create("Casual");
+                profiles.apply("PvP");
+                check("PvP restores scale", dev.cirrus.client.mod.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("150"));
+                check("PvP restores the switch", fps.enabled(cfg));
+                String code = profiles.share("Casual");
+                String imported = profiles.importCode(code);
+                check("import is a new profile", imported.equals("Casual 2"));
+                profiles.apply(imported);
+                check("imported profile restores scale", dev.cirrus.client.mod.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("80"));
+                check("imported profile restores the switch", !fps.enabled(cfg));
+                profiles.apply("PvP");
+            } catch (java.io.IOException e) { throw new IllegalStateException(e); }
+        });
+        for (String shot : new String[] {"menu-profiles", "menu-fps"}) {
+            context.setScreen(screens.get(shot));
+            context.waitTicks(20);
+            context.takeScreenshot(shot + "-with-profiles-1280x720-gui2");
+        }
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
     }
+
+    private static void check(String what, boolean ok) { if (!ok) throw new IllegalStateException("Profile check failed: " + what); }
 
     private static final String FIXTURE = """
         {"schema":1,"revision":1,

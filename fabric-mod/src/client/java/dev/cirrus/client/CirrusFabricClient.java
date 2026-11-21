@@ -27,6 +27,8 @@ public final class CirrusFabricClient implements ClientModInitializer {
         ModRegistry.register(new dev.cirrus.client.mod.PingMod());
         ModRegistry.register(new dev.cirrus.client.mod.ArmorStatusMod());
         ModRegistry.register(new dev.cirrus.client.mod.KeystrokesMod());
+        dev.cirrus.client.mod.PlannedCatalog.registerAll();
+        dev.cirrus.client.mod.ModKeys.registerAll();
         ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
         AssetManager assets = AssetManager.get(Minecraft.getInstance().gameDirectory.toPath());
         assets.initialize();
