@@ -1,10 +1,13 @@
 pub mod accounts;
+pub mod base64;
 pub mod auth;
 pub mod crashlog;
 pub mod discord;
 pub mod game;
 pub mod java;
+pub mod mod_upload;
 pub mod mods;
+pub mod packs;
 pub mod runtime;
 pub mod settings;
 pub mod skins;
@@ -1297,7 +1300,8 @@ fn open_game_folder(app: AppHandle, state: State<'_, GameState>, kind: String) -
     let instance = state.instance.lock().ok().and_then(|g| g.clone());
     let path = match kind.as_str() {
         "logs" => root.join("logs"),
-        "crash-reports" => instance.unwrap_or_else(|| root.clone()).join("crash-reports"),
+        "crash-reports" => instance.clone().unwrap_or_else(|| root.clone()).join("crash-reports"),
+        "resourcepacks" => instance.clone().unwrap_or_else(|| root.clone()).join("resourcepacks"),
         "game" => instance.unwrap_or(root),
         _ => return Err("Unknown folder.".to_string()),
     };
@@ -1412,6 +1416,155 @@ fn remove_mod(app: AppHandle, version: String, file_name: String, profile: Optio
     mods::remove(&dir, &file_name)
 }
 
+// ------------------------------------------------------- local mod files
+
+/// Checks a chosen mod jar and reports what it is, without installing anything.
+#[tauri::command]
+fn inspect_mod_file(
+    app: AppHandle,
+    file_name: String,
+    data_base64: String,
+    version: String,
+    profile: Option<String>,
+) -> Result<mod_upload::ModInspection, String> {
+    let dir = mods_folder(&app, &version, profile.as_deref())?;
+    let bytes = base64::decode(&data_base64)?;
+    let installed = mods::list_installed(&dir);
+    Ok(mod_upload::inspect(&file_name, &bytes, &version, &installed))
+}
+
+/// Installs one chosen mod jar. `overwrite` is only true after the person
+/// confirmed replacing an existing file or an already installed mod.
+#[tauri::command]
+async fn install_uploaded_mod(
+    app: AppHandle,
+    file_name: String,
+    data_base64: String,
+    version: String,
+    profile: Option<String>,
+    overwrite: bool,
+) -> Result<mod_upload::UploadOutcome, String> {
+    let dir = mods_folder(&app, &version, profile.as_deref())?;
+    let bytes = base64::decode(&data_base64)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let installed = mods::list_installed(&dir);
+        mod_upload::install_upload(&file_name, &bytes, &version, &dir, &installed, overwrite)
+    })
+    .await
+    .map_err(|e| format!("The install stopped unexpectedly: {e}"))
+}
+
+// ---------------------------------------------------------- texture packs
+
+/// The instance of `version` (any loader) and its `resourcepacks` folder.
+fn pack_folders(
+    app: &AppHandle,
+    version: &str,
+    profile: Option<&str>,
+) -> Result<(PathBuf, PathBuf), String> {
+    check_version(version)?;
+    let (root, _) = game_root(app)?;
+    let info = game::installed(&root, version, true)
+        .or_else(|| game::installed(&root, version, false))
+        .ok_or_else(|| format!("Install Minecraft {version} first (use Play on the Home page)."))?;
+    let instance = match profile {
+        Some(id) => game::list_profiles(&root)
+            .into_iter()
+            .find(|p| p.id == id && p.minecraft == version)
+            .map(|p| p.id)
+            .ok_or("That profile is not for this Minecraft version.")?,
+        None => info.profile_id,
+    };
+    let instance_dir = game::instance_dir(&root, &instance);
+    let packs = instance_dir.join("resourcepacks");
+    std::fs::create_dir_all(&packs)
+        .map_err(|e| format!("Could not create the resourcepacks folder: {e}"))?;
+    Ok((instance_dir, packs))
+}
+
+#[tauri::command]
+async fn search_resource_packs(
+    provider: String,
+    query: String,
+    version: String,
+    offset: u32,
+    resolution: Option<String>,
+    sort: Option<String>,
+) -> Result<packs::PackSearchResult, String> {
+    check_version(&version)?;
+    let provider = mods::Provider::parse(&provider).ok_or("Unknown pack site.")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        packs::search(
+            provider,
+            &query,
+            &version,
+            offset,
+            resolution.as_deref(),
+            sort.as_deref(),
+            curseforge_key(),
+        )
+    })
+    .await
+    .map_err(|e| format!("The search stopped unexpectedly: {e}"))?
+}
+
+#[tauri::command]
+async fn resource_pack_details(provider: String, id: String, version: String) -> Result<packs::PackDetails, String> {
+    check_version(&version)?;
+    let provider = mods::Provider::parse(&provider).ok_or("Unknown pack site.")?;
+    tauri::async_runtime::spawn_blocking(move || packs::details(provider, &id, &version, curseforge_key()))
+        .await
+        .map_err(|e| format!("The request stopped unexpectedly: {e}"))?
+}
+
+#[tauri::command]
+async fn install_resource_pack(
+    app: AppHandle,
+    provider: String,
+    id: String,
+    version: String,
+    profile: Option<String>,
+) -> Result<packs::InstalledPack, String> {
+    let provider = mods::Provider::parse(&provider).ok_or("Unknown pack site.")?;
+    let (_, dir) = pack_folders(&app, &version, profile.as_deref())?;
+    tauri::async_runtime::spawn_blocking(move || packs::install(provider, &id, &version, &dir, curseforge_key()))
+        .await
+        .map_err(|e| format!("The install stopped unexpectedly: {e}"))?
+}
+
+#[tauri::command]
+fn list_resource_packs(
+    app: AppHandle,
+    version: String,
+    profile: Option<String>,
+) -> Result<Vec<packs::InstalledPack>, String> {
+    let (instance, dir) = pack_folders(&app, &version, profile.as_deref())?;
+    Ok(packs::list_installed(&dir, &instance))
+}
+
+#[tauri::command]
+fn set_resource_pack_enabled(
+    app: AppHandle,
+    version: String,
+    file_name: String,
+    enabled: bool,
+    profile: Option<String>,
+) -> Result<bool, String> {
+    let (instance, dir) = pack_folders(&app, &version, profile.as_deref())?;
+    packs::set_enabled(&dir, &instance, &file_name, enabled)
+}
+
+#[tauri::command]
+fn remove_resource_pack(
+    app: AppHandle,
+    version: String,
+    file_name: String,
+    profile: Option<String>,
+) -> Result<(), String> {
+    let (_, dir) = pack_folders(&app, &version, profile.as_deref())?;
+    packs::remove(&dir, &file_name)
+}
+
 /// Show (or update) the Discord status. Returns "shown", "notConfigured" (this
 /// build has no Discord application ID) or "discordClosed" (Discord is not running).
 #[tauri::command]
@@ -1497,7 +1650,15 @@ pub fn run() {
             player_skin,
             player_appearance,
             set_mod_enabled,
-            remove_mod
+            remove_mod,
+            inspect_mod_file,
+            install_uploaded_mod,
+            search_resource_packs,
+            resource_pack_details,
+            install_resource_pack,
+            list_resource_packs,
+            set_resource_pack_enabled,
+            remove_resource_pack
         ])
         .run(tauri::generate_context!())
         .expect("error while running Cirrus Client");

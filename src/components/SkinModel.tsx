@@ -1,95 +1,58 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { SkinModel as Model } from "../api/types";
+import { FACE_SHADE, faceRect, partSize, skinParts, type SkinPart } from "../core/skinGeometry";
 
-/** One body part: where its pieces are in the skin picture (u, v), its size in skin pixels, and where it sits. */
-interface Part {
-  u: number;
-  v: number;
-  w: number;
-  h: number;
-  d: number;
-  x: number;
-  y: number;
-  z: number;
-  grow: number;
-}
+/** The still views the figure can be put in, plus the slow turn. */
+export type SkinView = "spin" | "front" | "back" | "left" | "right";
 
-function parts(model: Model, legacy: boolean): Part[] {
-  const aw = model === "slim" ? 3 : 4;
-  const base = (p: Omit<Part, "grow">): Part[] => [{ ...p, grow: 0 }];
-  const over = (p: Omit<Part, "grow">): Part[] => [{ ...p, grow: 0.5 }];
-  // y is the box centre measured from the middle of the 32 pixel tall figure.
-  const head = { w: 8, h: 8, d: 8, x: 0, y: -12, z: 0 };
-  const body = { w: 8, h: 12, d: 4, x: 0, y: -2, z: 0 };
-  const rArm = { w: aw, h: 12, d: 4, x: -(4 + aw / 2), y: -2, z: 0 };
-  const lArm = { w: aw, h: 12, d: 4, x: 4 + aw / 2, y: -2, z: 0 };
-  const rLeg = { w: 4, h: 12, d: 4, x: -2, y: 10, z: 0 };
-  const lLeg = { w: 4, h: 12, d: 4, x: 2, y: 10, z: 0 };
-  return [
-    ...base({ ...rLeg, u: 0, v: 16 }),
-    ...base({ ...lLeg, u: legacy ? 0 : 16, v: legacy ? 16 : 48 }),
-    ...base({ ...body, u: 16, v: 16 }),
-    ...base({ ...rArm, u: 40, v: 16 }),
-    ...base({ ...lArm, u: legacy ? 40 : 32, v: legacy ? 16 : 48 }),
-    ...base({ ...head, u: 0, v: 0 }),
-    // The second layer (jacket, sleeves, trousers, hat) is a slightly larger box around each part.
-    ...(legacy
-      ? over({ ...head, u: 32, v: 0 })
-      : [
-          ...over({ ...rLeg, u: 0, v: 32 }),
-          ...over({ ...lLeg, u: 0, v: 48 }),
-          ...over({ ...body, u: 16, v: 32 }),
-          ...over({ ...rArm, u: 40, v: 32 }),
-          ...over({ ...lArm, u: 48, v: 48 }),
-          ...over({ ...head, u: 32, v: 0 }),
-        ]),
-  ];
+/**
+ * Degrees per view. `front` is turned slightly so the face and one cheek are
+ * both visible, which reads as a model rather than a flat picture.
+ */
+const PRESET_ANGLE: Record<Exclude<SkinView, "spin">, number> = {
+  front: -20,
+  back: 160,
+  left: 70,
+  right: -110,
+};
+
+function reducedMotion(): boolean {
+  try {
+    return document.documentElement.dataset.reduceMotion === "true";
+  } catch {
+    return false;
+  }
 }
 
 /**
- * A fixed light from the upper left. Each visible side of a box gets a little
- * darker as it turns away from that light, which is what gives the flat pixel
- * texture its depth without a WebGL renderer or a per-frame loop.
+ * One box of the figure. Each of its six sides shows the part of the skin that
+ * belongs to it, scaled to the box, and is lit from the upper left, which is
+ * what makes the flat pixels read as a solid body.
  */
-const SHADE: Record<string, number> = {
-  front: 0,
-  right: 0.14,
-  left: 0.2,
-  back: 0.34,
-  top: -0.07,
-  bottom: 0.42,
-};
-
-function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
-  const { u, v, w, h, d, x, y, z, grow } = p;
-  const W = w + grow;
-  const H = h + grow;
-  const D = d + grow;
+function Box({ part, skin, s }: { part: SkinPart; skin: string; s: number }) {
+  const size = partSize(part);
   const sheet: CSSProperties = {
     backgroundImage: `url(${skin})`,
     backgroundSize: `${64 * s}px ${64 * s}px`,
   };
   const face = (
-    name: string,
-    fu: number,
-    fv: number,
-    fw: number,
-    fh: number,
-    w2: number,
-    h2: number,
+    name: "front" | "back" | "right" | "left" | "top" | "bottom",
+    drawW: number,
+    drawH: number,
     extra: CSSProperties,
   ) => {
-    const shade = SHADE[name] ?? 0;
+    const rect = faceRect(part, name);
+    const shade = FACE_SHADE[name] ?? 0;
     return (
       <span
         key={name}
         className="skin-face"
         style={{
           ...sheet,
-          width: w2 * s,
-          height: h2 * s,
-          backgroundSize: `${64 * s * (w2 / fw)}px ${64 * s * (h2 / fh)}px`,
-          backgroundPosition: `-${fu * s * (w2 / fw)}px -${fv * s * (h2 / fh)}px`,
+          width: drawW * s,
+          height: drawH * s,
+          backgroundSize: `${64 * s * (drawW / rect.w)}px ${64 * s * (drawH / rect.h)}px`,
+          backgroundPosition: `-${rect.u * s * (drawW / rect.w)}px -${rect.v * s * (drawH / rect.h)}px`,
           ...extra,
         }}
       >
@@ -103,34 +66,36 @@ function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
   };
   return (
     <span
-      className="skin-box"
+      className={`skin-box skin-box-${part.layer}`}
       style={{
-        width: W * s,
-        height: H * s,
-        transform: `translate3d(${x * s - (W * s) / 2}px, ${y * s - (H * s) / 2}px, ${z * s}px)`,
+        width: size.w * s,
+        height: size.h * s,
+        transform: `translate3d(${part.x * s - (size.w * s) / 2}px, ${part.y * s - (size.h * s) / 2}px, ${
+          part.z * s
+        }px)`,
       }}
     >
-      {face("front", u + d, v + d, w, h, W, H, { transform: `translateZ(${(D * s) / 2}px)` })}
-      {face("back", u + 2 * d + w, v + d, w, h, W, H, { transform: `rotateY(180deg) translateZ(${(D * s) / 2}px)` })}
-      {face("right", u, v + d, d, h, D, H, {
+      {face("front", size.w, size.h, { transform: `translateZ(${(size.d * s) / 2}px)` })}
+      {face("back", size.w, size.h, { transform: `rotateY(180deg) translateZ(${(size.d * s) / 2}px)` })}
+      {face("right", size.d, size.h, {
         left: "50%",
-        marginLeft: -(D * s) / 2,
-        transform: `rotateY(-90deg) translateZ(${(W * s) / 2}px)`,
+        marginLeft: -(size.d * s) / 2,
+        transform: `rotateY(-90deg) translateZ(${(size.w * s) / 2}px)`,
       })}
-      {face("left", u + d + w, v + d, d, h, D, H, {
+      {face("left", size.d, size.h, {
         left: "50%",
-        marginLeft: -(D * s) / 2,
-        transform: `rotateY(90deg) translateZ(${(W * s) / 2}px)`,
+        marginLeft: -(size.d * s) / 2,
+        transform: `rotateY(90deg) translateZ(${(size.w * s) / 2}px)`,
       })}
-      {face("top", u + d, v, w, d, W, D, {
+      {face("top", size.w, size.d, {
         top: "50%",
-        marginTop: -(D * s) / 2,
-        transform: `rotateX(90deg) translateZ(${(H * s) / 2}px)`,
+        marginTop: -(size.d * s) / 2,
+        transform: `rotateX(90deg) translateZ(${(size.h * s) / 2}px)`,
       })}
-      {face("bottom", u + d + w, v, w, d, W, D, {
+      {face("bottom", size.w, size.d, {
         top: "50%",
-        marginTop: -(D * s) / 2,
-        transform: `rotateX(-90deg) translateZ(${(H * s) / 2}px)`,
+        marginTop: -(size.d * s) / 2,
+        transform: `rotateX(-90deg) translateZ(${(size.h * s) / 2}px)`,
       })}
     </span>
   );
@@ -142,19 +107,19 @@ function Box({ p, skin, s }: { p: Part; skin: string; s: number }) {
  * figure and sways a little; with reduce motion on, it stays still.
  */
 function Cape({ texture, s }: { texture: string; s: number }) {
-  const W = 10;
-  const H = 16;
+  const width = 10;
+  const height = 16;
   return (
     <span
       className="skin-cape-anchor"
-      style={{ transform: `translate3d(${(-W * s) / 2}px, ${-8 * s}px, ${-3.4 * s}px)` }}
+      style={{ transform: `translate3d(${(-width * s) / 2}px, ${-8 * s}px, ${-3.4 * s}px)` }}
     >
       <span className="skin-cape-sway">
         <span
           className="skin-cape"
           style={{
-            width: W * s,
-            height: H * s,
+            width: width * s,
+            height: height * s,
             backgroundImage: `url(${texture})`,
             backgroundSize: `${64 * s}px ${32 * s}px`,
             backgroundPosition: `-${s}px -${s}px`,
@@ -168,11 +133,10 @@ function Cape({ texture, s }: { texture: string; s: number }) {
 }
 
 /**
- * A turnable Minecraft figure built from the skin's own pixels with CSS 3D (no canvas, no WebGL).
- * `view` is "spin" (slow turn), "front" or "back". The texture is drawn with hard pixel edges and
- * each side is lit from the same direction, so the body reads as a solid model rather than six
- * flat pictures. Dragging turns it with a little momentum; arrow keys turn it too, and a
- * double-click (or Home) puts the view back.
+ * A turnable Minecraft figure built from the skin's own pixels with CSS 3D (no
+ * canvas, no WebGL). Dragging turns it with a little momentum; arrow keys turn
+ * it too, and double-click, Home or Escape puts the view back. `autoRotate`
+ * uses one GPU transform animation, so a turning figure costs no JavaScript.
  */
 export function SkinFigure({
   skin,
@@ -183,27 +147,34 @@ export function SkinFigure({
   label,
   draggable = false,
   cape = null,
+  autoRotate = false,
+  resetToken = 0,
   className = "",
 }: {
   skin: string;
   model: Model;
-  view?: "spin" | "front" | "back";
+  view?: SkinView;
   /** Screen pixels per skin pixel. */
   scale?: number;
   /** A 64 x 32 skin has no separate left arm/leg or second layer. */
   legacy?: boolean;
   label: string;
-  /** Let the player turn the figure by dragging it (double-click puts it back). */
+  /** Let the player turn the figure by dragging it. */
   draggable?: boolean;
   /** A cape texture (64 x 32) to hang on the figure. */
   cape?: string | null;
+  /** Turn the figure on its own, smoothly, without a per-frame loop. */
+  autoRotate?: boolean;
+  /** Change this number to put the camera back to the view. */
+  resetToken?: number;
   className?: string;
 }) {
-  // While the player drags, `turn` is the angle in degrees and replaces the preset view.
-  const [turn, setTurn] = useState<number | null>(null);
+  // While the player drags, `yaw` is the angle in degrees and replaces the preset view.
+  const [yaw, setYaw] = useState<number | null>(null);
   const drag = useRef<{ x: number; angle: number; lastX: number; lastT: number; velocity: number } | null>(null);
   const inertia = useRef<number | null>(null);
-  useEffect(() => setTurn(null), [view]);
+
+  useEffect(() => setYaw(null), [view, resetToken, skin]);
   useEffect(
     () => () => {
       if (inertia.current !== null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(inertia.current);
@@ -211,17 +182,20 @@ export function SkinFigure({
     [],
   );
 
+  const parts = useMemo(() => skinParts(model, legacy), [model, legacy]);
+
   const stopInertia = () => {
     if (inertia.current !== null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(inertia.current);
     inertia.current = null;
   };
 
+  const baseAngle = view === "spin" ? PRESET_ANGLE.front : PRESET_ANGLE[view];
+
   const onDown = (e: PointerEvent<HTMLSpanElement>) => {
     if (!draggable) return;
     stopInertia();
     e.currentTarget.setPointerCapture?.(e.pointerId);
-    const angle = turn ?? (view === "back" ? 162 : -25);
-    drag.current = { x: e.clientX, angle, lastX: e.clientX, lastT: performance.now(), velocity: 0 };
+    drag.current = { x: e.clientX, angle: yaw ?? baseAngle, lastX: e.clientX, lastT: performance.now(), velocity: 0 };
   };
   const onMove = (e: PointerEvent<HTMLSpanElement>) => {
     const d = drag.current;
@@ -231,7 +205,7 @@ export function SkinFigure({
     d.velocity = ((e.clientX - d.lastX) / dt) * 0.9;
     d.lastX = e.clientX;
     d.lastT = now;
-    setTurn(d.angle + (e.clientX - d.x) * 0.9);
+    setYaw(d.angle + (e.clientX - d.x) * 0.9);
   };
   const onUp = () => {
     const d = drag.current;
@@ -241,16 +215,14 @@ export function SkinFigure({
     if (Math.abs(velocity) < 0.4) return;
     const step = () => {
       velocity *= 0.94;
-      setTurn((current) => (current ?? d.angle) + velocity);
+      setYaw((current) => (current ?? d.angle) + velocity);
       if (Math.abs(velocity) > 0.15) inertia.current = requestAnimationFrame(step);
       else inertia.current = null;
     };
     inertia.current = requestAnimationFrame(step);
   };
 
-  const currentAngle = turn ?? (view === "back" ? 162 : -25);
-  const manual: CSSProperties | undefined =
-    turn === null ? undefined : { animation: "none", transform: `rotateX(-8deg) rotateY(${turn}deg)` };
+  const spinning = (autoRotate || view === "spin") && yaw === null && !reducedMotion();
 
   return (
     <span
@@ -269,22 +241,32 @@ export function SkinFigure({
           e.preventDefault();
           stopInertia();
           const step = e.key === "ArrowLeft" ? -15 : 15;
-          setTurn((value) => (value ?? currentAngle) + step);
+          setYaw((value) => (value ?? baseAngle) + step);
         } else if (e.key === "Home" || e.key === "Escape") {
           stopInertia();
-          setTurn(null);
+          setYaw(null);
         }
       }}
       onDoubleClick={() => {
         stopInertia();
-        setTurn(null);
+        setYaw(null);
       }}
     >
-      <span className={`skin-figure skin-view-${view}`} style={{ width: 0, height: 0, ...manual }}>
+      <span
+        className={`skin-figure ${spinning ? "skin-view-spin" : ""}`}
+        style={
+          spinning
+            ? undefined
+            : {
+                animation: "none",
+                transform: `rotateX(-6deg) rotateY(${yaw ?? baseAngle}deg)`,
+              }
+        }
+      >
         <span className="skin-center">
           {cape && <Cape texture={cape} s={scale} />}
-          {parts(model, legacy).map((p, i) => (
-            <Box key={i} p={p} skin={skin} s={scale} />
+          {parts.map((part) => (
+            <Box key={part.id} part={part} skin={skin} s={scale} />
           ))}
         </span>
       </span>

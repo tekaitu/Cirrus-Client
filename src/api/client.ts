@@ -17,7 +17,12 @@ import type {
   InstallProgress,
   InstallResult,
   InstalledMod,
+  InstalledPack,
+  ModInspection,
   ModInstallReport,
+  PackDetails,
+  PackSearchResult,
+  UploadOutcome,
   ModProvider,
   ModSearchResult,
   JavaDetectionRaw,
@@ -130,6 +135,50 @@ export const api = {
     call<string>("set_mod_enabled", { version, fileName, enabled, profile: profile ?? null }),
   removeMod: (version: string, fileName: string, profile?: string) =>
     call<void>("remove_mod", { version, fileName, profile: profile ?? null }),
+  /** Reads a chosen mod jar without writing anything. */
+  inspectModFile: (fileName: string, dataBase64: string, version: string, profile?: string) =>
+    call<ModInspection>("inspect_mod_file", { fileName, dataBase64, version, profile: profile ?? null }),
+  /** Installs one chosen mod jar; `overwrite` must be a confirmed choice. */
+  installUploadedMod: (
+    fileName: string,
+    dataBase64: string,
+    version: string,
+    profile: string | undefined,
+    overwrite: boolean,
+  ) =>
+    call<UploadOutcome>("install_uploaded_mod", {
+      fileName,
+      dataBase64,
+      version,
+      profile: profile ?? null,
+      overwrite,
+    }),
+  searchResourcePacks: (
+    provider: ModProvider,
+    query: string,
+    version: string,
+    offset: number,
+    resolution?: string,
+    sort?: string,
+  ) =>
+    call<PackSearchResult>("search_resource_packs", {
+      provider,
+      query,
+      version,
+      offset,
+      resolution: resolution ?? null,
+      sort: sort ?? null,
+    }),
+  resourcePackDetails: (provider: ModProvider, id: string, version: string) =>
+    call<PackDetails>("resource_pack_details", { provider, id, version }),
+  installResourcePack: (provider: ModProvider, id: string, version: string, profile?: string) =>
+    call<InstalledPack>("install_resource_pack", { provider, id, version, profile: profile ?? null }),
+  listResourcePacks: (version: string, profile?: string) =>
+    call<InstalledPack[]>("list_resource_packs", { version, profile: profile ?? null }),
+  setResourcePackEnabled: (version: string, fileName: string, enabled: boolean, profile?: string) =>
+    call<boolean>("set_resource_pack_enabled", { version, fileName, enabled, profile: profile ?? null }),
+  removeResourcePack: (version: string, fileName: string, profile?: string) =>
+    call<void>("remove_resource_pack", { version, fileName, profile: profile ?? null }),
   stopGame: () => call<boolean>("stop_game"),
   readGameLog: (offset: number) => call<GameLogChunk>("read_game_log", { offset }),
   openGameFolder: (kind: GameFolder) => call<void>("open_game_folder", { kind }),

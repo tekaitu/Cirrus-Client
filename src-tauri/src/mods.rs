@@ -59,6 +59,8 @@ pub struct InstalledMod {
     pub size: u64,
     /// `false` when the file ends in `.jar.disabled`: Fabric ignores it, so the mod stays installed but off.
     pub enabled: bool,
+    /// The mod's own id from `fabric.mod.json`, used to spot a second copy of the same mod.
+    pub id: Option<String>,
     /// What the mod says about itself in its `fabric.mod.json` (all optional: not every jar has one).
     pub name: Option<String>,
     pub version: Option<String>,
@@ -71,6 +73,7 @@ pub struct InstalledMod {
 /// The few fields of `fabric.mod.json` the Mods page shows.
 #[derive(Debug, Default, PartialEq)]
 pub struct ModMeta {
+    pub id: Option<String>,
     pub name: Option<String>,
     pub version: Option<String>,
     pub description: Option<String>,
@@ -118,6 +121,7 @@ pub fn parse_fabric_meta(text: &str) -> (ModMeta, Option<String>) {
         _ => None,
     };
     let meta = ModMeta {
+        id: string("id"),
         name: string("name").or_else(|| string("id")),
         version: string("version"),
         description: string("description"),
@@ -174,7 +178,7 @@ pub fn is_allowed_url(url: &Url) -> bool {
     url.scheme() == "https" && url.host_str().map(|h| ALLOWED_HOSTS.contains(&h)).unwrap_or(false)
 }
 
-fn client() -> Result<reqwest::blocking::Client, String> {
+pub(crate) fn client() -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
         .user_agent(concat!("CirrusClient-Launcher/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(15))
@@ -190,7 +194,7 @@ fn client() -> Result<reqwest::blocking::Client, String> {
         .map_err(|e| format!("Could not start the network client: {e}"))
 }
 
-fn net_error(e: &reqwest::Error) -> String {
+pub(crate) fn net_error(e: &reqwest::Error) -> String {
     if e.is_timeout() {
         "The connection timed out. Check your internet connection and try again.".to_string()
     } else if e.is_connect() {
@@ -200,7 +204,7 @@ fn net_error(e: &reqwest::Error) -> String {
     }
 }
 
-fn get_json(c: &reqwest::blocking::Client, url: Url, cf_key: Option<&str>) -> Result<Value, String> {
+pub(crate) fn get_json(c: &reqwest::blocking::Client, url: Url, cf_key: Option<&str>) -> Result<Value, String> {
     if !is_allowed_url(&url) {
         return Err("Refused to contact an address that is not a known mod site.".to_string());
     }
@@ -214,6 +218,9 @@ fn get_json(c: &reqwest::blocking::Client, url: Url, cf_key: Option<&str>) -> Re
     let resp = req.send().map_err(|e| net_error(&e))?;
     if resp.status().as_u16() == 403 && url.host_str() == Some("api.curseforge.com") {
         return Err("CurseForge refused the request. The API key in this build may be missing or invalid.".to_string());
+    }
+    if resp.status().as_u16() == 429 {
+        return Err("The site is limiting requests right now. Wait a moment, then try again.".to_string());
     }
     if !resp.status().is_success() {
         return Err(format!("The mod site answered with an error ({}).", resp.status()));
@@ -677,6 +684,7 @@ pub fn list_installed(mods_dir: &Path) -> Vec<InstalledMod> {
                             file_name: name,
                             size: meta.len(),
                             enabled: on,
+                            id: info.id,
                             name: info.name,
                             version: info.version,
                             description: info.description,

@@ -10,7 +10,7 @@ import {
   UploadIcon,
   WarningIcon,
 } from "../components/Icons";
-import { SkinFigure } from "../components/SkinModel";
+import { SkinViewer } from "../components/SkinViewer";
 import { SkinHead } from "../components/SkinHead";
 import { Badge, Banner, Skeleton } from "../components/ui";
 import { usePlayerAppearance } from "../hooks/useAppearance";
@@ -38,8 +38,6 @@ function remember(key: string, value: string | null) {
 }
 
 const MODEL_LABEL: Record<SkinModel, string> = { classic: "Classic", slim: "Slim" };
-const ZOOM_MIN = 8;
-const ZOOM_MAX = 18;
 
 /** Reads a chosen file as base64 (without the "data:" prefix). */
 function readFileBase64(file: File): Promise<string> {
@@ -74,11 +72,9 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
   const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
   const [input, setInput] = useState("");
   const [newModel, setNewModel] = useState<SkinModel>("classic");
-  const [view, setView] = useState<"spin" | "front" | "back">("front");
   const [busy, setBusy] = useState(false);
   const [applied, setApplied] = useState<string | null>(() => read(APPLIED_KEY));
   const [previous, setPrevious] = useState<string | null>(() => read(PREVIOUS_KEY));
-  const [zoom, setZoom] = useState(12);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [dropping, setDropping] = useState(false);
   const [preview, setPreview] = useState<"account" | "library">("account");
@@ -260,7 +256,6 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
     );
   };
 
-  const changeZoom = (next: number) => setZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next)));
   const applyBlocked = !player
     ? "Sign in with Microsoft to change your account's skin. Offline players have no account skin."
     : null;
@@ -331,26 +326,20 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
             ) : (
               <>
                 <div className="studio-figure">
-                  <SkinFigure
+                  <SkinViewer
                     key={`${showingLibrary ? "library" : "account"}-${showingLibrary ? selected?.id : appearance.id}`}
                     skin={showingLibrary && selected ? selected.dataUrl : appearance.skin}
                     model={stageModel}
-                    view={view}
-                    scale={zoom}
                     legacy={showingLibrary ? false : (appearance.legacy ?? false)}
-                    draggable
                     cape={showingLibrary ? null : appearance.cape}
+                    initialScale={11}
                     label={
                       showingLibrary && selected
                         ? `${selected.name}, ${MODEL_LABEL[selected.model]} model, preview`
                         : `${appearance.name}, ${MODEL_LABEL[appearance.model]} model${appearance.cape ? ", cape" : ""}`
                     }
                   />
-                  <span className="studio-floor" aria-hidden="true" />
                 </div>
-                <p className="studio-hint small">
-                  Drag to turn · double-click to reset · arrow keys turn it too
-                </p>
                 <div className="studio-badge-row">
                   <span className="studio-badge">{MODEL_LABEL[stageModel]} model</span>
                   <span className="studio-badge">
@@ -369,59 +358,6 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
           </div>
 
           <div className="studio-toolbar">
-            <div className="seg" role="radiogroup" aria-label="Character view">
-              {(["spin", "front", "back"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  role="radio"
-                  aria-checked={view === v}
-                  aria-label={`${v === "spin" ? "Turning" : v === "front" ? "Front" : "Back"} view`}
-                  className={view === v ? "seg-on" : ""}
-                  onClick={() => setView(v)}
-                >
-                  {v === "spin" ? "Turn" : v === "front" ? "Front" : "Back"}
-                </button>
-              ))}
-            </div>
-
-            <div className="studio-zoom">
-              <Button
-                size="sm"
-                variant="ghost"
-                iconOnly
-                aria-label="Zoom out"
-                title="Zoom out"
-                disabled={zoom <= ZOOM_MIN}
-                onClick={() => changeZoom(zoom - 1)}
-                icon={<span className="studio-zoom-glyph">−</span>}
-              />
-              <label className="studio-zoom-slider">
-                <span className="visually-hidden">Zoom</span>
-                <input
-                  type="range"
-                  min={ZOOM_MIN}
-                  max={ZOOM_MAX}
-                  step={1}
-                  value={zoom}
-                  aria-label="Zoom"
-                  aria-valuetext={`${Math.round((zoom / 10) * 100)} percent`}
-                  onChange={(e) => changeZoom(Number(e.target.value))}
-                />
-              </label>
-              <Button
-                size="sm"
-                variant="ghost"
-                iconOnly
-                aria-label="Zoom in"
-                title="Zoom in"
-                disabled={zoom >= ZOOM_MAX}
-                onClick={() => changeZoom(zoom + 1)}
-                icon={<span className="studio-zoom-glyph">+</span>}
-              />
-              <span className="studio-zoom-value">{Math.round((zoom / 10) * 100)}%</span>
-            </div>
-
             <div className="studio-toolbar-end">
               {showingLibrary && (
                 <Button size="sm" variant="ghost" onClick={() => setPreview("account")}>

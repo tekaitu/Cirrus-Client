@@ -3,47 +3,18 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
 import { CompassIcon, DownloadIcon, GridIcon, ListIcon, ModsIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
+import { ModUpload } from "../components/ModUpload";
+import { PackBrowser } from "../components/PackBrowser";
+import { Pagination } from "../components/Pagination";
 import type { PageId } from "../components/Navigation";
 import { Banner, Card, Spinner } from "../components/ui";
-import { MOD_CATEGORIES, MOD_PACKS, MOD_SORTS, PAGE_SIZE, formatDownloads, formatFileSize, pageWindow, type ModPack } from "../core/mods";
+import { MOD_CATEGORIES, MOD_PACKS, MOD_SORTS, PAGE_SIZE, formatDownloads, formatFileSize, type ModPack } from "../core/mods";
 import type { AppData } from "../hooks/useAppData";
 
 const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
   { id: "modrinth", label: "Modrinth" },
   { id: "curseforge", label: "CurseForge" },
 ];
-
-/** The pages of results, like 1 2 3 … 40, with first/previous/next/last. */
-function Pagination({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
-  if (pages <= 1) return null;
-  return (
-    <nav className="pager" aria-label="Pagination">
-      <button type="button" className="pager-btn" aria-label="First page" disabled={page === 1} onClick={() => onPage(1)}>
-        «
-      </button>
-      <button type="button" className="pager-btn" aria-label="Previous page" disabled={page === 1} onClick={() => onPage(page - 1)}>
-        ‹
-      </button>
-      {pageWindow(page, pages).map((n, i) =>
-        n === null ? (
-          <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">
-            …
-          </span>
-        ) : (
-          <button key={n} type="button" className={`pager-btn ${n === page ? "pager-on" : ""}`} aria-label={`Page ${n}`} aria-current={n === page ? "page" : undefined} onClick={() => onPage(n)}>
-            {n}
-          </button>
-        ),
-      )}
-      <button type="button" className="pager-btn" aria-label="Next page" disabled={page === pages} onClick={() => onPage(page + 1)}>
-        ›
-      </button>
-      <button type="button" className="pager-btn" aria-label="Last page" disabled={page === pages} onClick={() => onPage(pages)}>
-        »
-      </button>
-    </nav>
-  );
-}
 
 export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "manage" | "browse"; onNavigate: (page: PageId) => void }) {
   const { selection, game } = data;
@@ -67,6 +38,8 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
   const [sort, setSort] = useState("");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [category, setCategory] = useState<string>("");
+  /** Browse shows mods or texture packs; the rest of the page stays the same. */
+  const [tab, setTab] = useState<"mods" | "packs">("mods");
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -126,9 +99,9 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
   useEffect(() => {
     setDone([]);
     setNotice(null);
-    if (view === "browse") void search(query, 1);
+    if (view === "browse" && tab === "mods") void search(query, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider, version, category, sort, view]);
+  }, [provider, version, category, sort, view, tab]);
 
   useEffect(() => {
     setDone([]);
@@ -240,9 +213,13 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
       <header className="page-head page-head-row">
         <div>
           <p className="eyebrow">{view === "browse" ? "Discover" : "Library"}</p>
-          <h1>{view === "browse" ? "Browse mods" : "Mod manager"}</h1>
+          <h1>
+            {view === "browse" ? (tab === "packs" ? "Browse texture packs" : "Browse mods") : "Mod manager"}
+          </h1>
           <p>
-            {view === "browse"
+            {view === "browse" && tab === "packs"
+              ? `Resource packs for Minecraft ${version}, from Modrinth and CurseForge.`
+              : view === "browse"
               ? `Fabric mods for Minecraft ${version}, from Modrinth and CurseForge.`
               : selection.profile
                 ? `Installed in your “${selection.profile.name}” profile · Minecraft ${version}`
@@ -280,7 +257,30 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
         </div>
       </header>
 
-      {selection.loader !== "fabric" && (
+      {view === "browse" && (
+        <div className="browse-switch" role="tablist" aria-label="Browse the library">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "mods"}
+            className={tab === "mods" ? "is-on" : ""}
+            onClick={() => setTab("mods")}
+          >
+            Mods
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "packs"}
+            className={tab === "packs" ? "is-on" : ""}
+            onClick={() => setTab("packs")}
+          >
+            Texture Packs
+          </button>
+        </div>
+      )}
+
+      {tab === "mods" && selection.loader !== "fabric" && (
         <Banner
           tone="warn"
           title="Mods need Fabric"
@@ -293,7 +293,7 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
           Vanilla Minecraft cannot load mods. Switch the loader to Fabric to add mods.
         </Banner>
       )}
-      {selection.loader === "fabric" && game.status && !game.status.installed && (
+      {tab === "mods" && selection.loader === "fabric" && game.status && !game.status.installed && (
         <Banner tone="info" title={`Install Minecraft ${version} with Fabric first`}>
           Press <strong>Set up &amp; play</strong> on the Home or Versions page. Once it finishes, you can add mods here.
         </Banner>
@@ -431,6 +431,14 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
             )}
           </Card>
 
+          <ModUpload
+            version={version}
+            profileId={profileId}
+            fabricReady={fabricReady}
+            onInstalled={refreshInstalled}
+            key={`${version}-${profileId ?? "default"}`}
+          />
+
           <section className="packs" aria-label="Quick packs">
             {MOD_PACKS.map((pack) => (
               <Card
@@ -463,7 +471,11 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
         </>
       )}
 
-      {view === "browse" && (
+      {view === "browse" && tab === "packs" && (
+        <PackBrowser version={version} profileId={profileId} gameInstalled={game.status?.installed === true} />
+      )}
+
+      {view === "browse" && tab === "mods" && (
         <div className="browse mods-browser-layout">
           <aside className="browse-filters" aria-label="Filters">
             <div className="filter-block">

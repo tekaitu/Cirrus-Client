@@ -222,9 +222,93 @@ export interface GameLogChunk {
   offset: number;
 }
 
-export type GameFolder = "logs" | "crash-reports" | "game";
+export type GameFolder = "logs" | "crash-reports" | "game" | "resourcepacks";
 
 export type ModProvider = "modrinth" | "curseforge";
+
+/** One thing that is wrong or worth knowing about a chosen mod file. */
+export interface UploadIssue {
+  severity: "error" | "warning";
+  message: string;
+}
+
+export interface ModDependency {
+  id: string;
+  version: string | null;
+}
+
+/** What a chosen mod jar is, read before it is installed. */
+export interface ModInspection {
+  fileName: string;
+  size: number;
+  /** False when an error blocks installation; warnings do not. */
+  installable: boolean;
+  modId: string | null;
+  name: string | null;
+  version: string | null;
+  description: string | null;
+  authors: string[];
+  icon: string | null;
+  minecraft: string | null;
+  fabricLoader: string | null;
+  java: string | null;
+  dependencies: ModDependency[];
+  /** An installed file that already provides this mod. */
+  duplicateOf: string | null;
+  sameFile: boolean;
+  problems: UploadIssue[];
+}
+
+export interface UploadOutcome {
+  fileName: string;
+  status: "installed" | "conflict" | "invalid" | "failed";
+  message: string | null;
+}
+
+export interface PackHit {
+  provider: ModProvider;
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  downloads: number;
+  iconUrl: string | null;
+  pageUrl: string | null;
+  /** "64x" and so on, when the site lists it. */
+  resolution: string | null;
+}
+
+export interface PackSearchResult {
+  hits: PackHit[];
+  total: number;
+}
+
+export interface PackDetails {
+  provider: ModProvider;
+  id: string;
+  title: string;
+  description: string;
+  longDescription: string | null;
+  author: string;
+  downloads: number;
+  iconUrl: string | null;
+  pageUrl: string | null;
+  gallery: string[];
+  versions: string[];
+  resolution: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+}
+
+export interface InstalledPack {
+  fileName: string;
+  size: number;
+  description: string | null;
+  packFormat: number | null;
+  /** Whether Minecraft's options list this pack as active. */
+  enabled: boolean;
+  icon: string | null;
+}
 
 export interface ModHit {
   provider: ModProvider;
@@ -252,6 +336,8 @@ export interface InstalledMod {
   size: number;
   /** `false` for a `.jar.disabled` file: installed but switched off. Treated as on when missing. */
   enabled?: boolean;
+  /** The mod's own id from its fabric.mod.json. */
+  id?: string | null;
   /** What the mod says about itself (fabric.mod.json); missing for jars without it. */
   name?: string | null;
   version?: string | null;
