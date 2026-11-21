@@ -3,7 +3,7 @@ package dev.cirrus.client.ui;
 /**
  * Geometry of the unified Click GUI, in GUI units. Pure maths so every screen size can be unit-tested.
  * One window: a slim top bar (brand, home, close), a category sidebar and a content area. The content area has a header row
- * (search, profile, HUD editor) above the module grid. A module's settings, and the Profiles page, replace the whole content area.
+ * (search, profile, share, HUD editor) above the module grid. A module's settings, and the Profiles page, replace the whole content area.
  */
 public final class ClickGuiLayout {
     public record Rect(int x, int y, int w, int h) {
@@ -16,7 +16,7 @@ public final class ClickGuiLayout {
     public static final int TOP_H = 28, PAD = 8, DEFAULT_W = 540, DEFAULT_H = 320, HEADER_H = 20;
     public static final int MIN_W = 260, MIN_H = 170;
 
-    public final Rect window, topBar, brand, homeButton, closeButton, sidebar, content, search, profileButton, hudButton, list, pane, grip;
+    public final Rect window, topBar, brand, homeButton, closeButton, sidebar, content, search, profileButton, shareButton, hudButton, list, pane, grip;
     /** Sidebar shows icons only. */
     public final boolean rail;
     /** Header buttons show their labels (otherwise icons only). */
@@ -47,7 +47,7 @@ public final class ClickGuiLayout {
         content = new Rect(cx, bodyTop + PAD, cw, innerH);
         pane = content;
 
-        // header row, right to left: HUD editor, profile; the search box takes what is left
+        // header row, right to left: HUD editor, share, profile; the search box takes what is left
         int hy = content.y();
         boolean roomy = cw >= 300;
         hudLabel = roomy;
@@ -56,7 +56,8 @@ public final class ClickGuiLayout {
         profileLabel = wantProfile;
         int profW = profileLabel ? 112 : HEADER_H;
         hudButton = new Rect(content.right() - hudW, hy, hudW, HEADER_H);
-        profileButton = new Rect(hudButton.x() - 4 - profW, hy, profW, HEADER_H);
+        shareButton = new Rect(hudButton.x() - 4 - HEADER_H, hy, HEADER_H, HEADER_H);
+        profileButton = new Rect(shareButton.x() - 4 - profW, hy, profW, HEADER_H);
         search = new Rect(cx, hy, Math.max(40, profileButton.x() - 8 - cx), HEADER_H);
 
         int listTop = hy + HEADER_H + 8;

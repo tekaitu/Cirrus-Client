@@ -26,6 +26,8 @@ public final class ModPane {
     private List<String> descLines = List.of(), noteLines = List.of();
     private ClickGuiLayout.Rect backBtn, previewRect, enabledRow, keyRow, keyBtn, resetBtn, editBtn, settingsRect;
     private float progress = -1f;
+    private boolean twoCol;
+    private int dividerX;
 
     public ModPane(CirrusMod mod, Runnable editPosition, Runnable back) {
         this.mod = mod; this.editPosition = editPosition; this.back = back;
@@ -42,36 +44,42 @@ public final class ModPane {
     public void layout(Font font, int x, int y, int w, int h, boolean showBack) {
         this.x = x; this.y = y; this.w = w; this.h = h; this.showBack = showBack;
         int pad = 8, iw = w - pad * 2, cy = y + pad;
+        // Wide panes put the settings list in its own column on the right; narrow ones stack everything.
+        twoCol = iw >= 320 && mod.available() && !mod.settings().isEmpty();
+        int lw = twoCol ? Math.min(190, iw * 42 / 100) : iw;
+        int rx = x + pad + lw + 12, rw = iw - lw - 12;
+        dividerX = rx - 6;
         backBtn = null; previewRect = null; enabledRow = null; keyRow = null; keyBtn = null; resetBtn = null; editBtn = null; settingsRect = null;
         if (showBack) { backBtn = new ClickGuiLayout.Rect(x + pad, cy, 52, 16); cy += 22; }
         cy += 28; // header: icon tile and title
-        descLines = CirrusUi.wrapSmall(font, mod.description(), iw, 3);
+        descLines = CirrusUi.wrapSmall(font, mod.description(), lw, 3);
         cy += descLines.size() * 10 + 4;
-        noteLines = mod.note().isEmpty() ? List.of() : CirrusUi.wrapSmall(font, mod.note(), iw, 3);
+        noteLines = mod.note().isEmpty() ? List.of() : CirrusUi.wrapSmall(font, mod.note(), lw, 3);
         cy += noteLines.size() * 10 + (noteLines.isEmpty() ? 0 : 2);
         if (!mod.available()) return;
         boolean hasFooter = !settings.isEmpty() || hud();
         int footerH = hasFooter ? 28 : 0;
-        if (hud() && (y + h) - cy - footerH >= 170) { previewRect = new ClickGuiLayout.Rect(x + pad, cy, iw, 52); cy += 58; }
-        enabledRow = new ClickGuiLayout.Rect(x + pad, cy, iw, ROW); cy += ROW + 2;
+        int rowsH = (ROW + 2) * (ModKeys.supported(mod.id()) ? 2 : 1);
+        if (hud() && (y + h - pad) - cy - footerH - rowsH >= 58) { previewRect = new ClickGuiLayout.Rect(x + pad, cy, lw, 52); cy += 58; }
+        enabledRow = new ClickGuiLayout.Rect(x + pad, cy, lw, ROW); cy += ROW + 2;
         if (ModKeys.supported(mod.id())) {
-            keyRow = new ClickGuiLayout.Rect(x + pad, cy, iw, ROW);
-            int bw = Math.min(84, iw / 2);
-            keyBtn = new ClickGuiLayout.Rect(x + pad + iw - bw - 4, cy + 2, bw, ROW - 4);
+            keyRow = new ClickGuiLayout.Rect(x + pad, cy, lw, ROW);
+            int bw = Math.min(84, lw / 2);
+            keyBtn = new ClickGuiLayout.Rect(x + pad + lw - bw - 4, cy + 2, bw, ROW - 4);
             cy += ROW + 2;
         }
+        int by = y + h - pad - 20;
         if (hasFooter) {
-            int by = y + h - pad - 20;
             boolean both = hud() && !settings.isEmpty();
-            int bw = both ? (iw - 4) / 2 : iw;
+            int bw = both ? (lw - 4) / 2 : lw;
             int bx = x + pad;
             if (!settings.isEmpty()) { resetBtn = new ClickGuiLayout.Rect(bx, by, bw, 20); bx += bw + 4; }
             if (hud()) editBtn = new ClickGuiLayout.Rect(bx, by, bw, 20);
-            if (!settings.isEmpty()) {
-                int top = cy + 14, bottom = by - 6;
-                settingsRect = new ClickGuiLayout.Rect(x + pad, top, iw, Math.max(0, bottom - top));
-                settings.layout(settingsRect.x(), settingsRect.y(), settingsRect.w(), settingsRect.h(), iw < 230);
-            }
+        }
+        if (!settings.isEmpty()) {
+            if (twoCol) settingsRect = new ClickGuiLayout.Rect(rx, y + pad, rw, h - pad * 2);
+            else { int top = cy + 4, bottom = by - 6; settingsRect = new ClickGuiLayout.Rect(x + pad, top, iw, Math.max(0, bottom - top)); }
+            settings.layout(settingsRect.x(), settingsRect.y(), settingsRect.w(), settingsRect.h(), settingsRect.w() < 230);
         }
     }
 
@@ -117,7 +125,7 @@ public final class ModPane {
             CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, label, keyBtn.w() - 8), keyBtn.x() + keyBtn.w() / 2, keyBtn.y() + (keyBtn.h() - CirrusUi.LINE) / 2, listening ? 0xFF000000 : 0xFFFFFFFF);
         }
         if (settingsRect != null) {
-            CirrusUi.smallText(g, font, "SETTINGS", x + pad + 2, settingsRect.y() - 12, 0xFF8C8C8C, false);
+            if (twoCol) g.fill(dividerX, y + pad, dividerX + 1, y + h - pad, t.border);
             settings.render(g, mx, my, t, focused);
         }
         if (resetBtn != null) button(g, font, resetBtn, "Reset settings", mx, my, t);

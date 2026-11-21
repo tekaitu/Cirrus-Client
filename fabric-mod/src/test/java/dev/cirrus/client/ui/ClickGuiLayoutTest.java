@@ -22,16 +22,18 @@ class ClickGuiLayoutTest {
         for (int[] s : SIZES) for (int pw : new int[] {0, 300, 900}) {
             var l = new ClickGuiLayout(s[0], s[1], pw, pw == 0 ? 0 : pw / 2, 90);
             String at = s[0] + "x" + s[1] + " pref " + pw;
-            for (var r : new ClickGuiLayout.Rect[] {l.topBar, l.sidebar, l.content, l.list, l.pane, l.grip, l.search, l.hudButton, l.profileButton, l.homeButton, l.closeButton, l.brand})
+            for (var r : new ClickGuiLayout.Rect[] {l.topBar, l.sidebar, l.content, l.list, l.pane, l.grip, l.search, l.hudButton, l.profileButton, l.shareButton, l.homeButton, l.closeButton, l.brand})
                 assertInside(r, l.window, at);
             assertFalse(l.sidebar.intersects(l.content), at + " sidebar/content");
             assertFalse(l.topBar.intersects(l.sidebar), at + " topbar/sidebar");
             assertFalse(l.search.intersects(l.profileButton), at + " search/profile");
-            assertFalse(l.profileButton.intersects(l.hudButton), at + " profile/hud");
+            assertFalse(l.profileButton.intersects(l.shareButton), at + " profile/share");
+            assertFalse(l.shareButton.intersects(l.hudButton), at + " share/hud");
+            assertFalse(l.search.intersects(l.shareButton), at + " search/share");
             assertFalse(l.homeButton.intersects(l.closeButton), at + " home/close");
             assertFalse(l.brand.intersects(l.homeButton), at + " brand/home");
             assertFalse(l.list.y() < l.search.bottom(), at + " list starts below the header");
-            for (var r : new ClickGuiLayout.Rect[] {l.search, l.profileButton, l.hudButton, l.list}) assertInside(r, l.content, at);
+            for (var r : new ClickGuiLayout.Rect[] {l.search, l.profileButton, l.shareButton, l.hudButton, l.list}) assertInside(r, l.content, at);
             assertTrue(l.list.w() > 20 && l.list.h() > 20, at + " list has room: " + l.list);
             assertTrue(l.search.w() >= 40, at + " search has room: " + l.search.w());
         }

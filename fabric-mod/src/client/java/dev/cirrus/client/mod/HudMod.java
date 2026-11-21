@@ -22,6 +22,11 @@ public abstract class HudMod implements CirrusMod, HudElement {
         Setting.toggle("border", "Border", "Thin outline around the background.", true).requires("background", "true").group("Appearance"),
         Setting.toggle("shadow", "Text shadow", "Keeps text readable when the background is off.", true).group("Appearance"));
 
+    /** The plainest look: just the text, with an optional background and a size. Used by simple counters such as FPS and Ping. */
+    public static final List<Setting> SIMPLE = List.of(
+        Setting.toggle("background", "Background", "Draw a dark panel behind the text.", false).group("Appearance"),
+        Setting.slider("scale", "Scale", "Size of this element on screen.", 100, 50, 200, 10, "%").group("Appearance"));
+
     private List<Setting> all;
 
     @Override public boolean defaultEnabled() { return true; }
@@ -29,13 +34,16 @@ public abstract class HudMod implements CirrusMod, HudElement {
     @Override public void setEnabled(CirrusConfig c, boolean value) { CirrusMod.super.setEnabled(c, value); }
     @Override public String label() { return name(); }
 
+    /** The shared appearance options; simple elements return {@link #SIMPLE} instead. */
+    protected List<Setting> appearance() { return APPEARANCE; }
+
     /** Options specific to this feature, shown before the shared appearance options. */
     protected List<Setting> featureSettings() { return List.of(); }
 
     @Override public final synchronized List<Setting> settings() {
         if (all == null) {
             List<Setting> list = new ArrayList<>(featureSettings());
-            list.addAll(APPEARANCE);
+            list.addAll(appearance());
             all = List.copyOf(list);
         }
         return all;
@@ -51,15 +59,17 @@ public abstract class HudMod implements CirrusMod, HudElement {
     protected final boolean on(CirrusConfig c, String key) { return ModSettings.bool(c, id(), settings(), key); }
     protected final int num(CirrusConfig c, String key) { return ModSettings.number(c, id(), settings(), key); }
 
+    private boolean has(String key) { for (Setting s : settings()) if (s.key().equals(key)) return true; return false; }
     protected final boolean backgroundOn(CirrusConfig c) { return on(c, "background"); }
-    protected final boolean borderOn(CirrusConfig c) { return on(c, "background") && on(c, "border"); }
-    protected final boolean shadowOn(CirrusConfig c) { return on(c, "shadow"); }
+    protected final boolean borderOn(CirrusConfig c) { return on(c, "background") && (!has("border") || on(c, "border")); }
+    /** Simple elements have no shadow option: text gets a shadow when there is no background behind it. */
+    protected final boolean shadowOn(CirrusConfig c) { return has("shadow") ? on(c, "shadow") : !on(c, "background"); }
     protected final float scale(CirrusConfig c) { return num(c, "scale") / 100f; }
 
     /** Fill colour for a surface of this element: the theme's HUD panel at the chosen opacity, or fully clear when the background is off. */
     protected final int backgroundColor(CirrusConfig c, CirrusTheme t) {
         if (!backgroundOn(c)) return 0;
-        return Gfx.withAlpha(Gfx.mix(t.panel, 0xFF000000, 0.15f), Math.round(255 * num(c, "opacity") / 100f));
+        return Gfx.withAlpha(Gfx.mix(t.panel, 0xFF000000, 0.15f), Math.round(255 * (has("opacity") ? num(c, "opacity") : 85) / 100f));
     }
 
     /** Standard element surface honouring the background and border options. */

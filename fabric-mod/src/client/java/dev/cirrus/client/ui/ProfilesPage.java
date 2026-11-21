@@ -197,4 +197,20 @@ public final class ProfilesPage {
     }
 
     public String activeName() { return active; }
+    public List<String> names() { return names; }
+
+    // Quick actions for the header drop-down; each returns a short message for the player.
+    public String load(String name) {
+        try { profiles.apply(name); refresh(); return "Loaded profile " + name + "."; }
+        catch (IOException e) { return "Could not load " + name + "."; }
+    }
+    public String saveActive() {
+        if (active.isEmpty()) return "Create a profile first (Profiles page).";
+        try { profiles.save(active); return "Saved your settings to " + active + "."; }
+        catch (IOException e) { return "Could not save " + active + "."; }
+    }
+    public String copyShareCode() {
+        Minecraft.getInstance().keyboardHandler.setClipboard(profiles.shareCurrent());
+        return "Share code copied. Friends can paste it under Profiles > Import.";
+    }
 }

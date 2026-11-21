@@ -142,6 +142,9 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
                 profiles.apply("PvP");
             } catch (java.io.IOException e) { throw new IllegalStateException(e); }
         });
+        context.setScreen(() -> new CirrusMenuScreen(null).withProfileMenu());
+        context.waitTicks(20);
+        context.takeScreenshot("menu-profile-dropdown-1280x720-gui2");
         for (String shot : new String[] {"menu-profiles", "menu-fps"}) {
             context.setScreen(screens.get(shot));
             context.waitTicks(20);
