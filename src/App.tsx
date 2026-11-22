@@ -18,6 +18,8 @@ import { ModsPage } from "./pages/Mods";
 import { SkinsPage } from "./pages/Skins";
 import { ServersPage } from "./pages/Servers";
 import { VersionsPage } from "./pages/Versions";
+import { LibraryPage } from "./pages/Library";
+import { UpdateNotice } from "./components/UpdateNotice";
 import { ModpacksPage } from "./pages/Modpacks";
 import { SettingsPage } from "./pages/Settings";
 import { pageForShortcut } from "./core/shortcuts";
@@ -32,7 +34,8 @@ import { usePlayAs } from "./hooks/usePlayAs";
 /** Which picture sits behind each page. */
 const BACKDROPS: Record<PageId, BackdropId> = {
   home: "home",
-  versions: "library",
+  versions: "browse",
+  library: "library",
   mods: "library",
   modpacks: "library",
   skins: "library",
@@ -173,7 +176,7 @@ export default function App() {
       writeRecent({
         version: data.selection.version,
         loader: data.selection.loader,
-        profile: data.selection.profile?.name ?? null,
+        profile: null,
         at: Date.now(),
       });
     }
@@ -225,7 +228,8 @@ export default function App() {
         <main className="content">
           <div key={page} className="page-enter">
           {page === "home" && <HomePage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
-          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
+          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} />}
+          {page === "library" && <LibraryPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
           {page === "browse" && <ModsPage data={data} mode="browse" onNavigate={navigate} />}
           {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
@@ -237,13 +241,14 @@ export default function App() {
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
           </div>
         </main>
+        <UpdateNotice />
         <FooterBar data={data} onNavigate={navigate} />
       </div>
       {!accepted && (
         <LicenseDialog mode="gate" onAccept={accept} onDecline={() => void api.quitApp().catch(() => {})} />
       )}
       {accepted && <SignInDialog account={data.account} />}
-      {accepted && <GameDialog data={data} />}
+      {accepted && <GameDialog data={data} onNavigate={navigate} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}
       <Toasts />
       <AccountDrawer

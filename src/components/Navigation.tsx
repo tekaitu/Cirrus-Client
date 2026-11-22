@@ -3,6 +3,7 @@ import {
   CompassIcon,
   CubeIcon,
   HomeIcon,
+  LibraryIcon,
   MaximizeIcon,
   MinimizeIcon,
   ModsIcon,
@@ -21,6 +22,7 @@ import { useRef } from "react";
 export type PageId =
   | "home"
   | "versions"
+  | "library"
   | "browse"
   | "mods"
   | "modpacks"
@@ -34,6 +36,7 @@ export type PageId =
 export const PAGE_TITLES: Record<PageId, string> = {
   home: "Home",
   versions: "Versions",
+  library: "Library",
   browse: "Browse",
   mods: "Mods",
   modpacks: "Modpacks",
@@ -53,6 +56,7 @@ interface Item {
 const TABS: Item[] = [
   { id: "home", icon: <HomeIcon /> },
   { id: "versions", icon: <CubeIcon /> },
+  { id: "library", icon: <LibraryIcon /> },
   { id: "browse", icon: <CompassIcon /> },
   { id: "mods", icon: <ModsIcon /> },
   { id: "modpacks", icon: <PackageIcon /> },

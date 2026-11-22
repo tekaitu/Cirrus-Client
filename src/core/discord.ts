@@ -23,6 +23,7 @@ export function writeDiscordEnabled(on: boolean): void {
 const PAGE_LINES: Record<PageId, string> = {
   home: "On the home screen",
   versions: "Choosing a version to play",
+  library: "In the library",
   browse: "Browsing mods",
   mods: "Managing mods",
   modpacks: "Managing modpacks",

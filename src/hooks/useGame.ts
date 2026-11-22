@@ -8,7 +8,8 @@ export interface Game {
   status: GameStatus | null;
   installer: GameInstallerState;
   run: RunState;
-  install: () => void;
+  /** Downloads this version. `loaderVersion` pins a Fabric loader. */
+  install: (loaderVersion?: string | null) => void;
   cancelInstall: () => void;
   play: (javaPath: string, mode: PlayMode, username: string) => void;
   stop: () => void;
@@ -23,7 +24,7 @@ export interface Game {
   closePanel: () => void;
 }
 
-export function useGame(version: string, loader: LoaderId, profileId: string | null = null): Game {
+export function useGame(version: string, loader: LoaderId, instanceId: string | null = null): Game {
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [installer, setInstaller] = useState<GameInstallerState>({ phase: "idle" });
   const [run, setRun] = useState<RunState>({ phase: "idle" });
@@ -102,7 +103,8 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
     return () => unlisten();
   }, [refresh, readLog]);
 
-  const install = useCallback(() => {
+  const install = useCallback(
+    (loaderVersion: string | null = null) => {
     if (installGate.busy) return;
     setInstaller({ phase: "running", progress: null, cancelling: false });
     void installGate.run(async () => {
@@ -112,7 +114,7 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
           if (!mounted.current) return;
           setInstaller((prev) => (prev.phase === "running" ? { ...prev, progress } : prev));
         });
-        const result = await api.installGame(version, loader);
+        const result = await api.installGame(version, loader, loaderVersion);
         if (!mounted.current) return;
         if (result.status === "installed") {
           // Update the status first so nothing sees "idle" with stale "not installed".
@@ -134,7 +136,9 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
         unlisten();
       }
     });
-  }, [version, loader, installGate]);
+    },
+    [version, loader, installGate],
+  );
 
   const cancelInstall = useCallback(() => {
     setInstaller((prev) => (prev.phase === "running" ? { ...prev, cancelling: true } : prev));
@@ -148,11 +152,7 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
     logOffset.current = 0;
     const who = mode === "offline" ? username.trim() : null;
     void playGate
-      .run(() =>
-        profileId
-          ? api.launchGame(javaPath, mode, who, version, loader, profileId)
-          : api.launchGame(javaPath, mode, who, version, loader),
-      )
+      .run(() => api.launchGame(javaPath, mode, who, version, loader, undefined, instanceId ?? undefined))
       .then((r) => {
         if (!mounted.current || !r) return;
         setRun(r.started ? { phase: "running" } : { phase: "error", message: r.message ?? "Minecraft could not be started." });
@@ -160,7 +160,7 @@ export function useGame(version: string, loader: LoaderId, profileId: string | n
       .catch((e) => {
         if (mounted.current) setRun({ phase: "error", message: errorMessage(e) });
       });
-  }, [version, loader, profileId, playGate]);
+  }, [version, loader, instanceId, playGate]);
 
   const stop = useCallback(() => {
     void stopGate.run(() => api.stopGame()).catch(() => {});

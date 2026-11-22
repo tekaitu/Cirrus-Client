@@ -13,7 +13,9 @@ import type {
   GameLogChunk,
   GameInstallResult,
   GameProgress,
-  GameStatus, InstanceSummary, Profile,
+  GameStatus, InstanceSummary, InstanceView, InstanceContents, FabricLoaderOption, Profile,
+  Diagnosis,
+  UpdateCheck,
   InstallProgress,
   InstallResult,
   InstalledMod,
@@ -69,7 +71,8 @@ export const api = {
   detectJava: (configuredPath: string | null) =>
     call<JavaDetectionRaw>("detect_java", { configuredPath }),
   inspectJava: (path: string) => call<JavaInstallRaw>("inspect_java", { path }),
-  installJava: () => call<InstallResult>("install_java"),
+  /** Installs a portable runtime; 8, 17 and 21 are supported. */
+  installJava: (major = 21) => call<InstallResult>("install_java", { major }),
   cancelJavaInstall: () => call<boolean>("cancel_java_install"),
   /** Subscribe to installer progress. Resolves to an unsubscribe function. */
   onJavaInstallProgress: async (handler: (p: InstallProgress) => void): Promise<() => void> => {
@@ -91,11 +94,39 @@ export const api = {
     return listen<DeviceCodeInfo>(AUTH_CODE_EVENT, (event) => handler(event.payload));
   },
   listInstances: () => call<InstanceSummary[]>("list_instances"),
+  /** Installed games with their own names, icons, Java, memory and folders. */
+  listInstanceViews: () => call<InstanceView[]>("list_instance_views"),
+  instanceContents: (id: string) => call<InstanceContents>("instance_contents", { id }),
+  /** Saves one instance's settings; the previous file is kept as a backup. */
+  saveInstance: (config: {
+    id: string;
+    minecraft: string;
+    loader: "vanilla" | "fabric";
+    loaderVersion: string | null;
+    name: string;
+    icon: number;
+    javaPath: string | null;
+    memoryMb: number | null;
+    gameDir: string | null;
+    jvmArgs: string;
+    lastPlayed: number;
+    clonedFrom: string | null;
+  }) => call<InstanceView>("save_instance", { config }),
+  cloneInstance: (id: string, name: string, copyData: boolean) =>
+    call<InstanceView>("clone_instance", { id, name, copyData }),
+  deleteInstance: (id: string, deleteFiles: boolean) =>
+    call<void>("delete_instance", { id, deleteFiles }),
+  repairInstance: (id: string) => call<GameInstallResult>("repair_instance", { id }),
+  switchFabricLoader: (id: string, loaderVersion: string) =>
+    call<GameInstallResult>("switch_fabric_loader", { id, loaderVersion }),
+  fabricLoaderVersions: (version: string) =>
+    call<FabricLoaderOption[]>("fabric_loader_versions", { version }),
   gameStatus: (version: string, loader: string) => call<GameStatus>("game_status", { version, loader }),
   listGameVersions: () => call<string[]>("list_game_versions"),
   /** Mojang's full list, including snapshots and releases this build cannot install. */
   listVersionCatalog: () => call<VersionEntry[]>("list_game_version_catalog"),
-  installGame: (version: string, loader: string) => call<GameInstallResult>("install_game", { version, loader }),
+  installGame: (version: string, loader: string, loaderVersion: string | null = null) =>
+    call<GameInstallResult>("install_game", { version, loader, loaderVersion }),
   cancelGameInstall: () => call<boolean>("cancel_game_install"),
   launchGame: (
     javaPath: string,
@@ -104,7 +135,17 @@ export const api = {
     version: string,
     loader: string,
     profile?: string,
-  ) => call<LaunchResult>("launch_game", { javaPath, mode, username, version, loader, profile: profile ?? null }),
+    instanceId?: string,
+  ) =>
+    call<LaunchResult>("launch_game", {
+      javaPath,
+      mode,
+      username,
+      version,
+      loader,
+      profile: profile ?? null,
+      instanceId: instanceId ?? null,
+    }),
   listProfiles: () => call<Profile[]>("list_profiles"),
   createProfile: (name: string, version: string, loader: string) =>
     call<Profile>("create_profile", { name, version, loader }),
@@ -182,6 +223,20 @@ export const api = {
   stopGame: () => call<boolean>("stop_game"),
   readGameLog: (offset: number) => call<GameLogChunk>("read_game_log", { offset }),
   openGameFolder: (kind: GameFolder) => call<void>("open_game_folder", { kind }),
+  /** Opens one instance's own game folder. */
+  openInstanceFolder: (id: string) => call<void>("open_instance_folder", { id }),
+  /** Reads the log end and crash report and explains the most likely cause. */
+  diagnoseCrash: (input: {
+    logTail: string;
+    report: string | null;
+    version: string;
+    loader: string;
+    javaMajor: number | null;
+    instanceId: string | null;
+  }) => call<Diagnosis>("diagnose_crash", input),
+  /** The newest official launcher release, compared with this build. */
+  checkForUpdates: () => call<UpdateCheck>("check_for_updates"),
+  openUpdatePage: (url: string) => call<void>("open_update_page", { url }),
   onGameProgress: async (handler: (p: GameProgress) => void): Promise<() => void> => {
     if (!insideTauri()) return () => {};
     return listen<GameProgress>(GAME_PROGRESS_EVENT, (event) => handler(event.payload));
