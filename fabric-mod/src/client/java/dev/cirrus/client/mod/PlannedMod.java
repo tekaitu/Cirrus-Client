@@ -1,5 +1,8 @@
 package dev.cirrus.client.mod;
 
+
+import dev.cirrus.core.module.ModStatus;
+import dev.cirrus.core.module.ModCategory;
 /** A catalogue entry for a feature that is not built yet. It can be seen and searched, but never enabled. */
 public final class PlannedMod implements CirrusMod {
     private final PlannedCatalog.Entry entry;

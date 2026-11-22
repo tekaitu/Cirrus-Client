@@ -1,7 +1,11 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.CirrusTheme;
+
+import dev.cirrus.core.render.Icons;
+import dev.cirrus.core.module.ModCategory;
+import dev.cirrus.core.settings.Setting;
+import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Gfx;
 import net.minecraft.client.Minecraft;
@@ -28,7 +32,7 @@ public final class ArmorStatusMod extends HudMod {
     public String name() { return "Armor Status"; }
     public String description() { return "Shows worn armor with its remaining durability."; }
     public ModCategory category() { return ModCategory.HUD; }
-    @Override public int icon() { return dev.cirrus.client.ui.Glyphs.SHIELD; }
+    @Override public int icon() { return dev.cirrus.core.render.Icons.SHIELD; }
     @Override protected List<Setting> featureSettings() { return OWN; }
     @Override public int defaultX() { return 8; }
     @Override public int defaultY(int screenHeight) { return 36; }

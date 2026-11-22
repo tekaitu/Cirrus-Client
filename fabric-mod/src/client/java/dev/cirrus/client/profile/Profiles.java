@@ -1,6 +1,8 @@
 package dev.cirrus.client.profile;
 
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.profile.ProfileStore;
+import dev.cirrus.core.profile.ProfileCodec;
+import dev.cirrus.core.config.CirrusConfig;
 import dev.cirrus.client.mod.CirrusMod;
 import dev.cirrus.client.mod.ModRegistry;
 import net.minecraft.client.Minecraft;

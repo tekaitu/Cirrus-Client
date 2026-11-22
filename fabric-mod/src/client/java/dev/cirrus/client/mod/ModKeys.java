@@ -1,13 +1,14 @@
 package dev.cirrus.client.mod;
 
+
+import dev.cirrus.core.input.Keys;
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.config.CirrusConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,7 +27,7 @@ public final class ModKeys {
     public static void registerAll() {
         for (CirrusMod mod : ModRegistry.all()) {
             if (!mod.available()) continue;
-            KEYS.put(mod.id(), KeyBindingHelper.registerKeyBinding(new KeyMapping("key.cirrus.toggle." + mod.id(), InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY)));
+            KEYS.put(mod.id(), KeyBindingHelper.registerKeyBinding(new KeyMapping("key.cirrus.toggle." + mod.id(), InputConstants.Type.KEYSYM, Keys.UNKNOWN, CATEGORY)));
         }
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             CirrusConfig cfg = CirrusConfig.get(client.gameDirectory.toPath());

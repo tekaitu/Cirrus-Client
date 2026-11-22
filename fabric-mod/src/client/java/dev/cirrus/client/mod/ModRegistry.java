@@ -2,7 +2,7 @@ package dev.cirrus.client.mod;
 
 import java.util.*;
 import java.util.function.Consumer;
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 
 /** Registration point for feature modules; UI and runtime enumerate this registry. */

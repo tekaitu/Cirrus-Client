@@ -1,5 +1,7 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.anim.Anim;
 import dev.cirrus.client.dashboard.DashboardConfig;
 import dev.cirrus.client.dashboard.ServerStatus;
 import net.minecraft.client.Minecraft;

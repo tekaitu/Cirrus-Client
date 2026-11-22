@@ -1,5 +1,9 @@
 package dev.cirrus.client;
 
+
+
+import dev.cirrus.core.input.Keys;
+import dev.cirrus.core.render.Icons;
 import dev.cirrus.client.asset.CirrusAssetTextures;
 import dev.cirrus.client.dashboard.CirrusDashboard;
 import dev.cirrus.client.dashboard.DashboardConfig;
@@ -18,7 +22,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,13 +92,13 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
     private static int iconFor(Component label) {
         if (!(label.getContents() instanceof TranslatableContents tc)) return -1;
         return switch (tc.getKey()) {
-            case "selectServer.select" -> Glyphs.MULTIPLAYER;
-            case "selectServer.direct" -> Glyphs.GLOBE;
-            case "selectServer.add" -> Glyphs.ADD;
-            case "selectServer.edit" -> Glyphs.EDIT;
-            case "selectServer.delete" -> Glyphs.DELETE;
-            case "selectServer.refresh" -> Glyphs.REFRESH;
-            case "gui.back" -> Glyphs.BACK;
+            case "selectServer.select" -> Icons.MULTIPLAYER;
+            case "selectServer.direct" -> Icons.GLOBE;
+            case "selectServer.add" -> Icons.ADD;
+            case "selectServer.edit" -> Icons.EDIT;
+            case "selectServer.delete" -> Icons.DELETE;
+            case "selectServer.refresh" -> Icons.REFRESH;
+            case "gui.back" -> Icons.BACK;
             default -> -1;
         };
     }
@@ -146,8 +149,8 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
 
     /** Vanilla reorders saved servers with Shift+Up/Down by list index; that must never touch partner rows. */
     @Override public boolean keyPressed(KeyEvent event) {
-        boolean shift = (event.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0;
-        boolean vertical = event.key() == GLFW.GLFW_KEY_UP || event.key() == GLFW.GLFW_KEY_DOWN;
+        boolean shift = (event.modifiers() & Keys.MOD_SHIFT) != 0;
+        boolean vertical = event.key() == Keys.UP || event.key() == Keys.DOWN;
         if (shift && vertical && this.serverSelectionList != null && this.serverSelectionList.getSelected() instanceof PartnerEntry) return true;
         return super.keyPressed(event);
     }
@@ -186,7 +189,7 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
             super.renderContent(g, mouseX, mouseY, hovered, delta);
             int nameX = x + 32 + 3, ty = y + 1;
             CirrusAssetTextures.drawMark(g, nameX, ty, markW, MARK_H, 0xFFFFFFFF);
-            Glyphs.draw(g, Glyphs.STAR, nameX + markW + 2, ty - 1, 10, STAR);
+            Glyphs.draw(g, Icons.STAR, nameX + markW + 2, ty - 1, 10, STAR);
             if (mouseX >= nameX && mouseX < nameX + markW + 2 + 10 && mouseY >= ty - 1 && mouseY < ty + 9) {
                 g.setTooltipForNextFrame(Component.literal("Official Cirrus partner server"), mouseX, mouseY);
             }

@@ -1,12 +1,14 @@
 package dev.cirrus.client;
 
+
+import dev.cirrus.core.input.Keys;
 import dev.cirrus.client.mod.CirrusMod;
 import dev.cirrus.client.mod.HudElement;
-import dev.cirrus.client.mod.ModSettings;
-import dev.cirrus.client.mod.Setting;
+import dev.cirrus.core.settings.ModSettings;
+import dev.cirrus.core.settings.Setting;
 import dev.cirrus.client.ui.CirrusButton;
 import dev.cirrus.client.ui.CirrusScreen;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Gfx;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,7 +16,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -222,11 +223,11 @@ public final class ModSettingsScreen extends CirrusScreen {
 
     @Override public boolean keyPressed(KeyEvent event) {
         int key = event.key();
-        if (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN) { moveSelection(key == GLFW.GLFW_KEY_UP ? -1 : 1); return true; }
+        if (key == Keys.UP || key == Keys.DOWN) { moveSelection(key == Keys.UP ? -1 : 1); return true; }
         if (selected >= 0 && rows.get(selected).setting() != null) {
             Setting s = rows.get(selected).setting();
-            if (active(s) && (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_SPACE)) {
-                set(s, s.step(value(s), key == GLFW.GLFW_KEY_LEFT ? -1 : 1));
+            if (active(s) && (key == Keys.LEFT || key == Keys.RIGHT || key == Keys.ENTER || key == Keys.SPACE)) {
+                set(s, s.step(value(s), key == Keys.LEFT ? -1 : 1));
                 return true;
             }
         }

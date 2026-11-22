@@ -1,13 +1,15 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.config.CirrusConfig;
+
+import dev.cirrus.core.input.Keys;
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.config.CirrusConfig;
 import dev.cirrus.client.mod.CirrusMod;
-import dev.cirrus.client.mod.ModSettings;
-import dev.cirrus.client.mod.Setting;
+import dev.cirrus.core.settings.ModSettings;
+import dev.cirrus.core.settings.Setting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -155,10 +157,10 @@ public final class SettingsPanel {
     }
 
     public boolean keyPressed(int key) {
-        if (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN) { moveSelection(key == GLFW.GLFW_KEY_UP ? -1 : 1); return true; }
+        if (key == Keys.UP || key == Keys.DOWN) { moveSelection(key == Keys.UP ? -1 : 1); return true; }
         Setting s = selectedSetting();
-        if (s != null && active(s) && (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_SPACE)) {
-            set(s, s.step(value(s), key == GLFW.GLFW_KEY_LEFT ? -1 : 1));
+        if (s != null && active(s) && (key == Keys.LEFT || key == Keys.RIGHT || key == Keys.ENTER || key == Keys.SPACE)) {
+            set(s, s.step(value(s), key == Keys.LEFT ? -1 : 1));
             return true;
         }
         return false;

@@ -1,5 +1,7 @@
 package dev.cirrus.client.gametest;
 
+
+import dev.cirrus.core.input.Keys;
 import dev.cirrus.client.CirrusDashboardScreen;
 import dev.cirrus.client.CirrusMenuScreen;
 import dev.cirrus.client.CirrusJoinMultiplayerScreen;
@@ -49,7 +51,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             } catch (java.io.IOException e) { throw new IllegalStateException(e); }
             dev.cirrus.client.dashboard.CirrusDashboard.reloadForTest();
         });
-        context.runOnClient(mc -> dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath()).put("onboarding.complete", "true"));
+        context.runOnClient(mc -> dev.cirrus.core.config.CirrusConfig.get(mc.gameDirectory.toPath()).put("onboarding.complete", "true"));
         context.runOnClient(mc -> {      // a couple of saved servers so the Multiplayer screenshots show real rows
             var list = new net.minecraft.client.multiplayer.ServerList(mc);
             list.load();
@@ -78,35 +80,35 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> {
             mc.options.guiScale().set(2);
             mc.resizeDisplay();
-            var cfg = dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath());
+            var cfg = dev.cirrus.core.config.CirrusConfig.get(mc.gameDirectory.toPath());
             cfg.put("enabled.armor_status", "true");
         });
         context.waitTicks(5);
         // Multiplayer states that need interaction: a selected personal row, the advertised partner row, a plain partner row.
         context.setScreen(() -> new CirrusJoinMultiplayerScreen(null));
         context.waitTicks(20);
-        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        context.getInput().pressKey(Keys.DOWN);
         context.waitTicks(10);
         context.takeScreenshot("multiplayer-selected-personal-1280x720-gui2");
-        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
-        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        context.getInput().pressKey(Keys.DOWN);
+        context.getInput().pressKey(Keys.DOWN);
         context.waitTicks(10);
         context.takeScreenshot("multiplayer-selected-advertised-1280x720-gui2");
-        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        context.getInput().pressKey(Keys.DOWN);
         context.waitTicks(10);
         context.takeScreenshot("multiplayer-selected-partner-1280x720-gui2");
         // Non-default options, to prove the settings change what is drawn: armor as percentages, side by side, no background.
         context.runOnClient(mc -> {
-            var cfg = dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath());
+            var cfg = dev.cirrus.core.config.CirrusConfig.get(mc.gameDirectory.toPath());
             var armor = dev.cirrus.client.mod.ModRegistry.find("armor_status").orElseThrow();
             for (var st : armor.settings()) {
                 String v = switch (st.key()) { case "display" -> "Percentage"; case "layout" -> "Horizontal"; case "background" -> "false"; case "shadow" -> "true"; case "scale" -> "130"; default -> st.defaultValue(); };
-                dev.cirrus.client.mod.ModSettings.set(cfg, "armor_status", st, v);
+                dev.cirrus.core.settings.ModSettings.set(cfg, "armor_status", st, v);
             }
             var keys = dev.cirrus.client.mod.ModRegistry.find("keystrokes").orElseThrow();
             for (var st : keys.settings()) {
                 String v = switch (st.key()) { case "mouse" -> "false"; case "background" -> "false"; default -> st.defaultValue(); };
-                dev.cirrus.client.mod.ModSettings.set(cfg, "keystrokes", st, v);
+                dev.cirrus.core.settings.ModSettings.set(cfg, "keystrokes", st, v);
             }
         });
         for (String id : new String[] {"armor_status", "keystrokes"}) {
@@ -119,25 +121,25 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.takeScreenshot("hud-editor-custom-1280x720-gui2");
         // Real profile round trip: save two setups, switch between them, share one as a code and import it again.
         context.runOnClient(mc -> {
-            var cfg = dev.cirrus.client.config.CirrusConfig.get(mc.gameDirectory.toPath());
+            var cfg = dev.cirrus.core.config.CirrusConfig.get(mc.gameDirectory.toPath());
             var profiles = new dev.cirrus.client.profile.Profiles(mc);
             var fps = dev.cirrus.client.mod.ModRegistry.find("fps").orElseThrow();
             var scale = fps.settings().stream().filter(st -> st.key().equals("scale")).findFirst().orElseThrow();
             try {
-                dev.cirrus.client.mod.ModSettings.set(cfg, "fps", scale, "150");
+                dev.cirrus.core.settings.ModSettings.set(cfg, "fps", scale, "150");
                 fps.setEnabled(cfg, true);
                 profiles.create("PvP");
-                dev.cirrus.client.mod.ModSettings.set(cfg, "fps", scale, "80");
+                dev.cirrus.core.settings.ModSettings.set(cfg, "fps", scale, "80");
                 fps.setEnabled(cfg, false);
                 profiles.create("Casual");
                 profiles.apply("PvP");
-                check("PvP restores scale", dev.cirrus.client.mod.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("150"));
+                check("PvP restores scale", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("150"));
                 check("PvP restores the switch", fps.enabled(cfg));
                 String code = profiles.share("Casual");
                 String imported = profiles.importCode(code);
                 check("import is a new profile", imported.equals("Casual 2"));
                 profiles.apply(imported);
-                check("imported profile restores scale", dev.cirrus.client.mod.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("80"));
+                check("imported profile restores scale", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("80"));
                 check("imported profile restores the switch", !fps.enabled(cfg));
                 profiles.apply("PvP");
             } catch (java.io.IOException e) { throw new IllegalStateException(e); }
@@ -150,8 +152,26 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.waitTicks(20);
             context.takeScreenshot(shot + "-with-profiles-1280x720-gui2");
         }
+        measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
+    }
+
+    /**
+     * Phase 1 performance prototype: times how long Cirrus spends issuing its own draw calls per frame on three screens at 1280x720,
+     * GUI scale 2. The numbers are printed to the log as "[cirrus-perf]" lines. They are CPU time on the CI machine's software
+     * renderer, so they say nothing about a player's GPU; the draw-operation counts per frame are meaningful on any machine.
+     */
+    private static void measurePerformance(ClientGameTestContext context, Map<String, Supplier<Screen>> screens) {
+        context.runOnClient(mc -> dev.cirrus.core.perf.PerfMeter.setEnabled(true));
+        for (String name : new String[] {"menu", "menu-fps", "menu-profiles"}) {
+            context.setScreen(screens.get(name));
+            context.waitTicks(10);
+            context.runOnClient(mc -> dev.cirrus.core.perf.PerfMeter.MENU.clear());
+            context.waitTicks(200);
+            context.runOnClient(mc -> System.out.println("[cirrus-perf] screen=" + name + " 1280x720 gui2: " + dev.cirrus.core.perf.PerfMeter.MENU.stats()));
+        }
+        context.runOnClient(mc -> dev.cirrus.core.perf.PerfMeter.setEnabled(false));
     }
 
     private static void check(String what, boolean ok) { if (!ok) throw new IllegalStateException("Profile check failed: " + what); }

@@ -1,5 +1,6 @@
 package dev.cirrus.client;
 
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.*;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;

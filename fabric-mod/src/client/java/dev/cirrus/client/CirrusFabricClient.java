@@ -11,11 +11,11 @@ import net.minecraft.network.chat.Component;
 import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.resources.Identifier;
 import dev.cirrus.client.mod.ModRegistry;
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.asset.AssetManager;
 import dev.cirrus.client.asset.CirrusInitializationScreen;
@@ -23,6 +23,8 @@ import dev.cirrus.client.asset.CirrusInitializationScreen;
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        final org.slf4j.Logger coreLog = org.slf4j.LoggerFactory.getLogger("Cirrus Client");
+        dev.cirrus.core.log.CoreLog.setSink((message, error) -> coreLog.warn(message, error));
         ModRegistry.register(new dev.cirrus.client.mod.FpsMod());
         ModRegistry.register(new dev.cirrus.client.mod.PingMod());
         ModRegistry.register(new dev.cirrus.client.mod.ArmorStatusMod());

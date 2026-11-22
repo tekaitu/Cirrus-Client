@@ -1,6 +1,6 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.gui.GuiGraphics;
 
 /** A HUD contribution automatically exposed to the HUD editor when registered. */

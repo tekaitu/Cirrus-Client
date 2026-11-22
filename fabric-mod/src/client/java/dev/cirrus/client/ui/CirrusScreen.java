@@ -1,6 +1,10 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.config.CirrusConfig;
+
+import dev.cirrus.core.input.Keys;
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.anim.Anim;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -117,6 +121,7 @@ public abstract class CirrusScreen extends Screen {
     }
 
     @Override public final void render(GuiGraphics g, int mx, int my, float delta) {
+        dev.cirrus.core.perf.PerfMeter.MENU.begin();
         CirrusTheme t = theme();
         if (activeTab() != null) drawHeader(g, t);
         drawSurfaces(g, mx, my, delta, t);
@@ -124,6 +129,8 @@ public abstract class CirrusScreen extends Screen {
         drawOverlay(g, mx, my, delta, t);
         float open = Anim.easeOut((Anim.now() - openedAt) / 200f);
         if (open < 1f) g.fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - open) * 120)));
+        dev.cirrus.core.perf.PerfMeter.MENU.end();
+        dev.cirrus.client.render.PerfOverlay.draw(dev.cirrus.client.render.McCanvas.of(g), height);
     }
 
     /** Panels, cards and static text. Widgets are drawn after this. */
@@ -133,7 +140,7 @@ public abstract class CirrusScreen extends Screen {
 
     /** Right Shift closes any Cirrus screen straight back to the game (or to the screen that opened the menu). */
     @Override public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox box && box.isFocused())) {
+        if (event.key() == Keys.RIGHT_SHIFT && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox box && box.isFocused())) {
             closeAll();
             return true;
         }

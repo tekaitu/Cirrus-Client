@@ -1,6 +1,8 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.settings.ModSettings;
+import dev.cirrus.core.settings.Setting;
+import dev.cirrus.core.config.CirrusConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

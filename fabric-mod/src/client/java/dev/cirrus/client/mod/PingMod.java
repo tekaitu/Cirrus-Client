@@ -1,7 +1,11 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.CirrusTheme;
+
+import dev.cirrus.core.render.Icons;
+import dev.cirrus.core.module.ModCategory;
+import dev.cirrus.core.settings.Setting;
+import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,7 +18,7 @@ public final class PingMod extends HudMod {
     public String name() { return "Ping"; }
     public String description() { return "Shows your latency to the server as plain text."; }
     public ModCategory category() { return ModCategory.HUD; }
-    @Override public int icon() { return dev.cirrus.client.ui.Glyphs.SIGNAL; }
+    @Override public int icon() { return dev.cirrus.core.render.Icons.SIGNAL; }
     @Override protected List<Setting> appearance() { return SIMPLE; }
     @Override protected int baseWidth(CirrusConfig c) { return CirrusUi.bodyWidth(Minecraft.getInstance().font, "Ping: 000 ms") + 10; }
     @Override protected int baseHeight(CirrusConfig c) { return 16; }

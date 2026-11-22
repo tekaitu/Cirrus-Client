@@ -1,7 +1,9 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.settings.ModSettings;
+import dev.cirrus.core.settings.Setting;
+import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.Gfx;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;

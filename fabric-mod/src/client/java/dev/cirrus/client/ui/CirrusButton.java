@@ -1,6 +1,8 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.anim.Anim;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;

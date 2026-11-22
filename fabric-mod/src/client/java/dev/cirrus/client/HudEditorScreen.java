@@ -1,5 +1,6 @@
 package dev.cirrus.client;
 
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.mod.HudElement;
 import dev.cirrus.client.mod.HudElementRegistry;
 import dev.cirrus.client.ui.*;

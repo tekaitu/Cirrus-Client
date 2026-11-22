@@ -1,15 +1,17 @@
 package dev.cirrus.client;
 
+
+import dev.cirrus.core.render.Icons;
 import dev.cirrus.client.asset.CirrusAssetTextures;
 import dev.cirrus.client.dashboard.CirrusDashboard;
 import dev.cirrus.client.dashboard.DashboardConfig;
 import dev.cirrus.client.dashboard.ServerStatus;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Glyphs;
 import dev.cirrus.client.ui.Gfx;
 import dev.cirrus.client.ui.MenuButton;
-import dev.cirrus.client.ui.MenuLayout;
+import dev.cirrus.core.layout.MenuLayout;
 import dev.cirrus.client.ui.PartnerTile;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -67,11 +69,11 @@ public final class CirrusTitleScreen extends TitleScreen {
         MenuLayout.Rect[] b = layout.buttons;
         DashboardConfig.Store store = dashboard.store();
 
-        add(MenuButton.list(b[0].x(), b[0].y(), b[0].w(), b[0].h(), "Singleplayer", Glyphs.SINGLEPLAYER, x -> minecraft.setScreen(new SelectWorldScreen(this))));
-        add(MenuButton.list(b[1].x(), b[1].y(), b[1].w(), b[1].h(), "Multiplayer", Glyphs.MULTIPLAYER, x -> minecraft.setScreen(new CirrusJoinMultiplayerScreen(this))));
-        add(MenuButton.list(b[2].x(), b[2].y(), b[2].w(), b[2].h(), "Cosmetics", Glyphs.COSMETICS, x -> minecraft.setScreen(new SkinCustomizationScreen(this, minecraft.options))));
-        add(MenuButton.list(b[3].x(), b[3].y(), b[3].w(), b[3].h(), "Screenshots", Glyphs.SCREENSHOTS, x -> PlatformOpen.folder(PlatformOpen.screenshots())));
-        MenuButton storeButton = MenuButton.primary(b[4].x(), b[4].y(), b[4].w(), b[4].h(), store.label(), Glyphs.STORE, x -> PlatformOpen.link(this, store.url()));
+        add(MenuButton.list(b[0].x(), b[0].y(), b[0].w(), b[0].h(), "Singleplayer", Icons.SINGLEPLAYER, x -> minecraft.setScreen(new SelectWorldScreen(this))));
+        add(MenuButton.list(b[1].x(), b[1].y(), b[1].w(), b[1].h(), "Multiplayer", Icons.MULTIPLAYER, x -> minecraft.setScreen(new CirrusJoinMultiplayerScreen(this))));
+        add(MenuButton.list(b[2].x(), b[2].y(), b[2].w(), b[2].h(), "Cosmetics", Icons.COSMETICS, x -> minecraft.setScreen(new SkinCustomizationScreen(this, minecraft.options))));
+        add(MenuButton.list(b[3].x(), b[3].y(), b[3].w(), b[3].h(), "Screenshots", Icons.SCREENSHOTS, x -> PlatformOpen.folder(PlatformOpen.screenshots())));
+        MenuButton storeButton = MenuButton.primary(b[4].x(), b[4].y(), b[4].w(), b[4].h(), store.label(), Icons.STORE, x -> PlatformOpen.link(this, store.url()));
         if (!store.enabled()) storeButton.setTooltip(Tooltip.create(Component.literal("The Cirrus store is not connected yet. It is configured from the Cirrus dashboard.")));
         else if (!dashboard.storePromos().isEmpty()) storeButton.setTooltip(Tooltip.create(Component.literal(dashboard.storePromos().get(0).text())));
         add(storeButton);
@@ -79,11 +81,11 @@ public final class CirrusTitleScreen extends TitleScreen {
         add(MenuButton.quit(q.x(), q.y(), q.w(), q.h(), "QUIT GAME", x -> minecraft.stop()));
 
         MenuLayout.Rect[] i = layout.icons;
-        add(MenuButton.square(i[0].x(), i[0].y(), i[0].w(), Glyphs.GRID, "Mod menu  (Right Shift)", x -> minecraft.setScreen(new CirrusMenuScreen(this))));
-        add(MenuButton.square(i[1].x(), i[1].y(), i[1].w(), Glyphs.CHAT, "Chat settings", x -> minecraft.setScreen(new ChatOptionsScreen(this, minecraft.options))));
-        add(MenuButton.square(i[2].x(), i[2].y(), i[2].w(), Glyphs.SETTINGS, "Game options", x -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))));
-        add(MenuButton.square(i[3].x(), i[3].y(), i[3].w(), Glyphs.BOX, "Cirrus home", x -> minecraft.setScreen(new CirrusDashboardScreen(this))));
-        add(MenuButton.square(i[4].x(), i[4].y(), i[4].w(), Glyphs.LIST, "HUD editor", x -> minecraft.setScreen(new HudEditorScreen(this))));
+        add(MenuButton.square(i[0].x(), i[0].y(), i[0].w(), Icons.GRID, "Mod menu  (Right Shift)", x -> minecraft.setScreen(new CirrusMenuScreen(this))));
+        add(MenuButton.square(i[1].x(), i[1].y(), i[1].w(), Icons.CHAT, "Chat settings", x -> minecraft.setScreen(new ChatOptionsScreen(this, minecraft.options))));
+        add(MenuButton.square(i[2].x(), i[2].y(), i[2].w(), Icons.SETTINGS, "Game options", x -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))));
+        add(MenuButton.square(i[3].x(), i[3].y(), i[3].w(), Icons.BOX, "Cirrus home", x -> minecraft.setScreen(new CirrusDashboardScreen(this))));
+        add(MenuButton.square(i[4].x(), i[4].y(), i[4].w(), Icons.LIST, "HUD editor", x -> minecraft.setScreen(new HudEditorScreen(this))));
 
         for (int n = 0; n < layout.partnerTiles.length; n++) {
             DashboardConfig.Partner p = dashboard.partners().get(n);

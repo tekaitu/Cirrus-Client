@@ -1,14 +1,20 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.config.CirrusConfig;
+
+
+import dev.cirrus.core.input.Keys;
+import dev.cirrus.core.render.Icons;
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.anim.Anim;
+import dev.cirrus.core.layout.ClickGuiLayout;
+import dev.cirrus.core.config.CirrusConfig;
 import dev.cirrus.client.mod.CirrusMod;
 import dev.cirrus.client.mod.HudElement;
 import dev.cirrus.client.mod.ModKeys;
-import dev.cirrus.client.mod.Setting;
+import dev.cirrus.core.settings.Setting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -95,7 +101,7 @@ public final class ModPane {
         int pad = 8, cy = y + pad;
         if (backBtn != null) {
             boolean hover = backBtn.contains(mx, my);
-            Glyphs.draw(g, Glyphs.BACK, backBtn.x(), backBtn.y() + 2, 12, hover ? 0xFFFFFFFF : t.muted);
+            Glyphs.draw(g, Icons.BACK, backBtn.x(), backBtn.y() + 2, 12, hover ? 0xFFFFFFFF : t.muted);
             CirrusUi.smallText(g, font, "Back", backBtn.x() + 16, backBtn.y() + 3, hover ? 0xFFFFFFFF : t.muted, false);
             cy += 22;
         }
@@ -174,9 +180,9 @@ public final class ModPane {
     /** Handles a key while the pane has focus or is waiting for a key to bind. Returns true if the key was used. */
     public boolean keyPressed(int key) {
         if (listening) {
-            if (key == GLFW.GLFW_KEY_ESCAPE) listening = false;
+            if (key == Keys.ESCAPE) listening = false;
             else {
-                ModKeys.bind(mod.id(), key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_DELETE ? -1 : key);
+                ModKeys.bind(mod.id(), key == Keys.BACKSPACE || key == Keys.DELETE ? -1 : key);
                 listening = false;
             }
             return true;

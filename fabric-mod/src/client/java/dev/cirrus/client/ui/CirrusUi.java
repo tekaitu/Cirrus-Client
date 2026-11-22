@@ -1,6 +1,10 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.asset.CirrusAssetTextures;
+import dev.cirrus.client.render.McTextMetrics;
+import dev.cirrus.core.text.TextFit;
+import dev.cirrus.core.text.TextStyle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -22,7 +26,7 @@ public final class CirrusUi {
         ICON_HUD = 6, ICON_PVP = 7, ICON_VISUALS = 8, ICON_PERFORMANCE = 9, ICON_UTILITY = 10, ICON_SETTINGS = 11,
         ICON_SINGLEPLAYER = 12, ICON_MULTIPLAYER = 13, ICON_BACK = 14, ICON_CLOSE = 15;
     /** Nominal line box of the UI fonts in GUI units. */
-    public static final int LINE = 9;
+    public static final int LINE = dev.cirrus.core.text.TextFit.LINE;
     /** The Inter glyphs sit about one GUI pixel high in the 9px line box; body and small text are nudged down to centre optically. */
     private static final int NUDGE = 1;
     private CirrusUi() { }
@@ -109,22 +113,10 @@ public final class CirrusUi {
     }
     /** Word-wraps text to maxWidth in the small style; at most maxLines lines, the last one ellipsised if the text does not fit. */
     public static java.util.List<String> wrapSmall(Font f, String value, int maxWidth, int maxLines) {
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        if (value == null || value.isBlank() || maxWidth <= 0 || maxLines <= 0) return lines;
-        StringBuilder line = new StringBuilder();
-        String[] words = value.trim().split("\\s+");
-        for (int i = 0; i < words.length; i++) {
-            String candidate = line.isEmpty() ? words[i] : line + " " + words[i];
-            if (smallWidth(f, candidate) <= maxWidth || line.isEmpty()) { line = new StringBuilder(candidate); continue; }
-            lines.add(line.toString());
-            if (lines.size() == maxLines) { lines.set(maxLines - 1, fitSmall(f, lines.get(maxLines - 1) + " " + String.join(" ", java.util.Arrays.copyOfRange(words, i, words.length)), maxWidth)); return lines; }
-            line = new StringBuilder(words[i]);
-        }
-        if (!line.isEmpty()) lines.add(fitSmall(f, line.toString(), maxWidth));
-        return lines;
+        return TextFit.wrap(McTextMetrics.INSTANCE, value, maxWidth, maxLines, TextStyle.SMALL);
     }
-    public static String fitBody(Font f, String v, int w) { return fit(f, v, w, CirrusUi::body); }
-    public static String fitSmall(Font f, String v, int w) { return fit(f, v, w, CirrusUi::small); }
+    public static String fitBody(Font f, String v, int w) { return TextFit.fit(McTextMetrics.INSTANCE, v, w, TextStyle.BODY); }
+    public static String fitSmall(Font f, String v, int w) { return TextFit.fit(McTextMetrics.INSTANCE, v, w, TextStyle.SMALL); }
 
     public static void text(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, body(value), x, y + NUDGE, color, shadow); }
     public static void smallText(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, small(value), x, y + NUDGE, color, shadow); }

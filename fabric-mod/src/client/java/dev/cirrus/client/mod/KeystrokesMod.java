@@ -1,8 +1,12 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.Anim;
-import dev.cirrus.client.ui.CirrusTheme;
+
+import dev.cirrus.core.render.Icons;
+import dev.cirrus.core.module.ModCategory;
+import dev.cirrus.core.settings.Setting;
+import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.anim.Anim;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Gfx;
 import net.minecraft.client.KeyMapping;
@@ -25,7 +29,7 @@ public final class KeystrokesMod extends HudMod {
     public String name() { return "Keystrokes"; }
     public String description() { return "Shows movement keys, jump and mouse buttons as you press them."; }
     public ModCategory category() { return ModCategory.HUD; }
-    @Override public int icon() { return dev.cirrus.client.ui.Glyphs.KEYCAP; }
+    @Override public int icon() { return dev.cirrus.core.render.Icons.KEYCAP; }
     @Override protected List<Setting> featureSettings() { return OWN; }
     @Override protected int baseWidth(CirrusConfig c) { return KEY * 3 + GAP * 2; }
     @Override protected int baseHeight(CirrusConfig c) { return KEY * 2 + GAP + (on(c, "mouse") ? GAP + 18 : 0) + (on(c, "space") ? GAP + 14 : 0); }

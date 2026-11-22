@@ -1,7 +1,11 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.CirrusTheme;
+
+import dev.cirrus.core.render.Icons;
+import dev.cirrus.core.module.ModCategory;
+import dev.cirrus.core.settings.Setting;
+import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,7 +18,7 @@ public final class FpsMod extends HudMod {
     public String name() { return "FPS"; }
     public String description() { return "Shows your frames per second as plain text."; }
     public ModCategory category() { return ModCategory.HUD; }
-    @Override public int icon() { return dev.cirrus.client.ui.Glyphs.GAUGE; }
+    @Override public int icon() { return dev.cirrus.core.render.Icons.GAUGE; }
     @Override protected List<Setting> appearance() { return SIMPLE; }
     @Override protected int baseWidth(CirrusConfig c) { return CirrusUi.bodyWidth(Minecraft.getInstance().font, "FPS: 000") + 10; }
     @Override protected int baseHeight(CirrusConfig c) { return 16; }

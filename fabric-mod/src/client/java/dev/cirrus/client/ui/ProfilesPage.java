@@ -1,7 +1,11 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.profile.ProfileCodec;
-import dev.cirrus.client.profile.ProfileStore;
+
+import dev.cirrus.core.render.Icons;
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.layout.ClickGuiLayout;
+import dev.cirrus.core.profile.ProfileCodec;
+import dev.cirrus.core.profile.ProfileStore;
 import dev.cirrus.client.profile.Profiles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -69,7 +73,7 @@ public final class ProfilesPage {
         return row;
     }
     private static final String[] LABELS = {"Delete", "Share", "Save", "Load"};
-    private static final int[] GLYPHS = {Glyphs.DELETE, Glyphs.EXTERNAL, Glyphs.BOX, Glyphs.CHECK};
+    private static final int[] GLYPHS = {Icons.DELETE, Icons.EXTERNAL, Icons.BOX, Icons.CHECK};
     private static final String[] TIPS = {"Delete this profile.", "Copy a share code for this profile to the clipboard.", "Overwrite this profile with your current settings.", "Switch to this profile."};
 
     public void render(GuiGraphics g, int mx, int my, CirrusTheme t) {
@@ -78,9 +82,9 @@ public final class ProfilesPage {
         var lines = CirrusUi.wrapSmall(font, "Save your module settings, switch between setups and share them as a code. Key bindings are not included.", w, 2);
         for (int i = 0; i < lines.size(); i++) CirrusUi.smallText(g, font, lines.get(i), x, y + 13 + i * 10, t.muted, false);
         CirrusUi.card(g, nameRect.x(), nameRect.y(), nameRect.w(), nameRect.h(), 7, 0xFF000000, nameBox.isFocused() ? 0xFFFFFFFF : t.border);
-        button(g, font, createBtn, "Create", Glyphs.ADD, false, mx, my, t, true);
-        button(g, font, shareBtn, "Share current settings", Glyphs.EXTERNAL, false, mx, my, t, false);
-        button(g, font, importBtn, "Import from clipboard", Glyphs.LIST, false, mx, my, t, false);
+        button(g, font, createBtn, "Create", Icons.ADD, false, mx, my, t, true);
+        button(g, font, shareBtn, "Share current settings", Icons.EXTERNAL, false, mx, my, t, false);
+        button(g, font, importBtn, "Import from clipboard", Icons.LIST, false, mx, my, t, false);
         g.enableScissor(listRect.x() - 2, listRect.y(), listRect.right() + 2, listRect.bottom());
         for (int i = 0; i < names.size(); i++) {
             var r = rowRect(i);
