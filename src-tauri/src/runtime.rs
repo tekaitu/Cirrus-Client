@@ -333,7 +333,20 @@ pub fn fetch_release_for(
     policy: &UrlPolicy,
     major: u32,
 ) -> Result<Release, String> {
-    let body = fetch_text(metadata_url, policy)?;
+    let url = Url::parse(metadata_url).map_err(|e| format!("Bad metadata address: {e}"))?;
+    policy.check(&url)?;
+    let client = http_client(policy, Duration::from_secs(30))?;
+    let resp = client.get(url).send().map_err(|e| friendly_net_error(&e))?;
+    if !resp.status().is_success() {
+        return Err(format!(
+            "The Java download service answered with an error ({}).",
+            resp.status()
+        ));
+    }
+    let mut body = String::new();
+    resp.take(2 * 1024 * 1024)
+        .read_to_string(&mut body)
+        .map_err(|e| format!("Could not read the download information: {e}"))?;
     parse_release_for(&body, policy, major)
 }
 

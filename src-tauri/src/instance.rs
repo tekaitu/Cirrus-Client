@@ -325,10 +325,13 @@ fn count_dir(path: &Path, ext: Option<&str>) -> usize {
 
 /// What a delete would take with it, so the confirmation can say so honestly.
 pub fn contents(dir: &Path) -> InstanceContents {
-    let worlds = ["world", "saves"]
-        .iter()
-        .map(|w| count_dir(&dir.join(w), None))
-        .sum();
+    // A world is a directory: `saves/<name>` in modern versions, `world` at the
+    // game root in older ones. Older installs can also keep loose files there, so
+    // both entries are counted as worlds.
+    let saves = fs::read_dir(dir.join("saves"))
+        .map(|entries| entries.filter_map(Result::ok).count())
+        .unwrap_or(0);
+    let worlds = saves + usize::from(dir.join("world").is_dir());
     InstanceContents {
         worlds,
         screenshots: count_dir(&dir.join("screenshots"), None),
@@ -471,9 +474,13 @@ pub fn list(root: &Path) -> Vec<InstanceView> {
     }
     let newest = |v: &InstanceView| v.minecraft.split('.').map(|p| p.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>();
     out.sort_by(|a, b| {
-        newest(b)
-            .cmp(&newest(a))
-            .then_with(|| b.loader == "fabric" && a.loader != "fabric")
+        newest(b).cmp(&newest(a)).then_with(|| {
+            match (b.loader == "fabric", a.loader == "fabric") {
+                (true, false) => std::cmp::Ordering::Less,
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => std::cmp::Ordering::Equal,
+            }
+        })
     });
     out
 }
@@ -530,7 +537,7 @@ mod tests {
         let cfg = InstanceConfig {
             jvm_args: "-Dfoo=bar".into(),
             memory_mb: Some(8192),
-            game_dir: Some("/not/absolute".into()),
+            game_dir: Some("relative-folder".into()),
             ..default_for(&info("1.21.11", None))
         };
         let saved = upsert(dir.path(), cfg).unwrap();

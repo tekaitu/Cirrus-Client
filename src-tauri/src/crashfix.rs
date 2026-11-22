@@ -164,9 +164,12 @@ fn evidence_for(lines: &[&str], needles: &[&str], max: usize) -> Vec<String> {
 fn report_excerpt(report: Option<&str>) -> Option<String> {
     let text = report?;
     let lines: Vec<&str> = text.lines().collect();
+    // The description (or the fatal-error line) is the useful part; the banner
+    // above it is only a fallback when neither is present.
     let start = lines
         .iter()
-        .position(|l| l.starts_with("Description:") || l.starts_with("# A fatal error") || l.starts_with("---- Minecraft Crash Report ----"))
+        .position(|l| l.starts_with("Description:") || l.starts_with("# A fatal error"))
+        .or_else(|| lines.iter().position(|l| l.starts_with("---- Minecraft Crash Report ----")))
         .unwrap_or(0);
     let excerpt: Vec<&str> = lines
         .iter()

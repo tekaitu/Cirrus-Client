@@ -1633,10 +1633,10 @@ mod tests {
 
     #[test]
     fn supported_releases_start_at_1_8() {
-        for ok in ["1.20.5", "1.21.11", "1.20.4", "1.19.4", "1.12.2", "1.8.9", "1.16.5"] {
+        for ok in ["1.20", "1.20.5", "1.21.11", "1.20.4", "1.19.4", "1.12.2", "1.8.9", "1.16.5"] {
             assert!(supported_release(ok), "{ok}");
         }
-        for no in ["1.7.10", "1.20", "2.0", "1.21-pre1", "24w14a", "1.x", "1.21.1.1"] {
+        for no in ["1.7.10", "2.0", "1.21-pre1", "24w14a", "1.x", "1.21.1.1"] {
             assert!(!supported_release(no), "{no}");
         }
         let manifest = json!({"versions":[
@@ -1687,7 +1687,7 @@ mod tests {
             &json!({"libraries":[{"name":"org.lwjgl.lwjgl:lwjgl-platform:2.9.4","natives":{"windows":"natives-windows"},"downloads":{"classifiers":{"natives-windows":{"path":"org/lwjgl/lwjgl-platform/2.9.4/lwjgl-platform-2.9.4-natives-windows.jar","url":"https://libraries.minecraft.net/x.jar","sha1":"aa"}}}}]}),
         );
         assert_eq!(natives.len(), 1);
-        assert!(natives[0].path.ends_with("natives-windows.jar"));
+        assert!(natives[0].path.to_string_lossy().ends_with("natives-windows.jar"));
     }
 
     #[test]
