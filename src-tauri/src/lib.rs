@@ -1,9 +1,11 @@
 pub mod accounts;
 pub mod base64;
 pub mod auth;
+pub mod crashfix;
 pub mod crashlog;
 pub mod discord;
 pub mod game;
+pub mod instance;
 pub mod java;
 pub mod mod_upload;
 pub mod mods;
@@ -12,6 +14,7 @@ pub mod runtime;
 pub mod settings;
 pub mod skins;
 pub mod system;
+pub mod updater;
 
 use serde::Serialize;
 use auth::SecretStore;
@@ -204,7 +207,12 @@ fn configure_java_path(app: &AppHandle, java_path: &str) -> Result<SettingsState
 }
 
 #[tauri::command]
-async fn install_java(app: AppHandle, state: State<'_, InstallState>) -> Result<InstallResult, String> {
+async fn install_java(
+    app: AppHandle,
+    state: State<'_, InstallState>,
+    major: Option<u32>,
+) -> Result<InstallResult, String> {
+    let major = major.unwrap_or(runtime::REQUIRED_MAJOR);
     let cancel = Arc::new(AtomicBool::new(false));
     {
         let mut slot = state.0.lock().map_err(|_| "Installer state is unavailable.".to_string())?;
@@ -230,9 +238,15 @@ async fn install_java(app: AppHandle, state: State<'_, InstallState>) -> Result<
     let flag = cancel.clone();
     let worker = tauri::async_runtime::spawn_blocking(move || {
         let dir = dir?;
-        Ok::<_, String>(runtime::install_java(&dir, configured.as_deref(), &flag, &move |p| {
-            let _ = emitter.emit(INSTALL_PROGRESS_EVENT, p);
-        }))
+        Ok::<_, String>(runtime::install_java_major(
+            &dir,
+            configured.as_deref(),
+            major,
+            &flag,
+            &move |p| {
+                let _ = emitter.emit(INSTALL_PROGRESS_EVENT, p);
+            },
+        ))
     })
     .await;
 
@@ -250,8 +264,10 @@ async fn install_java(app: AppHandle, state: State<'_, InstallState>) -> Result<
         Err(runtime::InstallError::Failed(message)) => Ok(InstallResult::bare("failed", Some(message))),
         Ok(done) => {
             // Only Cirrus Client' own copy is written to Settings; an existing
-            // system Java is left alone and reported.
-            let (configured, settings_state, note) = if done.managed {
+            // system Java is left alone and reported. A Java older than 21 is
+            // installed for an older instance and never becomes the launcher-wide
+            // choice, because 1.20.5+ cannot run on it.
+            let (configured, settings_state, note) = if done.managed && major >= runtime::REQUIRED_MAJOR {
                 match configure_java_path(&app, &done.java_path) {
                     Ok(s) => (true, Some(s), None),
                     Err(e) => (false, None, Some(format!("Java is installed, but Settings could not be updated: {e}"))),
@@ -705,6 +721,25 @@ fn open_github() -> Result<(), String> {
     open_in_browser(GITHUB_URL)
 }
 
+/// The newest official Cirrus Client release, compared with this build.
+#[tauri::command]
+async fn check_for_updates() -> Result<updater::UpdateCheck, String> {
+    let fetched = tauri::async_runtime::spawn_blocking(|| updater::check(env!("CARGO_PKG_VERSION"))).await;
+    match fetched {
+        Ok(result) => result,
+        Err(e) => Err(format!("The update check stopped unexpectedly: {e}")),
+    }
+}
+
+/// Open a release page, but only the project's own pages.
+#[tauri::command]
+fn open_update_page(url: String) -> Result<(), String> {
+    if !updater::allowed_page(&url) {
+        return Err("Only official Cirrus Client release pages can be opened.".to_string());
+    }
+    open_in_browser(&url)
+}
+
 #[tauri::command]
 async fn load_settings(app: AppHandle) -> Result<SettingsState, String> {
     let total = system::total_ram_mb();
@@ -883,6 +918,89 @@ fn list_instances(app: AppHandle) -> Result<Vec<game::InstanceSummary>, String> 
 }
 
 #[tauri::command]
+fn list_instance_views(app: AppHandle) -> Result<Vec<instance::InstanceView>, String> {
+    let (root, _) = game_root(&app)?;
+    Ok(instance::list(&root))
+}
+
+#[tauri::command]
+fn instance_contents(app: AppHandle, id: String) -> Result<instance::InstanceContents, String> {
+    let (root, _) = game_root(&app)?;
+    let cfg = instance::find(&root, &id).ok_or_else(|| "That instance no longer exists.".to_string())?;
+    Ok(instance::contents(&instance::game_dir(&root, &cfg)))
+}
+
+/// Save the instance's own settings. The previous file is kept next to the store
+/// so a change made by a suggested fix can be undone by hand.
+#[tauri::command]
+fn save_instance(app: AppHandle, config: instance::InstanceConfig) -> Result<instance::InstanceView, String> {
+    let (root, _) = game_root(&app)?;
+    let existing = instance::find(&root, &config.id);
+    if let Some(previous) = &existing {
+        let backup = root.join("unlimited-instances.backup.json");
+        if let Ok(text) = serde_json::to_string_pretty(previous) {
+            let _ = std::fs::write(backup, text);
+        }
+    }
+    let saved = instance::upsert(&root, config)?;
+    let info = game::installed_infos(&root).into_iter().find(|i| i.profile_id == saved.id);
+    Ok(instance::view(&root, &saved, info.as_ref()))
+}
+
+#[tauri::command]
+fn clone_instance(app: AppHandle, id: String, name: String, copy_data: bool) -> Result<instance::InstanceView, String> {
+    let (root, _) = game_root(&app)?;
+    let cloned = instance::clone_instance(&root, &id, &name, copy_data)?;
+    let info = game::installed_infos(&root).into_iter().find(|i| i.profile_id == cloned.id);
+    Ok(instance::view(&root, &cloned, info.as_ref()))
+}
+
+#[tauri::command]
+fn delete_instance(app: AppHandle, id: String, delete_files: bool) -> Result<(), String> {
+    let (root, _) = game_root(&app)?;
+    instance::delete_instance(&root, &id, delete_files)
+}
+
+/// Fabric Loader versions Fabric lists for a Minecraft version, newest first.
+#[tauri::command]
+async fn fabric_loader_versions(version: String) -> Result<Vec<game::FabricLoader>, String> {
+    check_version(&version)?;
+    let fetched = tauri::async_runtime::spawn_blocking(move || game::fabric_loaders(&version)).await;
+    match fetched {
+        Ok(Ok(list)) => Ok(list),
+        Ok(Err(game::GameError::Failed(m))) => Err(m),
+        Ok(Err(game::GameError::Cancelled)) => Err("The request was cancelled.".to_string()),
+        Err(e) => Err(format!("Could not reach Fabric: {e}")),
+    }
+}
+
+/// Work out why the game stopped, with the evidence it is based on.
+#[tauri::command]
+fn diagnose_crash(
+    app: AppHandle,
+    log_tail: String,
+    report: Option<String>,
+    version: String,
+    loader: String,
+    java_major: Option<u32>,
+    instance_id: Option<String>,
+) -> Result<crashfix::Diagnosis, String> {
+    let (root, memory) = game_root(&app)?;
+    let cfg = instance_id.as_deref().and_then(|id| instance::find(&root, id));
+    let required = game::installed(&root, &version, loader == "fabric").and_then(|i| i.java_major);
+    let context = crashfix::Context {
+        minecraft: version,
+        required_java: required,
+        java_major,
+        memory_mb: cfg.as_ref().and_then(|c| c.memory_mb).or(Some(memory)),
+        total_ram_mb: Some(system::total_ram_mb()),
+        fabric: loader == "fabric",
+        loader_version: cfg.as_ref().and_then(|c| c.loader_version.clone()),
+    };
+    Ok(crashfix::diagnose(report.as_deref(), &log_tail, &context))
+}
+
+#[tauri::command]
 fn list_skins(app: AppHandle) -> Result<Vec<skins::SkinView>, String> {
     let (root, _) = game_root(&app)?;
     Ok(skins::list(&root))
@@ -1033,16 +1151,24 @@ fn delete_profile(app: AppHandle, id: String) -> Result<(), String> {
     game::delete_profile(&root, &id)
 }
 
-#[tauri::command]
-async fn install_game(
+/// Shared by a first install, a repair and a loader change: one download at a
+/// time, real progress events, and a cancel flag the interface can set.
+async fn start_install(
     app: AppHandle,
-    state: State<'_, GameState>,
+    state: &GameState,
     version: String,
     loader: String,
+    loader_version: Option<String>,
 ) -> Result<GameInstallResult, String> {
     let failed = |m: String| GameInstallResult { status: "failed", message: Some(m), loader: None };
     check_version(&version)?;
     let fabric = parse_loader(&loader)?;
+    let loader_version = loader_version.filter(|v| !v.trim().is_empty());
+    if let Some(v) = &loader_version {
+        if !v.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '+') {
+            return Err("That Fabric Loader version does not look right.".to_string());
+        }
+    }
     let cancel = Arc::new(AtomicBool::new(false));
     {
         let mut slot = state.install_cancel.lock().map_err(|_| "Installer state is unavailable.".to_string())?;
@@ -1064,7 +1190,7 @@ async fn install_game(
     let emitter = app.clone();
     let flag = cancel.clone();
     let worker = tauri::async_runtime::spawn_blocking(move || {
-        game::install(&root, &version, fabric, &flag, &move |p| {
+        game::install(&root, &version, fabric, loader_version.as_deref(), &flag, &move |p| {
             let _ = emitter.emit(GAME_PROGRESS_EVENT, p);
         })
     })
@@ -1079,6 +1205,77 @@ async fn install_game(
         Ok(Err(game::GameError::Failed(m))) => failed(m),
         Ok(Ok(info)) => GameInstallResult { status: "installed", message: None, loader: info.loader },
     })
+}
+
+#[tauri::command]
+async fn install_game(
+    app: AppHandle,
+    state: State<'_, GameState>,
+    version: String,
+    loader: String,
+    loader_version: Option<String>,
+) -> Result<GameInstallResult, String> {
+    start_install(app, &state, version, loader, loader_version).await
+}
+
+/// Download anything missing or damaged again, keeping worlds, mods and settings.
+#[tauri::command]
+async fn repair_instance(
+    app: AppHandle,
+    state: State<'_, GameState>,
+    id: String,
+) -> Result<GameInstallResult, String> {
+    let (root, _) = game_root(&app)?;
+    let cfg = instance::find(&root, &id).ok_or_else(|| "That instance no longer exists.".to_string())?;
+    start_install(app, &state, cfg.minecraft, cfg.loader, cfg.loader_version).await
+}
+
+/// Change the Fabric Loader of an instance without losing its worlds or mods.
+#[tauri::command]
+async fn switch_fabric_loader(
+    app: AppHandle,
+    state: State<'_, GameState>,
+    id: String,
+    loader_version: String,
+) -> Result<GameInstallResult, String> {
+    let (root, _) = game_root(&app)?;
+    let cfg = instance::find(&root, &id).ok_or_else(|| "That instance no longer exists.".to_string())?;
+    if cfg.loader != "fabric" {
+        return Err("Only Fabric instances have a loader version.".to_string());
+    }
+    let old_dir = instance::game_dir(&root, &cfg);
+    let result = start_install(
+        app,
+        &state,
+        cfg.minecraft.clone(),
+        "fabric".to_string(),
+        Some(loader_version),
+    )
+    .await?;
+    if result.status != "installed" {
+        return Ok(result);
+    }
+    let Some(info) = game::installed(&root, &cfg.minecraft, true) else {
+        return Ok(result);
+    };
+    let mut updated = cfg.clone();
+    let new_dir = game::instance_dir(&root, &info.profile_id);
+    if cfg.game_dir.is_none() && old_dir.is_dir() && old_dir != new_dir {
+        // The game folder follows the loader profile so worlds and mods stay with it.
+        if !new_dir.exists() {
+            if std::fs::rename(&old_dir, &new_dir).is_err() {
+                // A locked file (antivirus, a running game) keeps the old folder in use.
+                updated.game_dir = Some(old_dir.display().to_string());
+            }
+        } else {
+            updated.game_dir = Some(old_dir.display().to_string());
+        }
+    }
+    updated.id = info.profile_id.clone();
+    updated.loader_version = info.loader.clone();
+    let _ = instance::remove(&root, &cfg.id);
+    instance::upsert(&root, updated)?;
+    Ok(result)
 }
 
 #[tauri::command]
@@ -1109,6 +1306,7 @@ async fn launch_game(
     version: String,
     loader: String,
     profile: Option<String>,
+    instance_id: Option<String>,
 ) -> Result<LaunchResult, String> {
     let refuse = |m: &str| Ok(LaunchResult { started: false, message: Some(m.to_string()), log_path: None });
     check_version(&version)?;
@@ -1134,11 +1332,31 @@ async fn launch_game(
         _ => return refuse("Unknown play mode."),
     };
 
-    let java = PathBuf::from(java_path.trim());
+    let mut java = PathBuf::from(java_path.trim());
     if !java.is_file() {
         return refuse("Java was not found at the saved location. Re-scan Java and try again.");
     }
     let (root, memory) = game_root(&app)?;
+    // Per-instance choices win over the launcher-wide settings, and only when they
+    // still match the install they belong to.
+    let instance_cfg = match instance_id.as_deref().filter(|id| !id.is_empty()) {
+        Some(id) => match instance::find(&root, id) {
+            Some(cfg) if cfg.minecraft == version && cfg.loader == loader => Some(cfg),
+            _ => return refuse("That instance no longer matches the selected game. Pick it again in the Library."),
+        },
+        None => None,
+    };
+    let mut memory = memory;
+    if let Some(cfg) = &instance_cfg {
+        if let Some(path) = cfg.java_path.as_deref().map(PathBuf::from) {
+            if path.is_file() {
+                java = path;
+            }
+        }
+        if let Some(m) = cfg.memory_mb {
+            memory = m;
+        }
+    }
     // Window size and extra JVM options come from the settings file. A settings
     // problem must not stop a launch, so defaults are used when loading fails.
     let stored = match default_settings(&app, system::total_ram_mb()) {
@@ -1148,16 +1366,25 @@ async fn launch_game(
         },
         Err(_) => Settings::default(),
     };
+    let mut jvm_args: Vec<String> = stored
+        .jvm_args
+        .split_whitespace()
+        .filter(|a| a.len() <= 512 && !a.contains('\0'))
+        .map(str::to_string)
+        .collect();
+    if let Some(cfg) = &instance_cfg {
+        jvm_args.extend(
+            cfg.jvm_args
+                .split_whitespace()
+                .filter(|a| a.len() <= 512 && !a.contains('\0'))
+                .map(str::to_string),
+        );
+    }
     let launch_options = game::LaunchOptions {
         memory_mb: memory,
         window_width: stored.window_width,
         window_height: stored.window_height,
-        jvm_args: stored
-            .jvm_args
-            .split_whitespace()
-            .filter(|a| a.len() <= 512 && !a.contains('\0'))
-            .map(str::to_string)
-            .collect(),
+        jvm_args,
     };
     let Some(info) = game::installed(&root, &version, fabric) else {
         return refuse("The game files are not installed yet.");
@@ -1170,6 +1397,7 @@ async fn launch_game(
         },
         None => None,
     };
+    let game_dir = instance_cfg.as_ref().map(|cfg| instance::game_dir(&root, cfg));
     let spec = match game::build_launch(
         &root,
         &info,
@@ -1177,7 +1405,8 @@ async fn launch_game(
         &launch_options,
         &player,
         env!("CARGO_PKG_VERSION"),
-        instance_id.as_deref(),
+        instance_cfg.as_ref().map(|cfg| cfg.id.as_str()),
+        game_dir.as_deref(),
     ) {
         Ok(s) => s,
         Err(m) => return refuse(&m),
@@ -1233,6 +1462,13 @@ async fn launch_game(
     };
     if let Ok(mut slot) = state.child.lock() {
         *slot = Some(child);
+    }
+    if let Some(cfg) = &instance_cfg {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        instance::touch(&root, &cfg.id, now);
     }
 
     // Report when the game closes.
@@ -1305,6 +1541,29 @@ fn open_game_folder(app: AppHandle, state: State<'_, GameState>, kind: String) -
         "game" => instance.unwrap_or(root),
         _ => return Err("Unknown folder.".to_string()),
     };
+    std::fs::create_dir_all(&path).map_err(|e| format!("Could not create the folder: {e}"))?;
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("explorer.exe")
+            .arg(&path)
+            .creation_flags(0x0800_0000)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("Could not open the folder: {e}"))
+    }
+    #[cfg(not(windows))]
+    {
+        Err(format!("Opening folders is only supported on Windows ({}).", path.display()))
+    }
+}
+
+/// Open one instance's own game folder, not whichever ran last.
+#[tauri::command]
+fn open_instance_folder(app: AppHandle, id: String) -> Result<(), String> {
+    let (root, _) = game_root(&app)?;
+    let cfg = instance::find(&root, &id).ok_or_else(|| "That instance no longer exists.".to_string())?;
+    let path = instance::game_dir(&root, &cfg);
     std::fs::create_dir_all(&path).map_err(|e| format!("Could not create the folder: {e}"))?;
     #[cfg(windows)]
     {
@@ -1622,16 +1881,28 @@ pub fn run() {
             reset_settings,
             game_status,
             list_instances,
+            list_instance_views,
+            instance_contents,
+            save_instance,
+            clone_instance,
+            delete_instance,
+            repair_instance,
+            switch_fabric_loader,
+            fabric_loader_versions,
+            diagnose_crash,
             list_profiles,
             create_profile,
             delete_profile,
             open_community,
             open_github,
+            check_for_updates,
+            open_update_page,
             install_game,
             cancel_game_install,
             launch_game,
             read_game_log,
             open_game_folder,
+            open_instance_folder,
             stop_game,
             quit_app,
             list_game_versions,

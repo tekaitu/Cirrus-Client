@@ -85,24 +85,37 @@ pub struct InstallInfo {
     pub loader: Option<String>,
     /// Folder name of the profile under `versions/` (the Minecraft version for plain Minecraft).
     pub profile_id: String,
+    /// The Java major version Mojang's version file asks for (8, 17 or 21 for the
+    /// releases this launcher installs). Older markers do not have it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub java_major: Option<u32>,
 }
 
-/// Newest releases the launcher can set up: Minecraft 1.20.5 and later all use Java 21,
-/// which is the Java the launcher knows how to install.
+/// Releases the launcher can set up: Minecraft 1.8 and newer. Pre-releases,
+/// snapshots and anything that needs a Java the launcher cannot install are left
+/// out; the required Java is read from Mojang's version file at install time.
 pub fn supported_release(id: &str) -> bool {
     let parts: Vec<&str> = id.split('.').collect();
     if parts.len() < 2 || parts.len() > 3 || parts[0] != "1" {
         return false;
     }
     let Ok(minor) = parts[1].parse::<u32>() else { return false };
-    let patch = match parts.get(2) {
-        Some(p) => match p.parse::<u32>() {
-            Ok(v) => v,
-            Err(_) => return false,
-        },
-        None => 0,
-    };
-    minor > 20 || (minor == 20 && patch >= 5)
+    if let Some(p) = parts.get(2) {
+        if p.parse::<u32>().is_err() {
+            return false;
+        }
+    }
+    (8..=21).contains(&minor)
+}
+
+/// The Java major version the game asks for, defaulting to 8 for very old files.
+pub fn java_major_of(version: &Value) -> u32 {
+    version
+        .get("javaVersion")
+        .and_then(|j| j.get("majorVersion"))
+        .and_then(Value::as_u64)
+        .and_then(|n| u32::try_from(n).ok())
+        .unwrap_or(8)
 }
 
 /// Release versions from Mojang's list that the launcher supports, newest first.
@@ -626,6 +639,52 @@ pub fn find_version(manifest: &Value, mc: &str) -> Option<(String, String)> {
     })
 }
 
+/// One Fabric Loader release Fabric's meta service lists for a Minecraft version.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FabricLoader {
+    pub version: String,
+    pub stable: bool,
+    /// The Minecraft version this loader belongs to, when the list says.
+    pub minecraft: Option<String>,
+}
+
+pub fn parse_fabric_loaders(list: &Value) -> Vec<FabricLoader> {
+    list.as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    let version = item.get("loader")?.get("version")?.as_str()?.to_string();
+                    Some(FabricLoader {
+                        stable: item.get("loader")?.get("stable").and_then(Value::as_bool).unwrap_or(false),
+                        minecraft: item
+                            .get("intermediary")
+                            .and_then(|i| i.get("version"))
+                            .and_then(Value::as_str)
+                            .map(str::to_string),
+                        version,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Every Fabric Loader Fabric lists for `mc`, newest first.
+pub fn fabric_loaders(mc: &str) -> Result<Vec<FabricLoader>, GameError> {
+    let c = client().map_err(GameError::Failed)?;
+    let list = parse_json(
+        &fetch_text(&c, &format!("{FABRIC_META}/{mc}"))?,
+        "Fabric loader list",
+    )?;
+    let out = parse_fabric_loaders(&list);
+    if out.is_empty() {
+        return Err(GameError::failed(format!("Fabric does not list a loader for Minecraft {mc} yet.")));
+    }
+    Ok(out)
+}
+
 /// The newest stable Fabric loader listed for `mc`.
 pub fn pick_loader(list: &Value) -> Option<String> {
     let items = list.as_array()?;
@@ -655,6 +714,73 @@ fn asset_downloads(root: &Path, index: &Value) -> Vec<Download> {
         }
     }
     out
+}
+
+/// Native jars of old versions (pre-1.19): Minecraft expects them unpacked in `natives/`.
+fn native_jars(root: &Path, mc: &str, version: &Value) -> Vec<Download> {
+    let mut out = Vec::new();
+    let Some(list) = version.get("libraries").and_then(Value::as_array) else {
+        return out;
+    };
+    for lib in list {
+        if !rules_allow(lib.get("rules")) {
+            continue;
+        }
+        let Some(classifier) = lib
+            .get("natives")
+            .and_then(|n| n.get("windows"))
+            .and_then(Value::as_str)
+        else {
+            continue;
+        };
+        let classifier = classifier.replace("${arch}", "64");
+        let Some(info) = lib
+            .get("downloads")
+            .and_then(|d| d.get("classifiers"))
+            .and_then(|c| c.get(&classifier))
+        else {
+            continue;
+        };
+        let Some(rel) = info.get("path").and_then(Value::as_str) else { continue };
+        if safe_relative(rel).is_none() {
+            continue;
+        }
+        out.push(Download {
+            url: info.get("url").and_then(Value::as_str).unwrap_or("").to_string(),
+            path: versions_dir(root).join(mc).join("natives-jars").join(rel),
+            sha1: info.get("sha1").and_then(Value::as_str).map(str::to_string),
+            size: info.get("size").and_then(Value::as_u64),
+            quick_check: false,
+        });
+    }
+    out
+}
+
+/// Unpacks the `.dll` files of the native jars into `target`.
+fn extract_natives(jars: &[Download], target: &Path) -> Result<(), GameError> {
+    fs::create_dir_all(target).map_err(|e| GameError::failed(format!("Could not create the natives folder: {e}")))?;
+    for jar in jars {
+        let Ok(file) = File::open(&jar.path) else { continue };
+        let Ok(mut archive) = zip::ZipArchive::new(file) else { continue };
+        for i in 0..archive.len() {
+            let Ok(mut entry) = archive.by_index(i) else { continue };
+            if !entry.is_file() {
+                continue;
+            }
+            let Some(name) = entry.enclosed_name() else { continue };
+            let Some(file_name) = name.file_name().and_then(|n| n.to_str()) else { continue };
+            if !file_name.to_ascii_lowercase().ends_with(".dll") {
+                continue;
+            }
+            let mut bytes = Vec::new();
+            entry
+                .read_to_end(&mut bytes)
+                .map_err(|e| GameError::failed(format!("Could not unpack a native library: {e}")))?;
+            fs::write(target.join(file_name), bytes)
+                .map_err(|e| GameError::failed(format!("Could not write a native library: {e}")))?;
+        }
+    }
+    Ok(())
 }
 
 fn run_downloads(
@@ -723,11 +849,13 @@ fn run_downloads(
     }
 }
 
-/// Download Minecraft `mc` and the newest stable Fabric loader into `root`.
+/// Download Minecraft `mc` (and optionally a Fabric loader) into `root`.
+/// `loader_version` pins a Fabric loader; `None` picks the newest stable one.
 pub fn install(
     root: &Path,
     mc: &str,
     fabric_wanted: bool,
+    loader_version: Option<&str>,
     cancel: &AtomicBool,
     on_progress: ProgressFn<'_>,
 ) -> Result<InstallInfo, GameError> {
@@ -748,14 +876,10 @@ pub fn install(
     }
     let vanilla = parse_json(&version_text, "Minecraft version file")?;
 
-    let java_major = vanilla
-        .get("javaVersion")
-        .and_then(|j| j.get("majorVersion"))
-        .and_then(Value::as_u64)
-        .unwrap_or(21);
-    if java_major != 21 {
+    let java_major = java_major_of(&vanilla);
+    if !(8..=21).contains(&java_major) {
         return Err(GameError::failed(format!(
-            "Minecraft {mc} needs Java {java_major}, which the launcher cannot install yet."
+            "Minecraft {mc} needs Java {java_major}, which this launcher cannot install yet."
         )));
     }
 
@@ -766,9 +890,15 @@ pub fn install(
     if fabric_wanted {
         meta("Looking up Fabric…");
         check_cancel(cancel)?;
-        let loaders = parse_json(&fetch_text(&c, &format!("{FABRIC_META}/{mc}"))?, "Fabric loader list")?;
-        let version = pick_loader(&loaders)
-            .ok_or_else(|| GameError::failed(format!("Fabric does not list a loader for Minecraft {mc} yet.")))?;
+        meta("Checking the Fabric loader…");
+        let version = match loader_version {
+            Some(v) => v.to_string(),
+            None => {
+                let loaders = parse_json(&fetch_text(&c, &format!("{FABRIC_META}/{mc}"))?, "Fabric loader list")?;
+                pick_loader(&loaders)
+                    .ok_or_else(|| GameError::failed(format!("Fabric does not list a loader for Minecraft {mc} yet.")))?
+            }
+        };
         if version.is_empty() || !version.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '.' || ch == '-' || ch == '+') {
             return Err(GameError::failed("Fabric returned a loader version that looks wrong, so it was not used."));
         }
@@ -800,6 +930,9 @@ pub fn install(
             quick_check: false,
         });
     }
+    // Pre-1.19 versions ship their native libraries as jars that must be unpacked.
+    let native_jars = native_jars(root, mc, &vanilla);
+    downloads.extend(native_jars.iter().cloned());
 
     let index_info = vanilla
         .get("assetIndex")
@@ -848,9 +981,12 @@ pub fn install(
     if fabric_wanted {
         write_atomic(&fabric_json_path(root, &profile_id), &fabric_text)?;
     }
+    if !native_jars.is_empty() {
+        extract_natives(&native_jars, &versions_dir(root).join(mc).join("natives"))?;
+    }
     fs::create_dir_all(instance_dir(root, &profile_id).join("mods"))
         .map_err(|e| GameError::failed(format!("Could not create the mods folder: {e}")))?;
-    let info = InstallInfo { minecraft: mc.to_string(), loader, profile_id };
+    let info = InstallInfo { minecraft: mc.to_string(), loader, profile_id, java_major: Some(java_major) };
     let marker = serde_json::to_string_pretty(&info).map_err(|e| GameError::failed(e.to_string()))?;
     write_atomic(&marker_path(root, mc, fabric_wanted), &marker)?;
     Ok(info)
@@ -864,6 +1000,10 @@ pub fn installed(root: &Path, mc: &str, fabric: bool) -> Option<InstallInfo> {
         minecraft: v.get("minecraft")?.as_str()?.to_string(),
         loader: v.get("loader").and_then(Value::as_str).map(str::to_string),
         profile_id: v.get("profileId")?.as_str()?.to_string(),
+        java_major: v
+            .get("javaMajor")
+            .and_then(Value::as_u64)
+            .and_then(|n| u32::try_from(n).ok()),
     };
     if info.minecraft != mc || safe_relative(&info.profile_id).is_none() || info.loader.is_some() != fabric {
         return None;
@@ -896,9 +1036,9 @@ fn count_mods(root: &Path, profile_id: &str) -> usize {
 }
 
 /// Every game setup that is fully installed, newest Minecraft version first.
-pub fn list_instances(root: &Path) -> Vec<InstanceSummary> {
+pub fn installed_infos(root: &Path) -> Vec<InstallInfo> {
     let prefix = format!("{MARKER_FILE}-");
-    let mut out = Vec::new();
+    let mut out: Vec<InstallInfo> = Vec::new();
     let Ok(entries) = fs::read_dir(root) else { return out };
     for entry in entries.filter_map(Result::ok) {
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -911,13 +1051,24 @@ pub fn list_instances(root: &Path) -> Vec<InstanceSummary> {
             continue;
         };
         if let Some(info) = installed(root, mc, fabric) {
-            let mod_count = if fabric { count_mods(root, &info.profile_id) } else { 0 };
-            out.push(InstanceSummary { minecraft: info.minecraft, loader: info.loader, mod_count });
+            if !out.iter().any(|i| i.profile_id == info.profile_id) {
+                out.push(info);
+            }
         }
     }
     let key = |v: &str| v.split('.').map(|p| p.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>();
     out.sort_by(|a, b| key(&b.minecraft).cmp(&key(&a.minecraft)).then(b.loader.is_some().cmp(&a.loader.is_some())));
     out
+}
+
+pub fn list_instances(root: &Path) -> Vec<InstanceSummary> {
+    installed_infos(root)
+        .into_iter()
+        .map(|info| {
+            let mod_count = if info.loader.is_some() { count_mods(root, &info.profile_id) } else { 0 };
+            InstanceSummary { minecraft: info.minecraft, loader: info.loader, mod_count }
+        })
+        .collect()
 }
 
 // ------------------------------------------------------------- profiles
@@ -1062,6 +1213,7 @@ pub fn build_launch(
     player: &Player,
     launcher_version: &str,
     instance_id: Option<&str>,
+    game_dir: Option<&Path>,
 ) -> Result<LaunchSpec, String> {
     let vanilla = read_json(&vanilla_json_path(root, &info.minecraft), "Minecraft version file")?;
     let fabric = if info.loader.is_some() {
@@ -1069,7 +1221,10 @@ pub fn build_launch(
     } else {
         serde_json::json!({})
     };
-    let instance = instance_dir(root, instance_id.unwrap_or(&info.profile_id));
+    let instance = match game_dir {
+        Some(dir) => dir.to_path_buf(),
+        None => instance_dir(root, instance_id.unwrap_or(&info.profile_id)),
+    };
 
     let libs = merge_libraries(&vanilla, &fabric);
     let mut classpath: Vec<String> = Vec::new();
@@ -1123,6 +1278,20 @@ pub fn build_launch(
     jvm.extend(resolve_args(fabric.get("arguments").and_then(|a| a.get("jvm"))));
     let mut game = resolve_args(vanilla.get("arguments").and_then(|a| a.get("game")));
     game.extend(resolve_args(fabric.get("arguments").and_then(|a| a.get("game"))));
+    // Versions before 1.13 list their game arguments as one space-separated string
+    // and rely on the launcher for the classpath and natives options.
+    if game.is_empty() {
+        if let Some(legacy) = vanilla.get("minecraftArguments").and_then(Value::as_str) {
+            game = legacy.split_whitespace().map(str::to_string).collect();
+        }
+    }
+    if jvm.is_empty() {
+        jvm = vec![
+            "-Djava.library.path=${natives_directory}".to_string(),
+            "-cp".to_string(),
+            "${classpath}".to_string(),
+        ];
+    }
     if !jvm.iter().any(|a| a.contains("${classpath}")) {
         jvm.push("-cp".to_string());
         jvm.push("${classpath}".to_string());
@@ -1376,7 +1545,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         let mc = "1.21.11";
-        let info = InstallInfo { minecraft: mc.into(), loader: Some("0.17.0".into()), profile_id: "fabric-loader-0.17.0-1.21.11".into() };
+        let info = InstallInfo { minecraft: mc.into(), loader: Some("0.17.0".into()), profile_id: "fabric-loader-0.17.0-1.21.11".into(), java_major: Some(21) };
 
         let mut v = vanilla();
         v["mainClass"] = json!("net.minecraft.client.main.Main");
@@ -1405,6 +1574,7 @@ mod tests {
             &player,
             "0.1.0",
             None,
+            None,
         )
         .unwrap();
         assert_eq!(spec.args[0], "-Xmx3072M");
@@ -1431,7 +1601,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         let mc = "1.21.11";
-        let info = InstallInfo { minecraft: mc.into(), loader: None, profile_id: mc.into() };
+        let info = InstallInfo { minecraft: mc.into(), loader: None, profile_id: mc.into(), java_major: Some(21) };
         let mut v = vanilla();
         v["mainClass"] = json!("net.minecraft.client.main.Main");
         v["assetIndex"] = json!({"id":"29"});
@@ -1450,6 +1620,7 @@ mod tests {
             &player,
             "0.1.0",
             None,
+            None,
         )
         .unwrap();
         assert!(spec.args.contains(&"net.minecraft.client.main.Main".to_string()));
@@ -1461,21 +1632,66 @@ mod tests {
     }
 
     #[test]
-    fn supported_releases_are_the_java_21_era() {
-        for ok in ["1.20.5", "1.20.6", "1.21", "1.21.1", "1.21.11"] {
+    fn supported_releases_start_at_1_8() {
+        for ok in ["1.20.5", "1.21.11", "1.20.4", "1.19.4", "1.12.2", "1.8.9", "1.16.5"] {
             assert!(supported_release(ok), "{ok}");
         }
-        for no in ["1.20.4", "1.20", "1.19.4", "1.8.9", "2.0", "1.21-pre1", "24w14a", "1.x", "1.21.1.1"] {
+        for no in ["1.7.10", "1.20", "2.0", "1.21-pre1", "24w14a", "1.x", "1.21.1.1"] {
             assert!(!supported_release(no), "{no}");
         }
         let manifest = json!({"versions":[
             {"id":"1.21.11","type":"release"},{"id":"25w01a","type":"snapshot"},
-            {"id":"1.20.4","type":"release"},{"id":"1.20.5","type":"release"}]});
-        assert_eq!(releases_from_manifest(&manifest), vec!["1.21.11", "1.20.5"]);
+            {"id":"1.20.4","type":"release"},{"id":"1.8.9","type":"release"}]});
+        assert_eq!(releases_from_manifest(&manifest), vec!["1.21.11", "1.20.4", "1.8.9"]);
     }
 
     #[test]
-    fn the_catalog_marks_snapshots_and_old_releases_as_not_supported() {
+    fn the_required_java_major_comes_from_the_version_file() {
+        assert_eq!(java_major_of(&json!({"javaVersion":{"majorVersion":21}})), 21);
+        assert_eq!(java_major_of(&json!({"javaVersion":{"majorVersion":8}})), 8);
+        assert_eq!(java_major_of(&json!({})), 8, "old files say nothing and need Java 8");
+    }
+
+    #[test]
+    fn legacy_versions_use_minecraft_arguments_and_native_jars() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mc = "1.8.9";
+        let info = InstallInfo { minecraft: mc.into(), loader: None, profile_id: mc.into(), java_major: Some(8) };
+        let mut v = vanilla();
+        v["mainClass"] = json!("net.minecraft.client.main.Main");
+        v["assetIndex"] = json!({"id":"1.8"});
+        v["minecraftArguments"] = json!("--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory}");
+        v["libraries"] = json!([]);
+        write_atomic(&vanilla_json_path(root, mc), &v.to_string()).unwrap();
+        write_atomic(&client_jar_path(root, mc), "jar").unwrap();
+        let player = Player::offline("Steve").unwrap();
+        let spec = build_launch(
+            root,
+            &info,
+            Path::new("java.exe"),
+            &LaunchOptions::default(),
+            &player,
+            "0.3.3",
+            None,
+            None,
+        )
+        .unwrap();
+        assert!(spec.args.iter().any(|a| a.starts_with("-Djava.library.path=")));
+        let at = spec.args.iter().position(|a| a == "--username").unwrap();
+        assert_eq!(spec.args[at + 1], "Steve", "legacy arguments are filled in");
+
+        let natives = native_jars(
+            root,
+            mc,
+            &json!({"libraries":[{"name":"org.lwjgl.lwjgl:lwjgl-platform:2.9.4","natives":{"windows":"natives-windows"},"downloads":{"classifiers":{"natives-windows":{"path":"org/lwjgl/lwjgl-platform/2.9.4/lwjgl-platform-2.9.4-natives-windows.jar","url":"https://libraries.minecraft.net/x.jar","sha1":"aa"}}}}]}),
+        );
+        assert_eq!(natives.len(), 1);
+        assert!(natives[0].path.ends_with("natives-windows.jar"));
+    }
+
+    #[test]
+    fn the_catalog_marks_snapshots_as_not_supported() {
         let manifest = json!({"versions":[
             {"id":"1.21.11","type":"release","releaseTime":"2025-12-02T10:00:00+00:00"},
             {"id":"25w45a","type":"snapshot","releaseTime":"2025-11-05T10:00:00+00:00"},
@@ -1488,7 +1704,7 @@ mod tests {
         assert_eq!(list[0].released.as_deref(), Some("2025-12-02T10:00:00+00:00"));
         assert_eq!(list[1].kind, "snapshot");
         assert!(!list[1].supported, "snapshots are listed but not installable");
-        assert!(!list[2].supported, "1.20.4 needs an older Java");
+        assert!(list[2].supported, "1.20.4 is installable with Java 17");
     }
 
     #[test]
@@ -1514,7 +1730,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         let mc = "1.21.11";
-        let info = InstallInfo { minecraft: mc.into(), loader: Some("0.17.0".into()), profile_id: "fabric-loader-0.17.0-1.21.11".into() };
+        let info = InstallInfo { minecraft: mc.into(), loader: Some("0.17.0".into()), profile_id: "fabric-loader-0.17.0-1.21.11".into(), java_major: Some(21) };
         write_atomic(&vanilla_json_path(root, mc), &vanilla().to_string()).unwrap();
         write_atomic(&fabric_json_path(root, &info.profile_id), &fabric().to_string()).unwrap();
         let player = Player::offline("Steve").unwrap();
@@ -1526,6 +1742,7 @@ mod tests {
             &player,
             "0.1.0",
             None,
+            None,
         )
         .unwrap_err();
         assert!(err.contains("missing"));
@@ -1536,7 +1753,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         assert!(installed(root, "1.21.11", true).is_none());
-        let info = InstallInfo { minecraft: "1.21.11".into(), loader: Some("0.17.0".into()), profile_id: "fabric-loader-0.17.0-1.21.11".into() };
+        let info = InstallInfo { minecraft: "1.21.11".into(), loader: Some("0.17.0".into()), profile_id: "fabric-loader-0.17.0-1.21.11".into(), java_major: Some(21) };
         write_atomic(&marker_path(root, "1.21.11", true), &serde_json::to_string(&info).unwrap()).unwrap();
         assert!(installed(root, "1.21.11", true).is_none(), "files are still missing");
         write_atomic(&vanilla_json_path(root, "1.21.11"), "{}").unwrap();
@@ -1552,7 +1769,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let cancel = AtomicBool::new(true);
         let progress = |_p: GameProgress| {};
-        let result = install(dir.path(), "1.21.11", true, &cancel, &progress);
+        let result = install(dir.path(), "1.21.11", true, None, &cancel, &progress);
         assert_eq!(result, Err(GameError::Cancelled));
         assert!(installed(dir.path(), "1.21.11", true).is_none());
     }
