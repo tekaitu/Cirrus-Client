@@ -64,7 +64,7 @@ export function JavaInstallPanel({ installer, needed }: { installer: JavaInstall
         title="Installation cancelled"
         actions={
           <>
-            <button type="button" className="btn btn-primary" onClick={installer.start}>
+            <button type="button" className="btn btn-primary" onClick={() => installer.start()}>
               Install again
             </button>
             <button type="button" className="btn btn-quiet" onClick={installer.dismiss}>
@@ -85,7 +85,7 @@ export function JavaInstallPanel({ installer, needed }: { installer: JavaInstall
         title="Java could not be installed"
         actions={
           <>
-            <button type="button" className="btn btn-primary" onClick={installer.start}>
+            <button type="button" className="btn btn-primary" onClick={() => installer.start()}>
               Retry install
             </button>
             <button type="button" className="btn btn-quiet" onClick={installer.dismiss}>
@@ -111,7 +111,7 @@ export function JavaInstallPanel({ installer, needed }: { installer: JavaInstall
         keeps it in Cirrus Client&apos;s own folder. No administrator rights are needed and Windows settings
         are not changed.
       </p>
-      <button type="button" className="btn btn-primary" onClick={installer.start}>
+      <button type="button" className="btn btn-primary" onClick={() => installer.start()}>
         Install Java {REQUIRED_JAVA_MAJOR}
       </button>
     </div>

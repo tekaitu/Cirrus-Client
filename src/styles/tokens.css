@@ -142,45 +142,93 @@
   --sky-sun: #ffffff;
 }
 
-/* Offline mode: the same monochrome system taken to ink and paper. Pure black
-   ground, white hairlines, no picture and no colour at all — clearly a different
-   mode from the signed-in launcher, while every control keeps its contrast and
-   its size. It applies over both appearances. */
+/* Offline mode: a lighter graphite-and-paper take on the monochrome system.
+   It stays clearly its own mode (desaturated, squared, hairline borders) but
+   keeps readable surfaces and text: no pure-black overlay across the window,
+   and no full-strength veil over the artwork. It applies over both appearances. */
 :root[data-play-mode="offline"] {
   color-scheme: dark;
-  --bg: #000000;
-  --bg-2: #050505;
-  --surface: rgba(255, 255, 255, 0.02);
-  --surface-solid: #060606;
-  --raised: rgba(255, 255, 255, 0.035);
-  --raised-solid: #101010;
-  --raised-2: rgba(255, 255, 255, 0.07);
-  --glass: rgba(255, 255, 255, 0.018);
-  --glass-strong: rgba(0, 0, 0, 0.94);
-  --glass-border: rgba(255, 255, 255, 0.16);
+  --bg: #14161a;
+  --bg-2: #191c21;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-solid: #1b1e24;
+  --raised: rgba(255, 255, 255, 0.08);
+  --raised-solid: #23272e;
+  --raised-2: rgba(255, 255, 255, 0.12);
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-strong: rgba(24, 27, 32, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-hi: rgba(255, 255, 255, 0.08);
   --border: rgba(255, 255, 255, 0.16);
-  --border-strong: rgba(255, 255, 255, 0.36);
-  --text: #ffffff;
-  --text-soft: #d4d4d4;
-  --muted: #9a9a9a;
+  --border-strong: rgba(255, 255, 255, 0.34);
+  --text: #f3f5f8;
+  --text-soft: #d3d7dd;
+  --muted: #a2a9b3;
   --accent: #ffffff;
-  --accent-strong: #ededed;
-  --accent-2: #c9c9c9;
+  --accent-strong: #e6e8eb;
+  --accent-2: #c2c7ce;
   --accent-rgb: 255 255 255;
-  --accent-soft: rgb(255 255 255 / 0.1);
-  --on-accent: #000000;
-  --radius: 5px;
-  --radius-sm: 4px;
-  --radius-lg: 7px;
-  --shadow: none;
-  --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.8);
-  --scene-veil: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.94) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 30%, rgba(0, 0, 0, 0.9) 100%);
-  --scene-filter: grayscale(1) contrast(1.1) brightness(0.4);
-  --hero-scrim: linear-gradient(90deg, rgba(0, 0, 0, 0.94), rgba(0, 0, 0, 0.72));
-  --dock-bg: #000000;
+  --accent-soft: rgb(255 255 255 / 0.12);
+  --on-accent: #111317;
+  --radius: 6px;
+  --radius-sm: 5px;
+  --radius-lg: 8px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.55);
+  --scene-veil: linear-gradient(180deg, rgba(20, 22, 26, 0.34) 0%, rgba(20, 22, 26, 0.6) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(12, 14, 17, 0.55) 100%);
+  --scene-filter: grayscale(1) contrast(1.02) brightness(1);
+  --hero-scrim: linear-gradient(90deg, rgba(20, 22, 26, 0.86), rgba(20, 22, 26, 0.5));
+  --dock-bg: rgba(24, 27, 32, 0.94);
   --dock-border: rgba(255, 255, 255, 0.18);
-  --tooltip: #ffffff;
-  --tooltip-text: #000000;
-  --scrim: rgba(0, 0, 0, 0.86);
+  --tooltip: #f3f5f8;
+  --tooltip-text: #14161a;
+  --scrim: rgba(10, 12, 15, 0.7);
+  --sky-filter: grayscale(1);
+}
+
+/* Offline in the light appearance is paper and ink: white surfaces, black
+   hairlines, no colour. */
+:root[data-theme="light"][data-play-mode="offline"] {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --bg-2: #fbfbfc;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-solid: #ffffff;
+  --raised: rgba(250, 250, 251, 0.95);
+  --raised-solid: #ffffff;
+  --raised-2: #eceef1;
+  --glass: rgba(255, 255, 255, 0.86);
+  --glass-strong: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(16, 18, 22, 0.2);
+  --border: rgba(16, 18, 22, 0.18);
+  --border-strong: rgba(16, 18, 22, 0.4);
+  --text: #101318;
+  --text-soft: #2b3038;
+  --muted: #5c636d;
+  --accent: #101318;
+  --accent-strong: #2a2f37;
+  --accent-2: #5c636d;
+  --accent-rgb: 16 19 24;
+  --accent-soft: rgb(16 19 24 / 0.1);
+  --on-accent: #ffffff;
+  --scene-veil: linear-gradient(180deg, rgba(250, 250, 251, 0.7) 0%, rgba(244, 245, 247, 0.86) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(220, 222, 226, 0.6));
+  --scene-filter: grayscale(1) contrast(1) brightness(1.08);
+  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.55));
+  --dock-bg: rgba(255, 255, 255, 0.96);
+  --dock-border: rgba(16, 18, 22, 0.18);
+  --tooltip: #101318;
+  --tooltip-text: #ffffff;
+  --scrim: rgba(20, 22, 26, 0.45);
+}
+
+/* Mode changes are a calm fade rather than a flash between palettes. */
+:root {
+  transition: background-color var(--med) var(--ease), color var(--med) var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
 }

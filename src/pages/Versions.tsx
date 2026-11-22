@@ -1,278 +1,262 @@
 import { useEffect, useMemo, useState } from "react";
-import type { InstanceSummary } from "../api/types";
-import { CloseIcon, CubeIcon, PlayArrowIcon, SearchIcon } from "../components/Icons";
-import { PlayPanel } from "../components/PlayPanel";
-import { VersionCard } from "../components/VersionCard";
-import { VersionSelector } from "../components/VersionSelector";
+import { api, errorMessage } from "../api/client";
+import type { VersionEntry } from "../api/types";
+import { InstallDialog } from "../components/InstallDialog";
 import type { PageId } from "../components/Navigation";
-import { Badge, Banner, Card, Skeleton } from "../components/ui";
-import { usernameError } from "../core/game";
-import type { LoaderId } from "../core/game";
+import { Badge, Banner, Skeleton } from "../components/ui";
+import { ChevronDownIcon, CubeIcon, LibraryIcon, PlayArrowIcon, SearchIcon } from "../components/Icons";
+import { FAMILIES, familyOf, groupByFamily, type FamilyGroup } from "../core/instances";
 import type { AppData } from "../hooks/useAppData";
-import { loaderLabel, loaderOf, useInstances } from "../hooks/useInstances";
-import { usePlayAs } from "../hooks/usePlayAs";
 
-function instanceName(i: InstanceSummary): string {
-  return `Minecraft ${i.minecraft}`;
-}
+type Sort = "newest" | "oldest";
+type Filter = "all" | "available" | "installed";
 
-/** "Add a version" opens the same catalogue the launcher always used, without leaving the library. */
-function AddVersionDialog({ data, onClose }: { data: AppData; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  return (
-    <div
-      className="modal-backdrop"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="modal add-version-modal" role="dialog" aria-modal="true" aria-label="Add a version">
-        <header className="add-version-head">
-          <div>
-            <h2 className="modal-title">Add a version</h2>
-            <p className="muted small">
-              Pick any Minecraft release or snapshot. Versions already on this PC are marked; Play downloads what is
-              missing.
-            </p>
-          </div>
-          <button type="button" className="icon-btn" aria-label="Close add version" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </header>
-        <VersionSelector data={data} onPicked={onClose} />
-      </div>
-    </div>
-  );
-}
-
-/** Every installed version as a card, with search, a loader filter and Add Version in one toolbar. */
-function Installations({
+/**
+ * Versions: what can be installed. Installed games are the Library's job, so the
+ * two pages never fight over the same card. Releases are grouped into families,
+ * each with its own artwork, and every family expands into the individual
+ * releases Mojang lists.
+ */
+export function VersionsPage({
   data,
   onNavigate,
-  onAddVersion,
 }: {
   data: AppData;
-  onNavigate: (page: PageId, section?: string) => void;
-  onAddVersion: () => void;
+  onNavigate: (page: PageId) => void;
 }) {
-  const { selection, game } = data;
-  const playAs = usePlayAs();
-  const list = useInstances(data);
+  const [catalog, setCatalog] = useState<VersionEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState("");
-  const [only, setOnly] = useState<"all" | "fabric" | "vanilla">("all");
-  // A Launch click selects first; this remembers which card should start once its status is known.
-  const [pending, setPending] = useState<{ version: string; loader: LoaderId } | null>(null);
+  const [sort, setSort] = useState<Sort>("newest");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [openFamily, setOpenFamily] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
 
-  const java = data.java.status === "ready" ? data.java.data.selected : null;
-  const running = game.run.phase === "running" || game.run.phase === "starting";
-  const installing = game.installer.phase === "running";
-  const nameProblem = playAs.mode === "offline" ? usernameError(playAs.name) : null;
-  const canLaunch = java !== null && !nameProblem && !running && !installing;
+  const instances = data.instances.status === "ready" ? data.instances.data : [];
+  const installedVersions = useMemo(() => new Set(instances.map((i) => i.minecraft)), [instances]);
 
-  const shown = useMemo(() => {
-    if (list.state.status !== "ready") return [];
-    return list.state.data.filter((i) => {
-      if (only !== "all" && loaderOf(i) !== only) return false;
-      return i.minecraft.toLowerCase().includes(text.trim().toLowerCase());
-    });
-  }, [list.state, text, only]);
-
-  const pick = (i: InstanceSummary, page: PageId | null) => {
-    selection.setVersion(i.minecraft);
-    selection.setLoader(loaderOf(i));
-    if (page) onNavigate(page);
-  };
-
-  // The launch of a card runs here, once the game status belongs to the chosen version.
   useEffect(() => {
-    if (!pending) return;
-    if (selection.version !== pending.version || selection.loader !== pending.loader) return;
-    if (!game.status) return;
-    setPending(null);
-    if (!java || !game.status.installed) return;
-    game.play(java.path, playAs.mode, playAs.name);
+    let alive = true;
+    void api
+      .listVersionCatalog()
+      .then((list) => {
+        if (alive) setCatalog(list);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(errorMessage(e));
+        // Without the desktop backend the picker still offers the versions the
+        // launcher knows about, marked as releases with no date.
+        setCatalog(data.selection.versions.map((id) => ({ id, kind: "release", released: null, supported: true, javaMajor: null })));
+      });
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, selection.version, selection.loader, game.status, java, playAs.mode, playAs.name]);
+  }, []);
 
-  const launch = (i: InstanceSummary) => {
-    setPending({ version: i.minecraft, loader: loaderOf(i) });
-    pick(i, null);
-  };
+  const grouped = useMemo(() => {
+    if (!catalog) return { groups: [] as FamilyGroup[], snapshots: 0 };
+    const { groups, snapshots } = groupByFamily(catalog);
+    const q = text.trim().toLowerCase();
+    return {
+      snapshots,
+      groups: groups
+        .map((g) => ({
+          ...g,
+          versions: g.versions
+            .filter((v) => {
+              if (q && !`${v.id} ${g.family.title}`.toLowerCase().includes(q)) return false;
+              if (filter === "available") return !installedVersions.has(v.id);
+              if (filter === "installed") return installedVersions.has(v.id);
+              return true;
+            })
+            .sort((a, b) => (sort === "newest" ? compareRelease(b.id, a.id) : compareRelease(a.id, b.id))),
+        }))
+        .filter((g) => g.versions.length > 0),
+    };
+  }, [catalog, text, filter, sort, installedVersions]);
+
+  // When a search leaves one family, it opens by itself so the result is visible.
+  const visibleAuthentic = grouped.groups.length === 1 ? grouped.groups[0].family.key : openFamily;
 
   return (
-    <section className="play-installations version-library" id="installations" aria-labelledby="library-title">
-      <div className="library-head">
+    <div className="page versions-page">
+      <header className="page-head page-head-row">
         <div>
-          <h2 id="library-title" className="library-title">
-            Your library
-          </h2>
-          <p className="muted small">
-            {list.state.status === "ready"
-              ? `${list.state.data.length} installed ${list.state.data.length === 1 ? "version" : "versions"} on this PC`
-              : "Versions installed on this PC"}
-          </p>
+          <p className="eyebrow">Available</p>
+          <h1>Versions</h1>
+          <p>Choose a Minecraft release to install. Each one becomes its own instance in your Library.</p>
         </div>
-        <button type="button" className="btn btn-primary btn-small add-version-btn" onClick={onAddVersion}>
-          <span className="add-version-plus" aria-hidden="true">
-            +
-          </span>
-          Add Version
+        <button type="button" className="btn" onClick={() => onNavigate("library")}>
+          <LibraryIcon /> Your Library
         </button>
-      </div>
+      </header>
 
       <div className="toolbar">
         <div className="search-box">
           <SearchIcon />
           <input
-            type="text"
-            aria-label="Search installed versions"
-            placeholder="Search versions…"
+            type="search"
+            aria-label="Search Minecraft versions"
+            placeholder="Search versions, e.g. 1.20.1…"
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
         </div>
-        <div className="seg" role="radiogroup" aria-label="Show loader">
+        <div className="seg" role="radiogroup" aria-label="Show versions">
           {(
             [
               ["all", "All"],
-              ["fabric", "Fabric"],
-              ["vanilla", "Vanilla"],
+              ["available", "Not installed"],
+              ["installed", "Installed"],
             ] as const
           ).map(([id, label]) => (
             <button
               key={id}
               type="button"
               role="radio"
-              aria-label={`Show ${label.toLowerCase()} versions`}
-              aria-checked={only === id}
-              className={only === id ? "seg-on" : ""}
-              onClick={() => setOnly(id)}
+              aria-checked={filter === id}
+              className={filter === id ? "seg-on" : ""}
+              onClick={() => setFilter(id)}
             >
               {label}
             </button>
           ))}
         </div>
+        <label className="sort-field">
+          <span className="muted small">Order</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Order versions">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+        </label>
       </div>
 
-      {list.state.status === "loading" && <Skeleton label="Loading library" lines={3} />}
-      {list.state.status === "error" && (
-        <Banner
-          tone="warn"
-          title="The library is only available in the desktop app"
-          actions={
-            <button type="button" className="btn" onClick={list.reload}>
-              Try again
-            </button>
-          }
-        >
-          {list.state.message}
+      {error && (
+        <Banner tone="warn" title="Mojang's version list could not be read">
+          {error} Only the versions built into this launcher are shown.
         </Banner>
       )}
-      {list.state.status === "ready" && list.state.data.length === 0 && (
+
+      {!catalog && <Skeleton label="Loading Minecraft versions" lines={4} />}
+
+      {catalog && grouped.groups.length === 0 && (
         <div className="empty empty-big">
           <CubeIcon />
-          <h2>Nothing installed yet</h2>
-          <p className="muted">
-            Press “Add Version” to pick a Minecraft version and loader. It downloads, then shows up here as a card.
-          </p>
-          <button type="button" className="btn btn-primary" onClick={onAddVersion}>
-            Add your first version
+          <h2>No versions match</h2>
+          <p className="muted">Try another search, or switch the filter back to All.</p>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setText("");
+              setFilter("all");
+            }}
+          >
+            Clear filters
           </button>
         </div>
       )}
-      {list.state.status === "ready" && list.state.data.length > 0 && shown.length === 0 && (
-        <p className="muted">No installed version matches.</p>
-      )}
-      {shown.length > 0 && (
-        <ul className="vgrid">
-          {shown.map((i) => {
-            const l = loaderOf(i);
-            const current = selection.version === i.minecraft && selection.loader === l;
-            return (
-              <li key={`${i.minecraft}-${l}`}>
-                <VersionCard
-                  version={i.minecraft}
-                  loader={loaderLabel(l)}
-                  line={l === "fabric" ? `Loader ${i.loader} · ${i.modCount} ${i.modCount === 1 ? "mod" : "mods"}` : "Vanilla"}
-                  selected={current}
-                  badge={current ? <Badge tone="info">Selected</Badge> : undefined}
-                  onSelect={() => pick(i, null)}
-                  selectLabel={`Select ${instanceName(i)} ${l === "fabric" ? "with Fabric" : "vanilla"}`}
-                  actions={
-                    <>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-small"
-                        aria-label={`Launch ${instanceName(i)} ${l === "fabric" ? "with Fabric" : "vanilla"}`}
-                        disabled={!canLaunch}
-                        title={canLaunch ? "Start Minecraft with this version" : launchHint({ java: java !== null, nameProblem, running, installing })}
-                        onClick={() => launch(i)}
-                      >
-                        <PlayArrowIcon /> Launch
-                      </button>
-                      {l === "fabric" && (
-                        <button
-                          type="button"
-                          className="btn btn-small"
-                          aria-label={`Mods for ${instanceName(i)}`}
-                          onClick={() => pick(i, "mods")}
-                        >
-                          Mods
-                        </button>
-                      )}
-                    </>
-                  }
-                />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
-  );
-}
 
-function launchHint(state: { java: boolean; nameProblem: string | null; running: boolean; installing: boolean }): string {
-  if (state.running) return "Minecraft is already starting or running.";
-  if (state.installing) return "Game files are still downloading.";
-  if (!state.java) return "Java is needed first. Set up and play installs it.";
-  return state.nameProblem ?? "Fix the offline name before playing.";
-}
+      {grouped.groups.length > 0 && (
+        <p className="muted small versions-note">
+          {FAMILIES.length} families · {grouped.snapshots > 0 ? `${grouped.snapshots} snapshots are listed by Mojang but cannot be installed by this build.` : "Releases installed through this build are checked against Mojang's hashes."}
+        </p>
+      )}
 
-/** The library on the left; the launch panel on the right, with nothing repeated between them. */
-export function VersionsPage({
-  data,
-  onNavigate,
-  onOpenAccount,
-}: {
-  data: AppData;
-  onNavigate: (page: PageId, section?: string) => void;
-  onOpenAccount: () => void;
-}) {
-  const [addOpen, setAddOpen] = useState(false);
-  return (
-    <div className="page versions-page">
-      <header className="page-head">
-        <p className="eyebrow">Library</p>
-        <h1>Versions</h1>
-        <p>Every Minecraft version on this PC, one card per version and loader. Pick one, then press Play.</p>
-      </header>
-      <div className="versions-layout">
-        <Installations data={data} onNavigate={onNavigate} onAddVersion={() => setAddOpen(true)} />
-        <aside className="versions-side">
-          <Card className="play-launch" id="launch" title="Launch" icon={<CubeIcon />} description="Account, selected version and the Play button.">
-            <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="full" onChangeVersion={() => setAddOpen(true)} />
-          </Card>
-        </aside>
+      <div className="families">
+        {grouped.groups.map(({ family, versions }) => {
+          const open = visibleAuthentic === family.key;
+          const installed = versions.filter((v) => installedVersions.has(v.id)).length;
+          return (
+            <section key={family.key} className={`family ${open ? "is-open" : ""}`} aria-labelledby={`family-${family.key}`}>
+              <button
+                type="button"
+                className="family-head"
+                aria-expanded={open}
+                aria-controls={`family-body-${family.key}`}
+                onClick={() => setOpenFamily(open ? null : family.key)}
+              >
+                <img className="family-art" src={family.art} alt="" aria-hidden="true" loading="lazy" />
+                <span className="family-shade" aria-hidden="true" />
+                <span className="family-text">
+                  <span className="family-kicker">{versions.length} {versions.length === 1 ? "release" : "releases"}</span>
+                  <span className="family-title" id={`family-${family.key}`}>
+                    {family.title}
+                  </span>
+                  <span className="family-blurb">{family.blurb}</span>
+                </span>
+                {installed > 0 && <span className="family-installed">{installed} installed</span>}
+                <span className="family-chevron" aria-hidden="true">
+                  <ChevronDownIcon />
+                </span>
+              </button>
+
+              {open && (
+                <div className="family-body" id={`family-body-${family.key}`}>
+                  <ul className="release-list">
+                    {versions.map((version) => {
+                      const isInstalled = installedVersions.has(version.id);
+                      return (
+                        <li key={version.id} className="release-row">
+                          <span className="release-name">Minecraft {version.id}</span>
+                          <span className="release-meta muted small">
+                            {version.released ? new Date(version.released).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Release"}
+                            {version.javaMajor ? ` · Java ${version.javaMajor}` : ""}
+                          </span>
+                          {isInstalled ? (
+                            <span className="release-actions">
+                              <Badge tone="good">In your Library</Badge>
+                              <button type="button" className="btn btn-small" onClick={() => onNavigate("library")}>
+                                <PlayArrowIcon /> Play
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="release-actions">
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-small"
+                                onClick={() => setInstalling(version.id)}
+                              >
+                                Install
+                              </button>
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </section>
+          );
+        })}
       </div>
-      {addOpen && <AddVersionDialog data={data} onClose={() => setAddOpen(false)} />}
+
+      {installing && (
+        <InstallDialog
+          version={installing}
+          data={data}
+          onClose={() => setInstalling(null)}
+          onNavigate={onNavigate}
+        />
+      )}
     </div>
   );
 }
+
+/** Newest-first ordering for release ids ("1.21.11" > "1.21.4" > "1.8.9"). */
+function compareRelease(a: string, b: string): number {
+  const pa = a.split(".").map((p) => Number(p) || 0);
+  const pb = b.split(".").map((p) => Number(p) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const x = pa[i] ?? 0;
+    const y = pb[i] ?? 0;
+    if (x !== y) return x - y;
+  }
+  return 0;
+}
+
+// `familyOf` is exported for the Home page's shortcuts and tests.
+export { familyOf };

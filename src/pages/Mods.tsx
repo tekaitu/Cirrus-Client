@@ -19,7 +19,7 @@ const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
 export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "manage" | "browse"; onNavigate: (page: PageId) => void }) {
   const { selection, game } = data;
   const version = selection.version;
-  const profileId = selection.profile?.id;
+  const profileId = selection.instance?.id;
   const [provider, setProvider] = useState<ModProvider>("modrinth");
   const [curseforge, setCurseforge] = useState(false);
   const [query, setQuery] = useState("");
@@ -221,8 +221,8 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
               ? `Resource packs for Minecraft ${version}, from Modrinth and CurseForge.`
               : view === "browse"
               ? `Fabric mods for Minecraft ${version}, from Modrinth and CurseForge.`
-              : selection.profile
-                ? `Installed in your “${selection.profile.name}” profile · Minecraft ${version}`
+              : selection.instance
+                ? `Installed in your “${selection.instance.name}” instance · Minecraft ${version}`
                 : `Installed for Minecraft ${version} with Fabric. Each version keeps its own mods.`}
           </p>
         </div>
@@ -243,7 +243,7 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
               {versionLabel}
             </span>
           )}
-          {selection.profile && <span className="chip chip-accent">{selection.profile.name}</span>}
+          {selection.instance && <span className="chip chip-accent">{selection.instance.name}</span>}
           {view === "browse" ? (
             <button type="button" className="btn" onClick={() => onNavigate("mods")}>
               Back to my mods

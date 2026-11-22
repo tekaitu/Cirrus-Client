@@ -49,6 +49,9 @@ export function PlayPanel({
 
   const javaState = data.java;
   const java = javaState.status === "ready" ? javaState.data.selected : null;
+  // An instance may carry its own Java; the backend uses it and refuses a path
+  // that no longer exists, so the panel only needs a path it can offer.
+  const launchJavaPath = selection.instance?.javaPath ?? java?.path ?? null;
   const javaLoading = javaState.status === "loading";
   const nameProblem = usernameError(name);
   const running = game.run.phase === "running";
@@ -56,7 +59,7 @@ export function PlayPanel({
   const javaPhase = data.installer.state.phase;
   const gamePhase = game.installer.phase;
   const installing = gamePhase === "running" || javaPhase === "running";
-  const needsSetup = !javaLoading && game.status !== null && (!java || !game.status.installed);
+  const needsSetup = !javaLoading && game.status !== null && (!launchJavaPath || !game.status.installed);
 
   useEffect(() => {
     if (gamePhase === "running") setInstallStartedAt((at) => (at === 0 ? Date.now() : at));
@@ -67,9 +70,9 @@ export function PlayPanel({
   // `auto` is the real switch; it is cleared before the game starts, so this can never repeat.
   // The effect reads the latest values through `latest` and only reacts to simple values.
   const auto = useRef(false);
-  const latest = useRef({ game, installer: data.installer, mode, name, javaPath: java?.path ?? null });
-  latest.current = { game, installer: data.installer, mode, name, javaPath: java?.path ?? null };
-  const javaPath = java?.path ?? null;
+  const latest = useRef({ game, installer: data.installer, mode, name, javaPath: launchJavaPath });
+  latest.current = { game, installer: data.installer, mode, name, javaPath: launchJavaPath };
+  const javaPath = launchJavaPath;
   const gameInstalled = game.status?.installed ?? null;
   const fabric = selection.loader === "fabric";
   // The version summary says what the game status of the chosen version is, in the same words everywhere.
@@ -93,7 +96,7 @@ export function PlayPanel({
       return;
     }
     const now = latest.current;
-    if (javaPath === null) {
+    if (javaPath === null || javaPath === undefined) {
       if (javaPhase === "idle" && !tried.current.java) {
         tried.current.java = true;
         now.installer.start();
@@ -126,8 +129,10 @@ export function PlayPanel({
     };
   } else if (mode === "offline" && nameProblem) {
     action = { label: "Play", disabled: true, hint: "Choose a valid player name first." };
-  } else if (javaLoading || (!game.status && javaState.status !== "error")) {
+  } else if (!launchJavaPath && javaLoading) {
     action = { label: "Checking…", disabled: true };
+  } else if (!game.status) {
+    action = { label: "Play", disabled: true, hint: "Game status is only available in the desktop app." };
   } else if (needsSetup || autoPlay) {
     action = {
       label: autoPlay ? "Setting up…" : "Set up & play",
@@ -137,14 +142,14 @@ export function PlayPanel({
         setAutoPlay(true);
       },
       disabled: autoPlay || installing,
-      hint: !java
+      hint: !launchJavaPath
         ? `Installs Java ${REQUIRED_JAVA_MAJOR}${game.status?.installed ? "" : ", Minecraft"}${selection.loader === "fabric" && !game.status?.installed ? " and Fabric" : ""}, then starts the game.`
         : `Downloads Minecraft ${selection.version}${selection.loader === "fabric" ? " with Fabric" : ""}, then starts the game.`,
     };
-  } else if (java && game.status) {
-    action = { label: "Play", onClick: () => game.play(java.path, mode, name) };
+  } else if (launchJavaPath) {
+    action = { label: "Play", onClick: () => game.play(launchJavaPath, mode, name) };
   } else {
-    action = { label: "Play", disabled: true, hint: "Game status is only available in the desktop app." };
+    action = { label: "Play", disabled: true, hint: "Java is needed first. Settings › Java can install it." };
   }
 
   const gameProgress = game.installer.phase === "running" ? game.installer.progress : null;
@@ -156,8 +161,8 @@ export function PlayPanel({
 
   const steps: Array<{ label: string; done: boolean; active: boolean }> = [
     { label: mode === "offline" ? "Player" : "Account", done: accountReady, active: !accountReady },
-    { label: "Java", done: java !== null, active: accountReady && java === null },
-    { label: "Game files", done: game.status?.installed === true, active: accountReady && java !== null && game.status?.installed !== true },
+    { label: "Java", done: launchJavaPath !== null, active: accountReady && launchJavaPath === null },
+    { label: "Game files", done: game.status?.installed === true, active: accountReady && launchJavaPath !== null && game.status?.installed !== true },
   ];
   const doneCount = steps.filter((x) => x.done).length;
 
@@ -176,13 +181,13 @@ export function PlayPanel({
         </li>
       </ol>
       )}
-      {variant === "full" && selection.profile && (
+      {variant === "full" && selection.instance && (
         <div className="profile-chip">
           <PackageIcon />
           <span>
-            Profile: <strong>{selection.profile.name}</strong>
+            Instance: <strong>{selection.instance.name}</strong>
           </span>
-          <button type="button" className="btn btn-quiet btn-small" onClick={() => selection.selectProfile(null)}>
+          <button type="button" className="btn btn-quiet btn-small" onClick={() => selection.selectInstance(null)}>
             Use default
           </button>
         </div>
@@ -266,11 +271,16 @@ export function PlayPanel({
             <p className="launch-version-line" aria-label="Selected Minecraft version">
               <strong>{selection.version}</strong>
               <span className="vp-chip">{fabric ? "Fabric" : "Vanilla"}</span>
-              {selection.profile && <span className="muted small">{selection.profile.name}</span>}
+              {selection.instance && <span className="muted small">{selection.instance.name}</span>}
               <span className={`launch-status launch-status-${game.status?.installed ? "good" : "warn"}`}>
                 {game.status?.installed ? "Installed · Ready to play" : "Not installed"}
               </span>
             </p>
+            {selection.instance?.javaPath && (
+              <p className="muted small">
+                This instance uses its own Java: <code>{selection.instance.javaPath}</code>
+              </p>
+            )}
             <div className="seg seg-wide" role="radiogroup" aria-label="Loader for this version">
               {(["fabric", "vanilla"] as const).map((l) => (
                 <button
@@ -354,7 +364,7 @@ export function PlayPanel({
           tone="bad"
           title="Game files could not be downloaded"
           actions={
-            <Button variant="secondary" size="sm" onClick={game.install}>
+            <Button variant="secondary" size="sm" onClick={() => game.install()}>
               Try again
             </Button>
           }

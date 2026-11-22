@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api, errorMessage } from "../api/client";
-import type { SettingsState } from "../api/types";
+import type { SettingsState, UpdateCheck } from "../api/types";
 import { BrandIcon } from "../components/BrandIcon";
 import {
   CheckIcon,
@@ -23,6 +23,8 @@ import type { PageId } from "../components/Navigation";
 import { PAGE_SHORTCUTS } from "../core/shortcuts";
 import { usernameError, type LoaderId } from "../core/game";
 import { JavaStatusBadge, javaTitle } from "../components/JavaStatus";
+import { JavaInstallPanel } from "../components/JavaInstallPanel";
+import { requiredJava } from "../core/instances";
 import { Badge, Banner, Card, Skeleton, type Tone } from "../components/ui";
 import { Button } from "../components/Button";
 import { SkinHead } from "../components/SkinHead";
@@ -381,7 +383,7 @@ function SettingsForm({
           )}
           {tab === "performance" && (
             <>
-      <Card id="sec-java" title="Java" tone="amber" icon={<JavaIcon />} description="Which Java runs the game (21 or newer).">
+      <Card id="sec-java" title="Java" tone="amber" icon={<JavaIcon />} description="What is installed, what this Minecraft version needs, and which runtime starts it.">
         <Field
           id="java-path"
           label="Java executable"
@@ -434,6 +436,66 @@ function SettingsForm({
             {javaTest.message}
           </p>
         )}
+
+        <div className="java-list" aria-label="Detected Java installations">
+          <p className="field-label">Detected Java</p>
+          {data.java.status === "loading" && <Skeleton label="Scanning for Java" lines={2} />}
+          {data.java.status === "error" && <p className="muted small">Java could not be scanned in this window.</p>}
+          {data.java.status === "ready" && data.java.data.analyses.length === 0 && (
+            <p className="muted small">
+              No Java was found. Install one below; it is kept inside Cirrus' own folder and Windows is not changed.
+            </p>
+          )}
+          {data.java.status === "ready" && data.java.data.analyses.length > 0 && (
+            <ul className="java-rows">
+              {data.java.data.analyses.map((a) => {
+                const needed = requiredJava(data.selection.version);
+                const fits = a.major !== null && a.major >= needed;
+                return (
+                  <li key={a.path} className="java-row">
+                    <div>
+                      <strong>{javaTitle(a)}</strong>
+                      <span className="muted small path">{a.path}</span>
+                    </div>
+                    <span className="row">
+                      {a.status !== "compatible" ? (
+                        <Badge tone="bad">{a.status === "too-old" ? "Too old for this version" : "Unusable"}</Badge>
+                      ) : (
+                        <Badge tone={fits ? "good" : "warn"}>{fits ? "Compatible" : `Needs Java ${needed}`}</Badge>
+                      )}
+                      {draft.javaPath === a.path && <Badge tone="info">Selected</Badge>}
+                      <button type="button" className="btn btn-small" onClick={() => edit({ javaPath: a.path })}>
+                        Use this
+                      </button>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="muted small">
+            Minecraft {data.selection.version} needs Java {requiredJava(data.selection.version)} or newer. An instance can
+            use a different Java from its own settings in the Library.
+          </p>
+        </div>
+
+        <div className="row">
+          <button type="button" className="btn" onClick={data.reloadJava} disabled={data.installer.state.phase === "running"}>
+            <RefreshArrowIcon /> Refresh detection
+          </button>
+          {[8, 17, 21].map((major) => (
+            <button
+              key={major}
+              type="button"
+              className="btn btn-small"
+              onClick={() => data.installer.start(major)}
+              disabled={data.installer.state.phase === "running"}
+            >
+              Install Java {major}
+            </button>
+          ))}
+        </div>
+        <JavaInstallPanel installer={data.installer} needed={false} />
       </Card>
       <Card title="JVM options" tone="cyan" icon={<CpuIcon />} description="Extra options passed to Java, after the memory limit.">
         <Field
@@ -754,10 +816,13 @@ function SettingsForm({
           </div>
         </dl>
       </Card>
-      <Card title="Getting updates" icon={<InfoIcon />} description="Cirrus does not update itself yet.">
+      <Card title="Launcher updates" icon={<DownloadIcon />} description="Checked against the official Cirrus releases on GitHub.">
+        <UpdateCheckPanel />
+      </Card>
+      <Card title="What an update keeps" icon={<InfoIcon />} description="Updating Cirrus never touches your game data.">
         <p className="muted small">
-          New builds are published on GitHub. Download the newest one and replace the old file; your settings, profiles
-          and worlds live in a separate folder and carry over.
+          Accounts, settings, instances, mods, worlds and Java choices live outside the launcher file and are kept when a
+          new build replaces it.
         </p>
         <div className="row">
           <button
@@ -765,7 +830,6 @@ function SettingsForm({
             className="btn"
             onClick={() => void api.openGithub().catch((e: unknown) => setNotice({ tone: "bad", text: errorMessage(e) }))}
           >
-            <DownloadIcon />
             Open the GitHub page
           </button>
         </div>
@@ -820,6 +884,70 @@ function SettingsForm({
       </div>
 
     </form>
+  );
+}
+
+/** Manual and automatic checking of official Cirrus releases. */
+function UpdateCheckPanel() {
+  const [state, setState] = useState<{ phase: "idle" | "checking" | "done" | "error"; check?: UpdateCheck; message?: string }>({
+    phase: "idle",
+  });
+
+  const check = () => {
+    setState({ phase: "checking" });
+    void api
+      .checkForUpdates()
+      .then((result) => setState({ phase: "done", check: result }))
+      .catch((e) => setState({ phase: "error", message: errorMessage(e) }));
+  };
+
+  useEffect(() => {
+    check();
+  }, []);
+
+  return (
+    <div className="update-panel" aria-live="polite">
+      {state.phase === "checking" && (
+        <p className="muted small">Checking for a newer Cirrus release…</p>
+      )}
+      {state.phase === "error" && <p className="error-text">{state.message}</p>}
+      {state.phase === "done" && state.check && (
+        <>
+          <p>
+            <strong>v{state.check.current}</strong>
+            {state.check.available ? (
+              <>
+                {" → "}
+                <strong>v{state.check.latest} available</strong>
+              </>
+            ) : (
+              <span className="muted"> · you are on the newest release</span>
+            )}
+          </p>
+          {state.check.available && state.check.notes && (
+            <details className="update-notes">
+              <summary>What changed</summary>
+              <p>{state.check.notes}</p>
+            </details>
+          )}
+          {state.check.available && <p className="muted small">{state.check.installMessage}</p>}
+          <div className="row">
+            <button type="button" className="btn" onClick={check}>
+              <RefreshArrowIcon /> Check again
+            </button>
+            {state.check.available && state.check.pageUrl && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void api.openUpdatePage(state.check!.pageUrl!).catch((e) => setState({ phase: "error", message: errorMessage(e) }))}
+              >
+                <DownloadIcon /> Open the update
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
