@@ -992,10 +992,16 @@
 }
 .footbar .pill-community:hover {
   color: #ffffff;
-  background: rgb(165 165 165 / 0.16);
+  background: #5865f2;
+  border-color: #5865f2;
+}
+.footbar .pill-community:hover .brand-icon,
+.footbar .pill-community:hover svg {
+  color: #ffffff;
 }
 .footbar .pill-community:active {
-  background: rgb(165 165 165 / 0.24);
+  background: #4752c4;
+  border-color: #4752c4;
 }
 .footbar .pill-community .brand-icon,
 .footbar .pill-community svg {
@@ -1006,8 +1012,9 @@
   transform: none;
 }
 :root[data-theme="light"] .footbar .pill-community:hover {
-  color: #828282;
-  background: rgb(165 165 165 / 0.12);
+  color: #ffffff;
+  background: #5865f2;
+  border-color: #5865f2;
 }
 
 /* ------------------------------------------------------------ face shading */
