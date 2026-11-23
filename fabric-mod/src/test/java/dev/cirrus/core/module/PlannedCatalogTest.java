@@ -1,4 +1,4 @@
-package dev.cirrus.client.mod;
+package dev.cirrus.core.module;
 
 import dev.cirrus.core.module.ModCategory;
 import org.junit.jupiter.api.Test;

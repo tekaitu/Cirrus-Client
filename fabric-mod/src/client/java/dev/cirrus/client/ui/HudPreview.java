@@ -2,7 +2,10 @@ package dev.cirrus.client.ui;
 
 import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.core.config.CirrusConfig;
-import dev.cirrus.client.mod.HudElement;
+import dev.cirrus.client.mod.ClientModContext;
+import dev.cirrus.client.render.McCanvas;
+import dev.cirrus.core.hud.HudElement;
+import dev.cirrus.core.render.Canvas;
 import net.minecraft.client.gui.GuiGraphics;
 
 /** A framed, centred preview of a HUD element on a checker backdrop (so a transparent background reads as transparent). */
@@ -16,12 +19,10 @@ public final class HudPreview {
             if (((cx / 10) + (cy / 10)) % 2 == 0) g.fill(x + cx, y + cy, x + cx + 10, y + cy + 10, 0xFF141414);
         // Shrink the preview (never the real element) when a large scale would not fit the frame.
         float fit = Math.min(1f, Math.min((w - 12f) / e.width(), (h - 12f) / e.height()));
-        var pose = g.pose();
-        pose.pushMatrix();
-        pose.translate(x + w / 2f, y + h / 2f);
-        pose.scale(fit, fit);
-        e.render(g, -e.width() / 2, -e.height() / 2, 0, cfg);
-        pose.popMatrix();
+        Canvas canvas = McCanvas.of(g);
+        canvas.pushTransform(x + w / 2f, y + h / 2f, fit);
+        e.render(canvas, -e.width() / 2, -e.height() / 2, 0, ClientModContext.INSTANCE);
+        canvas.popTransform();
         g.disableScissor();
         Gfx.strokeRound(g, x, y, w, h, 8, 0.5f, t.border);
     }

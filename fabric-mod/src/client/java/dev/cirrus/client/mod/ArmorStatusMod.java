@@ -1,5 +1,6 @@
 package dev.cirrus.client.mod;
 
+import dev.cirrus.core.hud.HudMod;
 
 import dev.cirrus.core.render.Icons;
 import dev.cirrus.core.module.ModCategory;
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Worn armor with remaining durability. The settings page and HUD editor show sample armor when you are not in a world. */
-public final class ArmorStatusMod extends HudMod {
+public final class ArmorStatusMod extends McHudMod {
     private static final EquipmentSlot[] SLOTS = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
     private static final int ROW = 20, CELL = 32;
     private static final List<Setting> OWN = List.of(
@@ -64,7 +65,7 @@ public final class ArmorStatusMod extends HudMod {
         return 6 + 16 + 2 + textH + (on(c, "bar") ? 6 : 0) + 4;
     }
 
-    @Override protected void draw(GuiGraphics g, int x, int y, float tick, CirrusConfig c) {
+    @Override protected void drawGui(GuiGraphics g, int x, int y, float tick, CirrusConfig c) {
         Minecraft mc = Minecraft.getInstance();
         CirrusTheme t = CirrusTheme.current(c);
         int w = baseWidth(c), h = baseHeight(c);

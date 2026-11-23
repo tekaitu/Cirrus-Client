@@ -1,6 +1,6 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.mod.CirrusMod;
+import dev.cirrus.core.module.CirrusMod;
 import net.minecraft.client.gui.GuiGraphics;
 
 /** The square module icon: a solid white tile with a black glyph when the module is on, a black tile with a white glyph when off. */

@@ -1,5 +1,7 @@
 package dev.cirrus.client.mod;
 
+import dev.cirrus.core.module.ModRegistry;
+import dev.cirrus.core.module.CirrusMod;
 
 import dev.cirrus.core.input.Keys;
 import com.mojang.blaze3d.platform.InputConstants;

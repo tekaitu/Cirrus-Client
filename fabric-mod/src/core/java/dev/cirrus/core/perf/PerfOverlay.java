@@ -1,6 +1,5 @@
-package dev.cirrus.client.render;
+package dev.cirrus.core.perf;
 
-import dev.cirrus.core.perf.PerfMeter;
 import dev.cirrus.core.render.Canvas;
 import dev.cirrus.core.text.TextStyle;
 

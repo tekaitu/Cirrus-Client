@@ -37,7 +37,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
         screens.put("hud-editor", () -> new HudEditorScreen(null));
         for (String id : new String[] {"armor_status", "keystrokes", "fps", "ping"})
-            screens.put("settings-" + id, () -> new dev.cirrus.client.ModSettingsScreen(null, dev.cirrus.client.mod.ModRegistry.find(id).orElseThrow()));
+            screens.put("settings-" + id, () -> new dev.cirrus.client.ModSettingsScreen(null, dev.cirrus.core.module.ModRegistry.find(id).orElseThrow()));
 
         context.waitTicks(40);
         context.takeScreenshot("boot");
@@ -100,19 +100,19 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         // Non-default options, to prove the settings change what is drawn: armor as percentages, side by side, no background.
         context.runOnClient(mc -> {
             var cfg = dev.cirrus.core.config.CirrusConfig.get(mc.gameDirectory.toPath());
-            var armor = dev.cirrus.client.mod.ModRegistry.find("armor_status").orElseThrow();
+            var armor = dev.cirrus.core.module.ModRegistry.find("armor_status").orElseThrow();
             for (var st : armor.settings()) {
                 String v = switch (st.key()) { case "display" -> "Percentage"; case "layout" -> "Horizontal"; case "background" -> "false"; case "shadow" -> "true"; case "scale" -> "130"; default -> st.defaultValue(); };
                 dev.cirrus.core.settings.ModSettings.set(cfg, "armor_status", st, v);
             }
-            var keys = dev.cirrus.client.mod.ModRegistry.find("keystrokes").orElseThrow();
+            var keys = dev.cirrus.core.module.ModRegistry.find("keystrokes").orElseThrow();
             for (var st : keys.settings()) {
                 String v = switch (st.key()) { case "mouse" -> "false"; case "background" -> "false"; default -> st.defaultValue(); };
                 dev.cirrus.core.settings.ModSettings.set(cfg, "keystrokes", st, v);
             }
         });
         for (String id : new String[] {"armor_status", "keystrokes"}) {
-            context.setScreen(() -> new dev.cirrus.client.ModSettingsScreen(null, dev.cirrus.client.mod.ModRegistry.find(id).orElseThrow()));
+            context.setScreen(() -> new dev.cirrus.client.ModSettingsScreen(null, dev.cirrus.core.module.ModRegistry.find(id).orElseThrow()));
             context.waitTicks(15);
             context.takeScreenshot("settings-" + id + "-custom-1280x720-gui2");
         }
@@ -122,8 +122,8 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         // Real profile round trip: save two setups, switch between them, share one as a code and import it again.
         context.runOnClient(mc -> {
             var cfg = dev.cirrus.core.config.CirrusConfig.get(mc.gameDirectory.toPath());
-            var profiles = new dev.cirrus.client.profile.Profiles(mc);
-            var fps = dev.cirrus.client.mod.ModRegistry.find("fps").orElseThrow();
+            var profiles = new dev.cirrus.core.profile.Profiles(mc.gameDirectory.toPath());
+            var fps = dev.cirrus.core.module.ModRegistry.find("fps").orElseThrow();
             var scale = fps.settings().stream().filter(st -> st.key().equals("scale")).findFirst().orElseThrow();
             try {
                 dev.cirrus.core.settings.ModSettings.set(cfg, "fps", scale, "150");

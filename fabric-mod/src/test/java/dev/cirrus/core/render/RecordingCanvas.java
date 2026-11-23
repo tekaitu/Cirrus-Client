@@ -25,6 +25,8 @@ final class RecordingCanvas implements Canvas {
     @Override public void cornerMask(int r, int t, int qx, int qy, int x, int y, int argb) { masks.add(new Mask(r, t, qx, qy, x, y)); }
     @Override public void icon(int index, int x, int y, int size, int argb) { }
     @Override public void text(String text, TextStyle style, int x, int y, int argb, boolean shadow) { }
+    @Override public void pushTransform(float x, float y, float scale) { }
+    @Override public void popTransform() { }
     @Override public void pushClip(int x, int y, int w, int h) { }
     @Override public void popClip() { }
 

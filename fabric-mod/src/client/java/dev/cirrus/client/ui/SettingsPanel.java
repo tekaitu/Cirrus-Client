@@ -4,7 +4,7 @@ package dev.cirrus.client.ui;
 import dev.cirrus.core.input.Keys;
 import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.core.config.CirrusConfig;
-import dev.cirrus.client.mod.CirrusMod;
+import dev.cirrus.core.module.CirrusMod;
 import dev.cirrus.core.settings.ModSettings;
 import dev.cirrus.core.settings.Setting;
 import net.minecraft.client.Minecraft;

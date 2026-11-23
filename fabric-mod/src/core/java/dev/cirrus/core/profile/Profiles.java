@@ -1,13 +1,12 @@
-package dev.cirrus.client.profile;
+package dev.cirrus.core.profile;
 
-import dev.cirrus.core.profile.ProfileStore;
-import dev.cirrus.core.profile.ProfileCodec;
 import dev.cirrus.core.config.CirrusConfig;
-import dev.cirrus.client.mod.CirrusMod;
-import dev.cirrus.client.mod.ModRegistry;
-import net.minecraft.client.Minecraft;
+import dev.cirrus.core.module.CirrusMod;
+import dev.cirrus.core.module.ModContext;
+import dev.cirrus.core.module.ModRegistry;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,9 +21,10 @@ public final class Profiles {
     private final ProfileStore store;
     private final CirrusConfig config;
 
-    public Profiles(Minecraft mc) {
-        this.config = CirrusConfig.get(mc.gameDirectory.toPath());
-        this.store = new ProfileStore(mc.gameDirectory.toPath().resolve("config/cirrus-client/profiles"));
+    /** @param gameDir the instance's game directory; settings and profiles live under {@code config/cirrus-client}. */
+    public Profiles(Path gameDir) {
+        this.config = CirrusConfig.get(gameDir);
+        this.store = new ProfileStore(gameDir.resolve("config/cirrus-client/profiles"));
     }
 
     public List<String> names() { return store.names(); }
@@ -53,14 +53,16 @@ public final class Profiles {
     public void apply(String name) throws IOException { applyValues(name, store.load(name)); }
 
     private void applyValues(String name, Map<String, String> values) {
-        Minecraft mc = Minecraft.getInstance();
         Map<String, Boolean> before = new HashMap<>();
         for (CirrusMod m : ModRegistry.all()) before.put(m.id(), m.enabled(config));
         config.replace(ProfileCodec::allowedKey, values);
         config.put(ACTIVE, name);
+        ModContext ctx = ModRegistry.isBound() ? ModRegistry.context() : null;
         for (CirrusMod m : ModRegistry.all()) {
-            boolean was = before.getOrDefault(m.id(), false), now = m.enabled(config);
-            if (now && !was) m.onEnable(mc); else if (!now && was) m.onDisable(mc);
+            Boolean wasOn = before.get(m.id());
+            boolean was = wasOn != null && wasOn, now = m.enabled(config);
+            if (ctx == null) continue;
+            if (now && !was) m.onEnable(ctx); else if (!now && was) m.onDisable(ctx);
         }
     }
 

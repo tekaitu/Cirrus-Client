@@ -65,6 +65,17 @@ public final class McCanvas implements Canvas {
         }
     }
 
+    @Override public void pushTransform(float x, float y, float scale) {
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(scale, scale);
+    }
+
+    @Override public void popTransform() { g.pose().popMatrix(); }
+
+    /** The underlying graphics context, for client-only drawing (item stacks and similar) that Core cannot express. */
+    public GuiGraphics graphics() { return g; }
+
     @Override public void pushClip(int x, int y, int w, int h) {
         PerfCounters.clips++;
         g.enableScissor(x, y, x + w, y + h);

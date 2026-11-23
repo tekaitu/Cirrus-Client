@@ -1,6 +1,7 @@
 package dev.cirrus.client.ui;
 
 
+import dev.cirrus.client.render.McInput;
 import dev.cirrus.core.input.Keys;
 import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.core.anim.Anim;
@@ -130,7 +131,8 @@ public abstract class CirrusScreen extends Screen {
         float open = Anim.easeOut((Anim.now() - openedAt) / 200f);
         if (open < 1f) g.fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - open) * 120)));
         dev.cirrus.core.perf.PerfMeter.MENU.end();
-        dev.cirrus.client.render.PerfOverlay.draw(dev.cirrus.client.render.McCanvas.of(g), height);
+        dev.cirrus.core.perf.PerfOverlay.draw(dev.cirrus.client.render.McCanvas.of(g), height);
+        McInput.INSTANCE.endFrame();
     }
 
     /** Panels, cards and static text. Widgets are drawn after this. */
@@ -138,8 +140,49 @@ public abstract class CirrusScreen extends Screen {
     /** Anything that must sit above the widgets. */
     protected void drawOverlay(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) { }
 
+    // ---- input -----------------------------------------------------------------------------------------------------------
+    // Every event enters through these final methods, which report it to the Core input model ({@link McInput}) before the screen
+    // handles it. Screens override the protected on* hooks instead, so no handler can swallow an event before Core sees it.
+
+    @Override public final void mouseMoved(double x, double y) { McInput.INSTANCE.mouseMoved(x, y); super.mouseMoved(x, y); }
+
+    @Override public final boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        McInput.INSTANCE.mousePressed(event);
+        return onMouseClicked(event, doubleClick);
+    }
+
+    @Override public final boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        McInput.INSTANCE.mouseReleased(event);
+        return onMouseReleased(event);
+    }
+
+    @Override public final boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dx, double dy) {
+        McInput.INSTANCE.mouseMoved(event.x(), event.y());
+        return onMouseDragged(event, dx, dy);
+    }
+
+    @Override public final boolean mouseScrolled(double x, double y, double h, double v) {
+        McInput.INSTANCE.mouseScrolled(x, y, h, v);
+        return onMouseScrolled(x, y, h, v);
+    }
+
+    @Override public final boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        McInput.INSTANCE.keyPressed(event);
+        return onKeyPressed(event);
+    }
+
+    @Override public final boolean keyReleased(net.minecraft.client.input.KeyEvent event) {
+        McInput.INSTANCE.keyReleased(event);
+        return super.keyReleased(event);
+    }
+
+    protected boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) { return super.mouseClicked(event, doubleClick); }
+    protected boolean onMouseReleased(net.minecraft.client.input.MouseButtonEvent event) { return super.mouseReleased(event); }
+    protected boolean onMouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dx, double dy) { return super.mouseDragged(event, dx, dy); }
+    protected boolean onMouseScrolled(double x, double y, double h, double v) { return super.mouseScrolled(x, y, h, v); }
+
     /** Right Shift closes any Cirrus screen straight back to the game (or to the screen that opened the menu). */
-    @Override public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+    protected boolean onKeyPressed(net.minecraft.client.input.KeyEvent event) {
         if (event.key() == Keys.RIGHT_SHIFT && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox box && box.isFocused())) {
             closeAll();
             return true;
@@ -147,5 +190,5 @@ public abstract class CirrusScreen extends Screen {
         return super.keyPressed(event);
     }
 
-    @Override public void onClose() { minecraft.setScreen(parent); }
+    @Override public void onClose() { McInput.INSTANCE.reset(); minecraft.setScreen(parent); }
 }

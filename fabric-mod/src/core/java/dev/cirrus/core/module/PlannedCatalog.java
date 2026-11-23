@@ -1,10 +1,10 @@
-package dev.cirrus.client.mod;
+package dev.cirrus.core.module;
 
 
 import dev.cirrus.core.render.Icons;
-import dev.cirrus.core.module.ModCategory;
-import dev.cirrus.client.ui.Glyphs;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -14,9 +14,25 @@ import java.util.List;
 public final class PlannedCatalog {
     private static final String PLATFORM = "Provided by the Cirrus platform, not by an in-game module.";
 
-    public record Entry(String id, String name, String description, ModCategory category, int glyph, String note) { }
+    /** One planned feature. Immutable. */
+    public static final class Entry {
+        private final String id, name, description, note;
+        private final ModCategory category;
+        private final int glyph;
 
-    public static final List<Entry> ENTRIES = List.of(
+        public Entry(String id, String name, String description, ModCategory category, int glyph, String note) {
+            this.id = id; this.name = name; this.description = description; this.category = category; this.glyph = glyph; this.note = note;
+        }
+
+        public String id() { return id; }
+        public String name() { return name; }
+        public String description() { return description; }
+        public ModCategory category() { return category; }
+        public int glyph() { return glyph; }
+        public String note() { return note; }
+    }
+
+    public static final List<Entry> ENTRIES = Collections.unmodifiableList(Arrays.asList(
         new Entry("classic_pvp", "Classic PvP", "1.8-style combat feel: blocking pose and swing animations.", ModCategory.COMBAT, Icons.SWORD, ""),
         new Entry("hit_color", "Hit Color", "Choose the colour entities flash when you hit them.", ModCategory.COMBAT, Icons.DROPLET, ""),
         new Entry("damage_indicator", "Damage Indicator", "Shows how much damage each hit deals.", ModCategory.COMBAT, Icons.HEART, ""),
@@ -49,7 +65,7 @@ public final class PlannedCatalog {
         new Entry("friends", "Friends", "Friends list and joining friends.", ModCategory.SOCIAL, Icons.MULTIPLAYER, PLATFORM),
         new Entry("private_chats", "Private Chats", "Direct messages with friends.", ModCategory.SOCIAL, Icons.LOCKCHAT, PLATFORM),
         new Entry("voice_chat", "Voice Chat", "Talk to friends while you play.", ModCategory.SOCIAL, Icons.MIC, PLATFORM),
-        new Entry("proximity_voice", "3D Proximity Voice Chat", "Hear nearby players from their direction and distance.", ModCategory.SOCIAL, Icons.HEADSET, PLATFORM));
+        new Entry("proximity_voice", "3D Proximity Voice Chat", "Hear nearby players from their direction and distance.", ModCategory.SOCIAL, Icons.HEADSET, PLATFORM)));
 
     private PlannedCatalog() { }
 

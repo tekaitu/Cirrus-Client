@@ -10,7 +10,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.resources.Identifier;
-import dev.cirrus.client.mod.ModRegistry;
+import dev.cirrus.core.module.ModRegistry;
 import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
@@ -25,18 +25,19 @@ public final class CirrusFabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         final org.slf4j.Logger coreLog = org.slf4j.LoggerFactory.getLogger("Cirrus Client");
         dev.cirrus.core.log.CoreLog.setSink((message, error) -> coreLog.warn(message, error));
-        ModRegistry.register(new dev.cirrus.client.mod.FpsMod());
-        ModRegistry.register(new dev.cirrus.client.mod.PingMod());
+        ModRegistry.bind(dev.cirrus.client.mod.ClientModContext.INSTANCE);
+        ModRegistry.register(new dev.cirrus.core.hud.FpsMod());
+        ModRegistry.register(new dev.cirrus.core.hud.PingMod());
         ModRegistry.register(new dev.cirrus.client.mod.ArmorStatusMod());
-        ModRegistry.register(new dev.cirrus.client.mod.KeystrokesMod());
-        dev.cirrus.client.mod.PlannedCatalog.registerAll();
+        ModRegistry.register(new dev.cirrus.core.hud.KeystrokesMod());
+        dev.cirrus.core.module.PlannedCatalog.registerAll();
         dev.cirrus.client.mod.ModKeys.registerAll();
         ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
         AssetManager assets = AssetManager.get(Minecraft.getInstance().gameDirectory.toPath());
         assets.initialize();
         CirrusKeyBindings.register();
         for (String id : new String[] {"fps", "ping", "armor_status", "keystrokes"})
-            dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find(id).orElseThrow());
+            dev.cirrus.core.hud.HudElementRegistry.register((dev.cirrus.core.hud.HudElement) ModRegistry.find(id).orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,
             Identifier.fromNamespaceAndPath("cirrus_fabric", "status"),

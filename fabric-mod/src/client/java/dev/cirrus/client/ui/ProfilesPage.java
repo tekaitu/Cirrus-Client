@@ -6,7 +6,7 @@ import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.core.layout.ClickGuiLayout;
 import dev.cirrus.core.profile.ProfileCodec;
 import dev.cirrus.core.profile.ProfileStore;
-import dev.cirrus.client.profile.Profiles;
+import dev.cirrus.core.profile.Profiles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -32,7 +32,7 @@ public final class ProfilesPage {
     private boolean compactButtons;
 
     public ProfilesPage(Minecraft mc) {
-        this.profiles = new Profiles(mc);
+        this.profiles = new Profiles(mc.gameDirectory.toPath());
         this.nameBox = new EditBox(mc.font, 0, 0, 100, 12, Component.literal("Profile name"));
         nameBox.setBordered(false);
         nameBox.setTextShadow(false);

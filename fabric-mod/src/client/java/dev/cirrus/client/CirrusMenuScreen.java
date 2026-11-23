@@ -1,5 +1,8 @@
 package dev.cirrus.client;
 
+import dev.cirrus.core.profile.Profiles;
+import dev.cirrus.core.module.ModRegistry;
+import dev.cirrus.core.module.CirrusMod;
 
 
 import dev.cirrus.core.theme.CirrusTheme;
@@ -477,11 +480,11 @@ public final class CirrusMenuScreen extends CirrusScreen {
 
     // ---- input -------------------------------------------------------------------------------------------------------
 
-    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+    @Override protected boolean onMouseClicked(MouseButtonEvent event, boolean doubleClick) {
         double mx = event.x(), my = event.y();
         if (pane != null && pane.isListening()) { pane.mouseClicked(mx, my, event.button()); return true; }
         if (profileMenu) { clickProfileMenu(mx, my); return true; }
-        if (super.mouseClicked(event, doubleClick)) return true;
+        if (super.onMouseClicked(event, doubleClick)) return true;
         if (event.button() != 0 && event.button() != 1) return false;
         if (search.isFocused() && !layout.search.contains(mx, my)) search.setFocused(false);
         if (layout.closeButton.contains(mx, my)) { closeAll(); return true; }
@@ -521,7 +524,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         return false;
     }
 
-    @Override public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+    @Override protected boolean onMouseDragged(MouseButtonEvent event, double dx, double dy) {
         if (resizing) {
             prefW = (int) Math.round((event.x() - width / 2.0 + 6) * 2);
             prefH = (int) Math.round((event.y() - height / 2.0 + 6) * 2);
@@ -530,26 +533,26 @@ public final class CirrusMenuScreen extends CirrusScreen {
             return true;
         }
         if (pane != null && pane.mouseDragged(event.x())) return true;
-        return super.mouseDragged(event, dx, dy);
+        return super.onMouseDragged(event, dx, dy);
     }
 
-    @Override public boolean mouseReleased(MouseButtonEvent event) {
+    @Override protected boolean onMouseReleased(MouseButtonEvent event) {
         if (resizing) { resizing = false; saveSize(); }
         if (pane != null) pane.mouseReleased();
-        return super.mouseReleased(event);
+        return super.onMouseReleased(event);
     }
 
     private void saveSize() { CirrusConfig cfg = config(); cfg.put("ui.menu.w", Integer.toString(prefW)); cfg.put("ui.menu.h", Integer.toString(prefH)); }
 
-    @Override public boolean mouseScrolled(double x, double y, double h, double v) {
+    @Override protected boolean onMouseScrolled(double x, double y, double h, double v) {
         if (layout.sidebar.contains(x, y)) { sideScroll = Math.max(0, Math.min(maxSideScroll(), sideScroll - (int) (v * 20))); return true; }
-        if (profilesPage) return profiles.mouseScrolled(x, y, v) || super.mouseScrolled(x, y, h, v);
+        if (profilesPage) return profiles.mouseScrolled(x, y, v) || super.onMouseScrolled(x, y, h, v);
         if (pane != null) { if (pane.mouseScrolled(x, y, v)) return true; }
         else if (layout.list.contains(x, y)) { scrollTarget = Math.max(0, Math.min(maxScroll(), scrollTarget - (float) (v * (rowH() + GAP) * 1.5))); return true; }
-        return super.mouseScrolled(x, y, h, v);
+        return super.onMouseScrolled(x, y, h, v);
     }
 
-    @Override public boolean keyPressed(KeyEvent event) {
+    @Override protected boolean onKeyPressed(KeyEvent event) {
         int key = event.key();
         if (pane != null && pane.isListening()) { pane.keyPressed(key); return true; }
         var nameBox = profiles.nameBox();
@@ -572,7 +575,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
             }
             if (listVisible() && selected != null && (key == Keys.SPACE || key == Keys.RIGHT)) { select(selected); return true; }
         }
-        return super.keyPressed(event);
+        return super.onKeyPressed(event);
     }
 
     /** Keyboard browsing of the grid: Up/Down move the highlight, Enter switches the highlighted module, Space or Right opens its settings. */

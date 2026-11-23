@@ -34,6 +34,14 @@ public interface Canvas {
 
     void text(String text, TextStyle style, int x, int y, int argb, boolean shadow);
 
+    /**
+     * Draws everything until {@link #popTransform()} translated to {@code (x, y)} and scaled uniformly by {@code scale}, in the
+     * current space; drawing at {@code (0, 0)} then lands on {@code (x, y)}. Transforms nest and must be balanced.
+     */
+    void pushTransform(float x, float y, float scale);
+
+    void popTransform();
+
     /** Restricts drawing to a rectangle until {@link #popClip()}. Clips do not nest. */
     void pushClip(int x, int y, int w, int h);
 
