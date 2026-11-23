@@ -22,6 +22,10 @@ const ALLOWED_HOSTS: &[&str] = &[
     "release-assets.githubusercontent.com",
 ];
 const MAX_BODY_BYTES: u64 = 512 * 1024;
+/// The project's own paths on GitHub. The repository was renamed from
+/// `Cirrus-Client` to `Maple-Client`, and GitHub redirects the old name, so both
+/// are accepted; anything else on the same host is not a project page.
+const PROJECT_PATHS: &[&str] = &["/tekaitu/maple-client", "/tekaitu/cirrus-client"];
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -56,8 +60,15 @@ fn host_allowed(url: &Url) -> bool {
 pub fn allowed_page(url: &str) -> bool {
     match Url::parse(url) {
         Ok(u) => {
-            host_allowed(&u)
-                && u.path().to_ascii_lowercase().starts_with("/tekaitu/cirrus-client")
+            if !host_allowed(&u) {
+                return false;
+            }
+            let path = u.path().to_ascii_lowercase();
+            PROJECT_PATHS.iter().any(|prefix| {
+                path.strip_prefix(prefix)
+                    .map(|rest| rest.is_empty() || rest.starts_with('/'))
+                    .unwrap_or(false)
+            })
         }
         Err(_) => false,
     }
