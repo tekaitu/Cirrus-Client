@@ -80,11 +80,11 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
       <div className="home-lockup" aria-hidden="true">
         <LogoMark size={46} />
         <span className="home-lockup-name">
-          Cirrus <em>Client</em>
+          Maple <em>Client</em>
         </span>
       </div>
       <h1 id="hero-title" className="home-title">
-        Sky is the limit.
+        Your world, your way.
       </h1>
       <p className="home-version" aria-label="Selected version">
         {versionTitle}
@@ -292,39 +292,39 @@ function News({ onNavigate }: { onNavigate: (page: PageId) => void }) {
       </header>
       <ul className="news-list">
         <li className="news-item">
-          <span className="news-tag">Layout</span>
+          <span className="news-tag">New name</span>
           <div>
-            <strong>Classic is back</strong>
+            <strong>Cirrus Client is now Maple Client</strong>
             <p className="muted small">
-              The sidebar and the big image cards return, with Play in the middle of the screen. Pick Classic or
-              Colorful on first launch; change it later in Settings.
+              The launcher has a new name, a maple-leaf mark and one maple-orange accent. Accounts, instances, mods and
+              settings carry over unchanged.
             </p>
           </div>
         </li>
         <li className="news-item">
-          <span className="news-tag">v0.3.3</span>
+          <span className="news-tag">Instances</span>
           <div>
-            <strong>Library and Versions are two places</strong>
+            <strong>Bigger cards, clearer launches</strong>
             <p className="muted small">
-              Browse every Minecraft family in Versions, and manage the instances you actually installed in the Library —
-              each with its own Java, memory and folder.
+              Instance cards show the artwork, loader, mod count and a full-size Launch button, and Create Instance is
+              now its own two-step flow.
             </p>
           </div>
         </li>
         <li className="news-item">
-          <span className="news-tag">Update</span>
+          <span className="news-tag">Themes</span>
           <div>
-            <strong>Launcher updates, checked securely</strong>
+            <strong>Classic and Colorful, both in orange</strong>
             <p className="muted small">
-              Cirrus checks the official GitHub releases over HTTPS and only offers a strictly newer version. Installing
-              from inside the app waits until signed builds are configured.
+              Pick a look on first launch. Classic stays neutral, Colorful brings the Minecraft key art forward, and
+              Settings switches between them at any time.
             </p>
           </div>
         </li>
       </ul>
       <div className="news-links">
         <button type="button" className="link-inline" onClick={() => onNavigate("about")}>
-          About Cirrus
+          About Maple Client
         </button>
         <button type="button" className="link-inline" onClick={() => onNavigate("settings")}>
           Check for launcher updates

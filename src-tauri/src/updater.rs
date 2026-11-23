@@ -1,4 +1,4 @@
-//! Launcher updates: asks GitHub for the newest official Cirrus Client release
+//! Launcher updates: asks GitHub for the newest official Maple Client release
 //! and reports whether it is newer than the running build.
 //!
 //! Only release *checking* lives here. Installing an update needs a signed
@@ -14,7 +14,7 @@ use std::io::Read;
 use std::time::Duration;
 
 /// Official releases only: the GitHub API and the pages its assets live on.
-const API_URL: &str = "https://api.github.com/repos/tekaitu/Cirrus-Client/releases/latest";
+const API_URL: &str = "https://api.github.com/repos/tekaitu/Maple-Client/releases/latest";
 const ALLOWED_HOSTS: &[&str] = &[
     "api.github.com",
     "github.com",
@@ -176,7 +176,7 @@ pub fn from_release_json(json: &str, current: &str) -> Result<UpdateCheck, Strin
         // Signed installs are not configured in this build (see the docs).
         install_ready: false,
         install_message:
-            "Automatic installation needs a signed Cirrus release. This build can open the official release page instead."
+            "Automatic installation needs a signed Maple release. This build can open the official release page instead."
                 .to_string(),
     })
 }
@@ -189,7 +189,7 @@ pub fn check(current: &str) -> Result<UpdateCheck, String> {
     }
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(20))
-        .user_agent("CirrusClient")
+        .user_agent("MapleClient")
         .build()
         .map_err(|e| format!("Could not prepare the update check: {e}"))?;
     let mut response = client
@@ -199,7 +199,7 @@ pub fn check(current: &str) -> Result<UpdateCheck, String> {
         .map_err(|e| format!("Could not reach GitHub: {e}"))?;
     if !response.status().is_success() {
         return Err(match response.status().as_u16() {
-            404 => "Cirrus has no published releases yet, so there is nothing to update to.".to_string(),
+            404 => "Maple has no published releases yet, so there is nothing to update to.".to_string(),
             403 => "GitHub is limiting update checks right now. Try again later.".to_string(),
             code => format!("GitHub answered with status {code}."),
         });
@@ -221,10 +221,10 @@ mod tests {
 
     #[test]
     fn only_project_pages_can_be_opened() {
-        assert!(allowed_page("https://github.com/tekaitu/Cirrus-Client/releases/tag/v0.3.4"));
-        assert!(!allowed_page("https://github.com/someone-else/Cirrus-Client"));
-        assert!(!allowed_page("https://evil.example.com/tekaitu/Cirrus-Client"));
-        assert!(!allowed_page("http://github.com/tekaitu/Cirrus-Client"));
+        assert!(allowed_page("https://github.com/tekaitu/Maple-Client/releases/tag/v0.3.4"));
+        assert!(!allowed_page("https://github.com/someone-else/Maple-Client"));
+        assert!(!allowed_page("https://evil.example.com/tekaitu/Maple-Client"));
+        assert!(!allowed_page("http://github.com/tekaitu/Maple-Client"));
         assert!(!allowed_page("javascript:alert(1)"));
     }
 
@@ -244,12 +244,12 @@ mod tests {
     fn a_newer_release_is_offered_with_its_notes_and_installer() {
         let json = serde_json::json!({
             "tag_name": "v0.3.4",
-            "html_url": "https://github.com/tekaitu/Cirrus-Client/releases/tag/v0.3.4",
+            "html_url": "https://github.com/tekaitu/Maple-Client/releases/tag/v0.3.4",
             "body": "## Fixes\n- Faster downloads\n- Java 17 support",
             "published_at": "2026-11-30T10:00:00Z",
             "assets": [
-                {"name": "CirrusClient_0.3.4_x64-setup.exe",
-                 "browser_download_url": "https://github.com/tekaitu/Cirrus-Client/releases/download/v0.3.4/CirrusClient_0.3.4_x64-setup.exe"}
+                {"name": "MapleClient_0.3.4_x64-setup.exe",
+                 "browser_download_url": "https://github.com/tekaitu/Maple-Client/releases/download/v0.3.4/MapleClient_0.3.4_x64-setup.exe"}
             ]
         });
         let check = from_release_json(&json.to_string(), "0.3.3").unwrap();

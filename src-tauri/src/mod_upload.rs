@@ -443,7 +443,7 @@ pub fn inspect(file_name: &str, bytes: &[u8], mc: &str, installed: &[InstalledMo
                         || zip.by_name("META-INF/neoforge.mods.toml").is_ok()
                     {
                         problems.push(error(
-                            "This is a Forge or NeoForge mod. Cirrus runs Fabric mods only.",
+                            "This is a Forge or NeoForge mod. Maple runs Fabric mods only.",
                         ));
                     } else if zip.by_name("pack.mcmeta").is_ok() {
                         problems.push(error(

@@ -58,7 +58,7 @@ export function OfflineAccount() {
       </form>
       {active && (
         <p className="offline-note">
-          Cirrus will start Minecraft as <strong>{playAs.name.trim()}</strong> until you sign in with Microsoft.
+          Maple will start Minecraft as <strong>{playAs.name.trim()}</strong> until you sign in with Microsoft.
         </p>
       )}
     </Card>

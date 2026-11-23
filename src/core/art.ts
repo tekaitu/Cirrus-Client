@@ -14,7 +14,7 @@ import family112 from "../assets/art/families/v112.jpg";
 import family18 from "../assets/art/families/v18.jpg";
 import familyLegacy from "../assets/art/families/legacy.jpg";
 
-/** The key art Cirrus uses. `full` is for backgrounds, `card` is a small copy for version cards. */
+/** The key art Maple uses. `full` is for backgrounds, `card` is a small copy for version cards. */
 export const ART = {
   summer: { full: summer, card: summerCard },
   trials: { full: trials, card: trialsCard },

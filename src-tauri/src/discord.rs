@@ -21,10 +21,10 @@ pub fn is_valid_app_id(id: &str) -> bool {
     (17..=20).contains(&id.len()) && id.bytes().all(|b| b.is_ascii_digit())
 }
 
-/// Cirrus Client's own Discord application. The ID is public (it is not a secret).
+/// Maple Client's own Discord application. The ID is public (it is not a secret).
 pub const DEFAULT_APP_ID: &str = "1571269169968840854";
 
-/// The application ID to use: `CIRRUS_DISCORD_APP_ID` from the build when it is set and valid, else Cirrus Client's own.
+/// The application ID to use: `CIRRUS_DISCORD_APP_ID` from the build when it is set and valid, else Maple Client's own.
 pub fn builtin_app_id() -> Option<&'static str> {
     option_env!("CIRRUS_DISCORD_APP_ID")
         .map(str::trim)
@@ -61,7 +61,7 @@ fn build<'a>(details: &'a str, state: Option<&'a str>, started_at: Option<i64>) 
         .assets(
             activity::Assets::new()
                 .large_image(LARGE_IMAGE_KEY)
-                .large_text("Cirrus Client"),
+                .large_text("Maple Client"),
         )
         .buttons(vec![activity::Button::new("Join the community", COMMUNITY_URL)]);
     if let Some(s) = state {

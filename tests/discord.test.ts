@@ -14,7 +14,7 @@ describe("Discord presence text", () => {
   it("describes the page when the game is not running", () => {
     expect(presenceFor({ page: "browse", running: false, version: "1.21.11", loader: "fabric", startedAt: 7 })).toEqual({
       details: "Browsing mods",
-      state: "Cirrus Client launcher",
+      state: "Maple Client launcher",
       startedAt: 7,
     });
   });

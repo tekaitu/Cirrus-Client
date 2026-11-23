@@ -1,4 +1,4 @@
-/** Whether Cirrus looks for a newer official release on start-up. On unless switched off. */
+/** Whether Maple looks for a newer official release on start-up. On unless switched off. */
 
 const KEY = "unlimited.updates.auto";
 

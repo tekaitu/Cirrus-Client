@@ -273,10 +273,10 @@ export default function App() {
         onManage={() => navigate("accounts")}
       />
       {booting && (
-        <div className="boot" role="status" aria-live="polite" aria-label="Loading Cirrus Client">
+        <div className="boot" role="status" aria-live="polite" aria-label="Loading Maple Client">
           <LogoMark size={76} />
           <span className="boot-spinner" aria-hidden="true" />
-          <p className="boot-text">Starting Cirrus Client…</p>
+          <p className="boot-text">Starting Maple Client…</p>
         </div>
       )}
     </div>

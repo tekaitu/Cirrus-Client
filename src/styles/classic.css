@@ -45,7 +45,7 @@
   transition: background var(--fast) var(--ease);
 }
 .side-brand:hover { background: rgb(255 255 255 / 0.06); }
-.side-brand .logo-mark { border-radius: 8px; }
+.side-brand .logo-mark { color: var(--brand); }
 .side-brand-name {
   font-family: var(--font-display);
   font-size: 0.6rem;
@@ -57,23 +57,38 @@
 .side-nav > ul { flex: none; }
 .side-nav ul, .side-foot { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; }
 .side-foot { flex: none; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+/* Navigation items are icons and labels on the rail itself: no tile, no box,
+   no border. Only the selected section gets a maple-orange marker. */
 .side-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
-  padding: 8px 4px;
-  border: 1px solid transparent;
-  border-radius: 11px;
+  padding: 9px 4px;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: color var(--fast) var(--ease), background var(--fast) var(--ease), border-color var(--fast) var(--ease);
+  transition: color var(--fast) var(--ease);
+}
+.side-marker {
+  display: block;
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand);
+  transform: translateY(-50%);
+  transition: height var(--fast) var(--ease);
 }
 .side-icon { display: grid; place-items: center; width: 22px; height: 22px; }
-.side-icon svg { display: block; width: 19px; height: 19px; }
+.side-icon svg { display: block; width: 20px; height: 20px; }
 .side-label {
   font-size: 0.65rem;
   font-weight: 650;
@@ -81,14 +96,13 @@
   line-height: 1.1;
   text-align: center;
 }
-.side-item:hover { color: var(--text); background: rgb(255 255 255 / 0.07); }
+.side-item:hover { color: var(--text); background: transparent; }
+.side-item:hover .side-icon { opacity: 0.92; }
 .side-item:focus-visible { outline: none; box-shadow: var(--focus); }
-.side-item.active {
-  color: var(--text);
-  background: rgb(255 255 255 / 0.11);
-  border-color: rgb(255 255 255 / 0.14);
-}
-.side-item.active .side-icon { color: var(--accent-bright); }
+.side-item.active { color: var(--text); background: transparent; }
+.side-item.active .side-icon { color: var(--brand); opacity: 1; }
+.side-item.active .side-label { color: var(--text); }
+.side-item.active .side-marker { height: 22px; }
 
 /* ------------------------------------------------------------ slim header */
 .hdr-lite {
@@ -138,6 +152,7 @@
 .home .home-hero > * { position: relative; z-index: 1; }
 
 .home-lockup { display: flex; align-items: center; gap: 10px; margin: 0 auto; }
+.home-lockup .logo-mark { color: var(--brand); }
 .home-lockup-name {
   font-size: 0.82rem;
   font-weight: 800;
@@ -371,8 +386,8 @@
 /* ------------------------------------------------------------ instance cards */
 .instance-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
 }
 .ic {
   display: flex;
@@ -390,7 +405,7 @@
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   padding: 0;
   border: 0;
   background: var(--raised-solid);
@@ -438,7 +453,7 @@
   text-shadow: 0 1px 10px rgb(0 0 0 / 0.6);
 }
 .ic-name {
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -447,7 +462,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ic-title { font-size: 1.06rem; font-weight: 750; letter-spacing: -0.01em; line-height: 1.15; }
+.ic-title { font-size: 1.22rem; font-weight: 750; letter-spacing: -0.015em; line-height: 1.15; }
 .ic-meta {
   font-size: 0.62rem;
   font-weight: 650;
@@ -459,13 +474,18 @@
 .ic-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 10px 12px;
   background: var(--surface-solid);
   border-top: 1px solid var(--border);
 }
 .ic-actions .btn, .ic-actions .ui-btn { flex: none; }
-.ic-tools { margin-left: auto; display: flex; gap: 2px; }
+.ic-actions .ui-btn-primary { min-width: 108px; }
+.ic-tools { margin-left: auto; display: flex; gap: 4px; }
+.ic-photo { object-fit: cover; }
+
+/* The name, version and loader sit at the bottom of the art in the older card. */
+.ic-last { font-size: 0.7rem; }
 
 /* ------------------------------------------------------------ welcome chooser */
 .theme-card.theme-on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -542,65 +562,74 @@
 .welcome-foot { margin: 0; }
 
 /* ------------------------------------------------------------ colorful theme
-   Bright key art, neutral dark chrome, the launcher's old blue accent for the
-   one primary action. The panels stay translucent so the picture is not hidden. */
+   The supplied Minecraft key art fills the window; warm neutral chrome sits on
+   top of it so text stays readable. The accent is the same maple orange as
+   Classic - only the artwork and the amount it shows through change. */
 :root[data-theme="colorful"] {
-  --bg: #080a0e;
-  --bg-2: #0c0f15;
-  --surface: rgb(255 255 255 / 0.055);
-  --surface-solid: #12151b;
-  --raised: rgb(255 255 255 / 0.09);
-  --raised-solid: #1a1e26;
-  --raised-2: rgb(255 255 255 / 0.14);
-  --glass: rgb(10 13 19 / 0.46);
-  --glass-strong: rgb(9 11 16 / 0.9);
-  --glass-border: rgb(255 255 255 / 0.16);
+  --bg: #0c0a08;
+  --bg-2: #100d0a;
+  --surface: rgb(24 20 17 / 0.58);
+  --surface-solid: #17130f;
+  --raised: rgb(38 31 26 / 0.66);
+  --raised-solid: #211b16;
+  --raised-2: rgb(58 48 40 / 0.7);
+  --glass: rgb(18 14 11 / 0.7);
+  --glass-strong: rgb(16 13 10 / 0.94);
+  --glass-border: rgb(255 236 226 / 0.16);
   --glass-hi: rgb(255 255 255 / 0.07);
-  --border: rgb(255 255 255 / 0.12);
-  --border-strong: rgb(255 255 255 / 0.28);
-  --text: #f7f9fc;
-  --text-soft: #d3dae4;
-  --muted: #a7b1c0;
-  --accent: #3b82f6;
-  --accent-strong: #2f6fdc;
-  --accent-bright: #8fb8ff;
-  --accent-2: #7fb0ff;
-  --violet: #7f9dff;
-  --accent-rgb: 59 130 246;
-  --accent-soft: rgb(var(--accent-rgb) / 0.16);
-  --on-accent: #ffffff;
-  --scene-filter: saturate(1.22) contrast(1.03) brightness(1.02);
-  --scene-veil: linear-gradient(180deg, rgb(4 7 12 / 0.3) 0%, rgb(4 7 12 / 0.04) 42%, rgb(4 7 12 / 0.55) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 46%, rgb(3 6 11 / 0.7) 100%);
+  --border: rgb(255 238 228 / 0.13);
+  --border-strong: rgb(255 238 228 / 0.3);
+  --text: #fdf8f4;
+  --text-soft: #e0d5cc;
+  --muted: #b6a79b;
+  --scene-filter: saturate(1.18) contrast(1.03) brightness(1.02);
+  --scene-veil: linear-gradient(180deg, rgb(16 11 8 / 0.42) 0%, rgb(16 11 8 / 0.1) 38%, rgb(16 11 8 / 0.72) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 42%, rgb(12 8 5 / 0.66) 100%);
 }
-:root[data-theme="colorful"] .side { background: linear-gradient(180deg, rgb(6 9 14 / 0.7), rgb(6 9 14 / 0.88)); }
-:root[data-theme="colorful"] .side-item.active {
-  background: rgb(59 130 246 / 0.2);
-  border-color: rgb(143 184 255 / 0.4);
-  color: #ffffff;
-}
-:root[data-theme="colorful"] .ic-badge { background: var(--accent); color: #ffffff; }
-:root[data-theme="colorful"] .hdr-lite { background: linear-gradient(180deg, rgb(4 7 12 / 0.5), rgb(4 7 12 / 0)); }
-/* The cube landscape is the point of this look, so the veil only holds the text. */
-:root[data-theme="colorful"] .app-bg[data-backdrop="home"] .app-bg-img { filter: var(--scene-filter); }
-:root[data-theme="colorful"] .app-bg[data-backdrop="home"] .app-bg-veil {
+:root[data-theme="colorful"] .side { background: linear-gradient(180deg, rgb(14 11 9 / 0.84), rgb(12 9 7 / 0.94)); }
+:root[data-theme="colorful"] .ic-badge { background: var(--brand); color: #ffffff; }
+:root[data-theme="colorful"] .hdr-lite { background: linear-gradient(180deg, rgb(12 9 7 / 0.5), rgb(12 9 7 / 0)); }
+/* The picture is the point of this look, so the veil only holds the text. */
+:root[data-theme="colorful"] .app-bg .app-bg-img { filter: var(--scene-filter); }
+/* Every page keeps the picture: the rest of the shell hides it so Classic pages
+   stay flat, but Colorful is one continuous scene. */
+:root[data-theme="colorful"] .app-bg:not([data-backdrop="home"]) .app-bg-img { opacity: 1; }
+:root[data-theme="colorful"] .app-bg:not([data-backdrop="home"]) .app-bg-vignette { display: block; }
+:root[data-theme="colorful"] .app-bg .app-bg-veil {
   background:
-    radial-gradient(64% 54% at 50% 44%, rgb(4 7 12 / 0.46) 0%, rgb(4 7 12 / 0.16) 62%, transparent 82%),
-    linear-gradient(180deg, rgb(4 7 12 / 0.42) 0%, rgb(4 7 12 / 0.04) 40%, rgb(4 7 12 / 0.5) 100%);
+    radial-gradient(64% 54% at 50% 44%, rgb(14 9 6 / 0.5) 0%, rgb(14 9 6 / 0.16) 62%, transparent 82%),
+    linear-gradient(180deg, rgb(14 9 6 / 0.46) 0%, rgb(14 9 6 / 0.06) 40%, rgb(14 9 6 / 0.62) 100%);
+}
+/* Denser pages (Instances, Versions, Mods, Modpacks, Settings, account) hold more
+   type and cards, so the picture is held back further while staying visible. */
+:root[data-theme="colorful"] .app-bg:not([data-backdrop="home"]) .app-bg-veil {
+  background:
+    radial-gradient(120% 82% at 50% 0%, rgb(14 9 6 / 0.58) 0%, rgb(12 8 5 / 0.68) 56%, rgb(10 7 4 / 0.84) 100%),
+    linear-gradient(180deg, rgb(12 8 5 / 0.68) 0%, rgb(12 8 5 / 0.56) 46%, rgb(10 7 4 / 0.82) 100%);
 }
 :root[data-theme="colorful"] .home-section,
 :root[data-theme="colorful"] .quick-join {
-  background: linear-gradient(180deg, rgb(9 12 18 / 0.52), rgb(9 12 18 / 0.4));
-  border-color: rgb(255 255 255 / 0.14);
-  backdrop-filter: blur(20px) saturate(1.08);
+  background: linear-gradient(180deg, rgb(20 15 12 / 0.78), rgb(18 13 10 / 0.7));
+  border-color: rgb(255 238 228 / 0.18);
+  backdrop-filter: blur(22px) saturate(1.08);
+}
+:root[data-theme="colorful"] .quick-recent { background: rgb(255 238 228 / 0.06); }
+:root[data-theme="colorful"] .quick-recent:hover { background: rgb(255 238 228 / 0.12); }
+:root[data-theme="colorful"] .home .home-hero::before {
+  background: radial-gradient(58% 62% at 50% 42%, rgb(10 6 3 / 0.68) 0%, rgb(10 6 3 / 0.36) 60%, transparent 82%);
 }
 :root[data-theme="colorful"] .home-section-head h2,
 :root[data-theme="colorful"] .quick-head h2 { text-shadow: 0 2px 14px rgb(0 0 0 / 0.55); }
 :root[data-theme="colorful"] .home-version { color: #ffffff; }
+:root[data-theme="colorful"] .home-sub { color: rgb(255 255 255 / 0.9); text-shadow: 0 2px 10px rgb(0 0 0 / 0.85), 0 1px 2px rgb(0 0 0 / 0.9); }
+:root[data-theme="colorful"] .home-hero-links .link-inline { color: rgb(255 255 255 / 0.86); text-shadow: 0 1px 8px rgb(0 0 0 / 0.8); }
 /* Type over the key art keeps a shadow of its own, so a bright block behind it never swallows a line. */
 :root[data-theme="colorful"] .home-section p,
 :root[data-theme="colorful"] .quick-join p,
 :root[data-theme="colorful"] .news-item strong { text-shadow: 0 1px 4px rgb(0 0 0 / 0.7); }
+
+/* The brand lettering used in About. */
+.wordmark { display: inline-flex; align-items: center; gap: 10px; }
 
 /* ------------------------------------------------------------ responsive */
 @media (max-width: 1180px) {

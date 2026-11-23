@@ -201,7 +201,7 @@ pub fn validate(s: &Settings, total_ram_mb: u64) -> Vec<FieldError> {
     } else if dir.contains('\0') || !Path::new(dir).is_absolute() {
         errors.push(FieldError {
             field: "gameDir",
-            message: "Use a full path, for example C:\\Users\\you\\CirrusClient.".to_string(),
+            message: "Use a full path, for example C:\\Users\\you\\MapleClient.".to_string(),
         });
     } else if Path::new(dir).exists() && !Path::new(dir).is_dir() {
         errors.push(FieldError {
@@ -257,7 +257,7 @@ pub fn load(path: &Path, defaults: &Settings) -> Loaded {
             Ok(_) => recover(
                 path,
                 defaults,
-                "The settings file was saved by a newer version of Cirrus Client.",
+                "The settings file was saved by a newer version of Maple Client.",
             ),
             Err(e) => recover(path, defaults, &format!("The settings file was damaged ({e})."))
         },
@@ -284,12 +284,12 @@ mod tests {
     use std::fs;
 
     fn defaults_for_tests() -> Settings {
-        let dir = if cfg!(windows) { "C:\\CirrusClient\\game" } else { "/tmp/cirrus-client-game" };
+        let dir = if cfg!(windows) { "C:\\MapleClient\\game" } else { "/tmp/cirrus-client-game" };
         defaults(16384, Path::new(dir))
     }
 
     fn game_dir_ok() -> String {
-        if cfg!(windows) { "C:\\CirrusClient\\game".into() } else { "/tmp/cirrus-client-game".into() }
+        if cfg!(windows) { "C:\\MapleClient\\game".into() } else { "/tmp/cirrus-client-game".into() }
     }
 
     #[test]

@@ -91,8 +91,8 @@ function installMock() {
     error: null,
   };
   const settings = {
-    settings: { version: 2, javaPath: null, memoryMb: 4096, gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\game", windowWidth: 1280, windowHeight: 720, jvmArgs: "", reduceMotion: false, msClientId: null },
-    status: "loaded", message: null, filePath: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\settings.json",
+    settings: { version: 2, javaPath: null, memoryMb: 4096, gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\game", windowWidth: 1280, windowHeight: 720, jvmArgs: "", reduceMotion: false, msClientId: null },
+    status: "loaded", message: null, filePath: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\settings.json",
     totalRamMb: 15800, minMemoryMb: 1024, maxMemoryMb: 13568,
   };
   const profile = { id: "0123456789abcdef0123456789abcdef", name: "Brend4n" };
@@ -112,7 +112,7 @@ function installMock() {
   window.__crash = { hint: "Minecraft ran out of memory. Give it more in Settings > Memory and RAM, or switch off heavy mods.", report: crashReport, reportPath: "C:\\game\\crash-reports\\crash-2026-11-15.txt", logTail: log };
   let logOffset = 0;
   const handlers = {
-    get_app_info: () => ({ name: "Cirrus Client", version: "0.3.3", target_minecraft: "1.21.11", launcher_ready: true }),
+    get_app_info: () => ({ name: "Maple Client", version: "0.4.0", target_minecraft: "1.21.11", launcher_ready: true }),
     get_system_info: () => ({ osName: "Windows", osVersion: "10 (19045)", osLongVersion: "Windows 10 Pro", kernelVersion: "19045", arch: "x86_64", cpuBrand: "AMD Ryzen 5 PRO 4650G with Radeon Graphics", cpuLogicalCores: 12, cpuPhysicalCores: 6, totalRamMb: 15800, availableRamMb: 9000 }),
     detect_java: () => ({ installs: [java], candidatesChecked: 6, notes: ["Checked 6 places."] }),
     load_settings: () => settings, save_settings: () => ({ ok: true, errors: [], state: settings }),
@@ -146,7 +146,7 @@ function installMock() {
     save_instance: () => null, clone_instance: () => null, delete_instance: () => null,
     repair_instance: () => ({ status: "installed", message: null, loader: "0.17.2" }),
     switch_fabric_loader: () => null, open_instance_folder: () => null,
-    check_for_updates: () => ({ current: "0.3.3", latest: "0.3.3", available: false, notes: "", pageUrl: null, downloadUrl: null, publishedAt: null, installReady: false, installMessage: "Automatic installation needs a signed release; this build links to the official download." }),
+    check_for_updates: () => ({ current: "0.4.0", latest: "0.4.0", available: false, notes: "", pageUrl: null, downloadUrl: null, publishedAt: null, installReady: false, installMessage: "Automatic installation needs a signed release; this build only checks the feed." }),
     open_update_page: () => null,
     diagnose_crash: () => ({ cause: "Minecraft ran out of the memory it was given. The heap filled up while the server tick loop was running.", confidence: "high", evidence: ["java.lang.OutOfMemoryError: Java heap space", "Memory: 4096 MiB"], fixes: [{ kind: "memory", label: "Raise this instance to 6144 MB", detail: "Changes only this instance's memory limit and keeps a backup of the settings file.", value: "6144", changesSettings: true }, { kind: "mods", label: "Review installed mods", detail: "A large modpack can need more memory than the default.", value: null, changesSettings: false }], excerpt: "java.lang.OutOfMemoryError: Java heap space", unknown: false }),
     list_profiles: () => [{ id: "pvp", name: "PvP", minecraft: "1.21.11", fabric: true, color: 0 }],

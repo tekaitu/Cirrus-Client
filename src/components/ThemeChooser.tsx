@@ -18,7 +18,7 @@ export function ThemeChooser({ onChosen }: { onChosen: (id: ThemeId) => void }) 
     <div className="modal-backdrop welcome-backdrop">
       <div className="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
         <header className="welcome-head">
-          <p className="eyebrow">Welcome to Cirrus</p>
+          <p className="eyebrow">Welcome to Maple</p>
           <h1 id="welcome-title">Choose your look</h1>
           <p className="muted">
             Both themes run the same launcher — your accounts, instances, mods and settings are shared. You can switch
@@ -62,7 +62,7 @@ export function ThemeChooser({ onChosen }: { onChosen: (id: ThemeId) => void }) 
           ))}
         </div>
 
-        <p className="welcome-foot muted small">Cirrus keeps every instance, account and setting when you change theme.</p>
+        <p className="welcome-foot muted small">Maple keeps every instance, account and setting when you change theme.</p>
       </div>
     </div>
   );

@@ -213,7 +213,7 @@ pub fn diagnose(report: Option<&str>, log_tail: &str, context: &Context) -> Diag
         || has("invalid maximum heap size")
     {
         return Diagnosis {
-            cause: "Java could not reserve the amount of memory Cirrus asked for.".to_string(),
+            cause: "Java could not reserve the amount of memory Maple asked for.".to_string(),
             confidence: "high".to_string(),
             evidence: evidence_for(&lines, &["could not reserve", "virtual machine", "heap size"], 4),
             fixes: vec![lower_memory_fix(context.memory_mb), repair_fix()],

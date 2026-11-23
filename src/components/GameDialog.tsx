@@ -24,7 +24,7 @@ export function GameDialog({ data, onNavigate }: { data: AppData; onNavigate?: (
 function headerLine(data: AppData, extra: string): string {
   const version = data.app.status === "ready" ? data.app.data.version : "";
   const sel = data.selection;
-  return `Cirrus Client ${version} · Minecraft ${sel.version} (${sel.loader === "fabric" ? "Fabric" : "Vanilla"}) · ${extra}`;
+  return `Maple Client ${version} · Minecraft ${sel.version} (${sel.loader === "fabric" ? "Fabric" : "Vanilla"}) · ${extra}`;
 }
 
 function useCopy() {
@@ -295,7 +295,7 @@ function CrashView({ data, onNavigate }: { data: AppData; onNavigate?: (page: Pa
                       <p className="small">
                         {fix.kind === "memory"
                           ? `Memory for this instance becomes ${fix.value} MB. The previous settings file is kept as a backup.`
-                          : "Cirrus will do exactly what is described above, and nothing else."}
+                          : "Maple will do exactly what is described above, and nothing else."}
                       </p>
                       <div className="row">
                         <button type="button" className="btn btn-small" onClick={() => setPending(null)} disabled={fixing}>

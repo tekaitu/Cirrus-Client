@@ -125,7 +125,7 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
 
   const addFile = (file: File) => {
     if (!/\.png$/i.test(file.name) && file.type !== "image/png") {
-      setNotice({ tone: "bad", text: "Choose a PNG skin: Cirrus only sends PNG files to Minecraft." });
+      setNotice({ tone: "bad", text: "Choose a PNG skin: Maple only sends PNG files to Minecraft." });
       return;
     }
     void run(
@@ -267,7 +267,7 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
         <h1>Character</h1>
         <p className="muted">
           {player
-            ? `${player.name}'s Minecraft character, read from the account Cirrus is signed in with.`
+            ? `${player.name}'s Minecraft character, read from the account Maple is signed in with.`
             : "Sign in with Microsoft to see and change your Minecraft character."}
         </p>
       </header>
@@ -395,7 +395,7 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
                 </dl>
                 {!appearance?.cape && (
                   <p className="muted small">
-                    Capes can only be equipped on minecraft.net. Cirrus shows the cape your account already owns and
+                    Capes can only be equipped on minecraft.net. Maple shows the cape your account already owns and
                     never adds one that is not there.
                   </p>
                 )}

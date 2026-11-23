@@ -257,7 +257,7 @@ pub fn is_allowed_url(url: &Url) -> bool {
 
 fn client() -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
-        .user_agent(concat!("CirrusClient/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("MapleClient/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(20))
         .timeout(Duration::from_secs(10 * 60))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {
@@ -1138,7 +1138,7 @@ pub fn create_profile(root: &Path, name: &str, minecraft: &str, fabric: bool) ->
     }
     let mut list = list_profiles(root);
     if list.len() >= MAX_PROFILES {
-        return Err("That is the most profiles Cirrus Client keeps. Delete one first.".to_string());
+        return Err("That is the most profiles Maple Client keeps. Delete one first.".to_string());
     }
     if list.iter().any(|p| p.name.eq_ignore_ascii_case(name)) {
         return Err("You already have a profile with that name.".to_string());
@@ -1271,7 +1271,7 @@ pub fn build_launch(
     vars.insert("library_directory", root.join("libraries").display().to_string());
     vars.insert("classpath_separator", ";".to_string());
     vars.insert("classpath", classpath.join(";"));
-    vars.insert("launcher_name", "CirrusClient".to_string());
+    vars.insert("launcher_name", "MapleClient".to_string());
     vars.insert("launcher_version", launcher_version.to_string());
 
     let mut jvm = resolve_args(vanilla.get("arguments").and_then(|a| a.get("jvm")));

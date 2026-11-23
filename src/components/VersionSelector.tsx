@@ -21,7 +21,7 @@ import {
  * PC for quick switching, then every release and snapshot from Mojang's list
  * with a search box and a type filter. Versions this build cannot download are
  * visible but not selectable, with the reason, and the Java check compares the
- * version's requirement with the Java Cirrus actually found.
+ * version's requirement with the Java Maple actually found.
  */
 export function VersionSelector({
   data,
@@ -359,7 +359,7 @@ export function VersionSelector({
 
               {catalogError && (
                 <p className="vp-note small">
-                  Mojang&apos;s full version list could not be reached, so only the releases Cirrus knows are listed.
+                  Mojang&apos;s full version list could not be reached, so only the releases Maple knows are listed.
                 </p>
               )}
             </div>,

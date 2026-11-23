@@ -6,7 +6,7 @@ import { Spinner } from "./ui";
 import { readAutoUpdateCheck } from "../core/updates";
 
 /**
- * One quiet line above the footer when a newer official Cirrus release exists.
+ * One quiet line above the footer when a newer official Maple release exists.
  * It never opens by itself a second time: "Later" hides it for this session.
  * Installing is only offered when the build can verify a signed release; this
  * build says so and opens the official release page instead.
@@ -47,7 +47,7 @@ export function UpdateNotice() {
         <UpdateIcon />
       </span>
       <div className="update-text">
-        <strong>Cirrus Launcher update available</strong>
+        <strong>Maple Launcher update available</strong>
         <span className="muted small">
           v{check.current} → v{check.latest}
           {check.publishedAt ? ` · ${new Date(check.publishedAt).toLocaleDateString()}` : ""}

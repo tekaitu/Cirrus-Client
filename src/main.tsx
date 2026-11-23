@@ -14,6 +14,7 @@ import "./styles/studio.css";
 import "./styles/ui.css";
 import "./styles/classic.css";
 import "./styles/buttons.css";
+import "./styles/maple.css";
 
 initTheme();
 initWindowFrame();

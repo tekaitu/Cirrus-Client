@@ -25,15 +25,22 @@ const BACKDROP: Record<BackdropId, ArtId> = {
 /**
  * The picture behind the whole window. It changes with the page and fades between pages.
  *
- * Colorful keeps the bright Minecraft key art (the cube landscape); Classic holds
- * the same pictures back to near-monochrome. A `-colorful` picture the owner adds
- * to src/assets/backgrounds is used first when Colorful is selected.
+ * Colorful uses the owner's Minecraft background from
+ * src/assets/backgrounds/colorful.jpg (or .png/.webp) on every page; Classic
+ * holds its own pictures back to near-monochrome.
  */
 export function AppBackground({ id }: { id: BackdropId }) {
   const theme = useTheme();
   const colorful = theme === "colorful";
+  // One supplied Minecraft picture fills the window on every page. The older
+  // `default-colorful` / per-page names still work for anyone who used them.
+  const colorfulSrc =
+    ownPicture("colorful") ??
+    ownPicture("default-colorful") ??
+    ownPicture(`${id}-colorful`) ??
+    ownPicture("home-colorful");
   const src =
-    (colorful ? ownPicture(`${id}-colorful`) ?? ownPicture("default-colorful") : null) ??
+    (colorful ? colorfulSrc : null) ??
     ownPicture(id) ??
     ownPicture("default") ??
     ART[BACKDROP[id]].full;

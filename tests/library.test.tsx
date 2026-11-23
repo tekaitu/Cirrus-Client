@@ -231,7 +231,7 @@ describe("texture pack browsing", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Install pack" }));
     await waitFor(() => expect(mocked.installResourcePack).toHaveBeenCalledWith("modrinth", "clean", "1.21.11", undefined));
-    expect(await screen.findByText(/Cirrus never switches a pack on by itself/)).toBeTruthy();
+    expect(await screen.findByText(/Maple never switches a pack on by itself/)).toBeTruthy();
   });
 
   it("will not offer to install when there is no file for this version", async () => {

@@ -86,7 +86,7 @@ const mocked = vi.mocked(api);
 
 /** Opens the version catalogue from the library (its Add Version button). */
 function openAddVersion() {
-  fireEvent.click(screen.getByRole("button", { name: "Add Version" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Add version$/i }));
 }
 
 /** Navigation labels as the sidebar shows them. */
@@ -306,7 +306,7 @@ afterEach(() => {
 describe("Home", () => {
   it("shows the branded hero, the Play button and the launcher's own sections", async () => {
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1, name: "Sky is the limit." })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Your world, your way." })).toBeTruthy();
     expect(screen.getByText(/Minecraft 1\.21\.11 · Fabric/)).toBeTruthy();
     expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
     // The version is secondary information now, not the headline.
@@ -338,6 +338,7 @@ describe("Home", () => {
   it("lets the Discord status be switched off in Settings", async () => {
     render(<App />);
     goTo("Settings");
+    fireEvent.click(await screen.findByRole("tab", { name: "Discord" }));
     const toggle = (await screen.findByRole("switch", { name: "Discord Presence" })) as HTMLInputElement;
     expect(toggle.checked).toBe(true);
     fireEvent.click(toggle);
@@ -745,7 +746,7 @@ describe("Java installer", () => {
 });
 
 describe("Settings layout", () => {
-  it("has nine sections and shows one at a time", async () => {
+  it("has ten sections and shows one at a time", async () => {
     render(<App />);
     goTo("Settings");
     const nav = await screen.findByRole("tablist", { name: "Settings sections" });
@@ -759,6 +760,7 @@ describe("Settings layout", () => {
       "Launch settings",
       "Keybinds",
       "Updates",
+      "Discord",
     ];
     for (const name of names) expect(within(nav).getByRole("tab", { name })).toBeTruthy();
     expect(within(nav).getByRole("tab", { name: "General" }).getAttribute("aria-selected")).toBe("true");
@@ -806,11 +808,12 @@ describe("Settings layout", () => {
     expect(window.localStorage.getItem("unlimited.username")).toBe("Alex");
   });
 
-  it("opens the GitHub page from Updates", async () => {
+  it("keeps updates inside the launcher instead of sending people to a repository", async () => {
     render(<App />);
     await goToSettings("Updates");
-    fireEvent.click(await screen.findByRole("button", { name: "Open the GitHub page" }));
-    expect(mocked.openGithub).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(/Maple Client is distributed privately/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /GitHub/i })).toBeNull();
+    expect(mocked.openGithub).not.toHaveBeenCalled();
   });
 
   it("memory presets fill in the memory and mark unsaved changes", async () => {
@@ -846,7 +849,7 @@ describe("Diagnostics", () => {
     await goToDiagnostics();
     expect(await screen.findByText("Java in use")).toBeTruthy();
     expect(screen.getByText("Java 21 (21.0.4)")).toBeTruthy();
-    expect(screen.getByText("Where Cirrus Client looked (2)")).toBeTruthy();
+    expect(screen.getByText("Where Maple Client looked (2)")).toBeTruthy();
     expect(screen.getByText("JAVA_HOME is not set.")).toBeTruthy();
   });
 
@@ -876,7 +879,7 @@ describe("Diagnostics", () => {
     fireEvent.click(copy);
     expect(await screen.findByText("Report copied to the clipboard.")).toBeTruthy();
     expect(writeText).toHaveBeenCalledTimes(1);
-    expect(String(writeText.mock.calls[0][0])).toContain("Cirrus Client diagnostics report");
+    expect(String(writeText.mock.calls[0][0])).toContain("Maple Client diagnostics report");
   });
 
   it("tells the user when the clipboard is unavailable", async () => {
@@ -1049,7 +1052,7 @@ describe("Play", () => {
 
   it("shows the chosen version and loader under the branded headline", async () => {
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1, name: "Sky is the limit." })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Your world, your way." })).toBeTruthy();
     expect(screen.getByText(/Minecraft 1\.21\.11 · Fabric · no instance selected/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Open the Library" })).toBeTruthy();
     await settled();
@@ -1277,13 +1280,13 @@ describe("License", () => {
   it("must be accepted before the launcher is used", async () => {
     window.localStorage.removeItem("unlimited.license");
     render(<App />);
-    const dialog = await screen.findByRole("dialog", { name: "Cirrus Client license" });
+    const dialog = await screen.findByRole("dialog", { name: "Maple Client license" });
     expect(within(dialog).getByText(/You need Minecraft/)).toBeTruthy();
     const accept = within(dialog).getByRole("button", { name: "Accept and continue" }) as HTMLButtonElement;
     expect(accept.disabled).toBe(true);
     fireEvent.click(within(dialog).getByRole("checkbox"));
     fireEvent.click(accept);
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Maple Client license" })).toBeNull());
     expect(window.localStorage.getItem("unlimited.license")).toBe("2");
   });
 
@@ -1297,12 +1300,12 @@ describe("License", () => {
 
   it("can be read again from About", async () => {
     render(<App />);
-    expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Maple Client license" })).toBeNull();
     goToAbout();
     fireEvent.click(await screen.findByRole("button", { name: "Read the license" }));
-    const dialog = await screen.findByRole("dialog", { name: "Cirrus Client license" });
+    const dialog = await screen.findByRole("dialog", { name: "Maple Client license" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-    expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Maple Client license" })).toBeNull();
   });
 });
 
@@ -1392,7 +1395,7 @@ describe("Library", () => {
   it("says when nothing is installed and points at the version list", async () => {
     render(<App />);
     goTo("Library");
-    expect(await screen.findByRole("heading", { level: 1, name: "Library" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Instances" })).toBeTruthy();
     expect(await screen.findByText("Your library is empty")).toBeTruthy();
     openAddVersion();
     expect(await screen.findByRole("heading", { level: 1, name: "Versions" })).toBeTruthy();
@@ -1433,6 +1436,42 @@ describe("Library", () => {
     expect(await within(dialog).findByText(/this removes 2 worlds, 1 mod, 1 screenshot/)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete instance" }));
     await waitFor(() => expect(mocked.deleteInstance).toHaveBeenCalledWith("a", false));
+  });
+
+  it("creates an instance through the two-step Create instance dialog", async () => {
+    mocked.listInstanceViews.mockResolvedValue([]);
+    mocked.saveInstance.mockImplementation(async (config) =>
+      instanceView({
+        id: config.id,
+        name: config.name,
+        minecraft: config.minecraft,
+        loader: config.loader,
+        loaderVersion: config.loaderVersion,
+      }),
+    );
+    render(<App />);
+    await settled();
+    goTo("Library");
+    fireEvent.click(await screen.findByRole("button", { name: "Create instance" }));
+    const dialog = await screen.findByRole("dialog", { name: "Create instance" });
+    // Step one: the four ways to start, with only Custom setup available.
+    expect(within(dialog).getByText("Start from a mod or modpack")).toBeTruthy();
+    expect(within(dialog).getAllByText("Not in this build").length).toBe(3);
+    fireEvent.click(within(dialog).getByRole("button", { name: /Custom setup/ }));
+    // Step two: the real configuration is written through the backend.
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Survival" } });
+    fireEvent.change(within(dialog).getByLabelText("Game version"), { target: { value: "1.20.6" } });
+    // Creating waits until Fabric has named the loader build it will install.
+    await within(dialog).findByText(/Fabric Loader 0\.17\.0 will be installed/);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create instance" }));
+    await waitFor(() => expect(mocked.saveInstance).toHaveBeenCalledTimes(1));
+    expect(mocked.saveInstance.mock.calls[0][0]).toMatchObject({
+      name: "Survival",
+      minecraft: "1.20.6",
+      loader: "fabric",
+      loaderVersion: "0.17.0",
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Create instance" })).toBeNull());
   });
 });
 
@@ -1942,15 +1981,15 @@ describe("Skins page", () => {
 });
 
 describe("About page", () => {
-  it("shows the version, the tagline and the links, and opens Discord and GitHub", async () => {
+  it("shows the version, the tagline and the community link", async () => {
     render(<App />);
     goToAbout();
     expect(await screen.findByText(/Version 0\.1\.0/)).toBeTruthy();
-    expect(screen.getByText("The sky is the limit.")).toBeTruthy();
+    expect(screen.getByText("Your world, your way.")).toBeTruthy();
+    expect(screen.getByText(/no GitHub page to visit/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open Discord" }));
     expect(mocked.openCommunity).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "Open GitHub" }));
-    expect(mocked.openGithub).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: /GitHub/i })).toBeNull();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
@@ -1958,15 +1997,15 @@ describe("About page", () => {
     render(<App />);
     goToAbout();
     fireEvent.click(await screen.findByRole("button", { name: "Read the license" }));
-    expect(await screen.findByRole("dialog", { name: "Cirrus Client license" })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: "Maple Client license" })).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
   it("shows an error when a link cannot be opened", async () => {
-    mocked.openGithub.mockRejectedValue(new Error("no browser"));
+    mocked.openCommunity.mockRejectedValue(new Error("no browser"));
     render(<App />);
     goToAbout();
-    fireEvent.click(await screen.findByRole("button", { name: "Open GitHub" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Discord" }));
     expect(await screen.findByText("no browser")).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });

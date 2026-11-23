@@ -342,7 +342,7 @@ export function InstanceEditor({
               <>
                 <h3>Repair this instance?</h3>
                 <p className="muted small">
-                  Cirrus checks Minecraft's own files for {instance.minecraft} and downloads anything missing or damaged.
+                  Maple checks Minecraft's own files for {instance.minecraft} and downloads anything missing or damaged.
                   Worlds, saves, screenshots, mods and settings are not touched — the files are only read.
                 </p>
                 <div className="row">

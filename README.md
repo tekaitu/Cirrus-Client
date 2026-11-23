@@ -1,4 +1,4 @@
-# Cirrus Client
+# Maple Client
 
 A Windows launcher for **Minecraft Java Edition 1.21.11** (Fabric), aimed at competitive sword PvP on lower-to-mid-range hardware. Built with Tauri 2 (Rust) + React + TypeScript.
 

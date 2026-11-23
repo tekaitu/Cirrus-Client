@@ -88,23 +88,25 @@ export type SettingsTab =
   | "launch"
   | "account"
   | "keybinds"
+  | "discord"
   | "updates";
 
 /**
  * The sections, grouped the way people think about them: what the game is,
- * how it runs, how Cirrus looks, who plays, and the rest.
+ * how it runs, how Maple looks, who plays, and the rest.
  */
 const TABS: Array<{ id: SettingsTab; label: string; icon: ReactNode; group: string }> = [
-  { id: "minecraft", label: "Minecraft", icon: <CubeIcon />, group: "Game" },
-  { id: "folder", label: "Game directory", icon: <FolderIcon />, group: "Game" },
-  { id: "launch", label: "Launch settings", icon: <RocketIcon />, group: "Game" },
-  { id: "performance", label: "Performance", icon: <CpuIcon />, group: "Performance" },
-  { id: "memory", label: "Memory and RAM", icon: <MemoryIcon />, group: "Performance" },
+  { id: "general", label: "General", icon: <SettingsIcon />, group: "General" },
+  { id: "keybinds", label: "Keybinds", icon: <KeyboardIcon />, group: "General" },
+  { id: "minecraft", label: "Minecraft", icon: <CubeIcon />, group: "Minecraft" },
+  { id: "folder", label: "Game directory", icon: <FolderIcon />, group: "Minecraft" },
+  { id: "launch", label: "Launch settings", icon: <RocketIcon />, group: "Minecraft" },
+  { id: "performance", label: "Performance", icon: <CpuIcon />, group: "Minecraft" },
+  { id: "memory", label: "Memory and RAM", icon: <MemoryIcon />, group: "Minecraft" },
   { id: "appearance", label: "Appearance", icon: <PaletteIcon />, group: "Appearance" },
+  { id: "updates", label: "Updates", icon: <DownloadIcon />, group: "Downloads and updates" },
   { id: "account", label: "Account", icon: <UserIcon />, group: "Account" },
-  { id: "general", label: "General", icon: <SettingsIcon />, group: "More" },
-  { id: "keybinds", label: "Keybinds", icon: <KeyboardIcon />, group: "More" },
-  { id: "updates", label: "Updates", icon: <DownloadIcon />, group: "More" },
+  { id: "discord", label: "Discord", icon: <BrandIcon name="discord" />, group: "Discord" },
 ];
 
 const TAB_GROUPS = TABS.reduce<Array<{ label: string; tabs: typeof TABS }>>((groups, tab) => {
@@ -165,6 +167,26 @@ function SettingsForm({
   const [look, setLook] = useState(() => ({ theme: getTheme() }));
   const [autoUpdates, setAutoUpdates] = useState(readAutoUpdateCheck);
   const [characterSpin, setCharacterSpin] = useState(() => readLocal("cirrus.characterSpin") !== "off");
+  // Whether a Discord client is actually reachable, so the panel never claims a
+  // connection that is not there.
+  const [discordAvailable, setDiscordAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    // A window without the desktop bridge (or an older backend) simply reports
+    // no Discord rather than breaking the page.
+    try {
+      void api
+        .discordAvailable()
+        .then((ok) => alive && setDiscordAvailable(ok))
+        .catch(() => alive && setDiscordAvailable(false));
+    } catch {
+      setDiscordAvailable(false);
+    }
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // After a successful save or reset the backend hands back a new settings object.
   useEffect(() => {
@@ -298,16 +320,12 @@ function SettingsForm({
             <BrandIcon name="discord" />
             Join the Discord community
           </button>
+          {(discord || discordAvailable !== null) && (
+            <button type="button" className="btn" onClick={() => setTab("discord")}>
+              Discord settings
+            </button>
+          )}
         </div>
-        {discord && (
-          <label className="switch-row">
-            <span>
-              <strong>Show what I&apos;m playing on Discord</strong>
-              <span className="muted small"> Your Discord status shows Cirrus Client and the version you play.</span>
-            </span>
-            <input type="checkbox" role="switch" aria-label="Discord Presence" checked={discord.enabled} onChange={discord.onToggle} />
-          </label>
-        )}
         <div className="row">
           <button type="button" className="btn" onClick={() => onNavigate("about")}>
             About
@@ -445,7 +463,7 @@ function SettingsForm({
           {data.java.status === "error" && <p className="muted small">Java could not be scanned in this window.</p>}
           {data.java.status === "ready" && data.java.data.analyses.length === 0 && (
             <p className="muted small">
-              No Java was found. Install one below; it is kept inside Cirrus' own folder and Windows is not changed.
+              No Java was found. Install one below; it is kept inside Maple&apos;s own folder and Windows is not changed.
             </p>
           )}
           {data.java.status === "ready" && data.java.data.analyses.length > 0 && (
@@ -699,7 +717,7 @@ function SettingsForm({
       </Card>
       <Card title="Java for launching" icon={<JavaIcon />} description="Which Java starts the game.">
         <p className="muted small">
-          Cirrus finds Java 21 automatically and can install it for you. To pick one yourself or test a path, open
+          Maple finds Java 21 automatically and can install it for you. To pick one yourself or test a path, open
           Performance.
         </p>
         <div className="row">
@@ -777,6 +795,58 @@ function SettingsForm({
       </Card>
             </>
           )}
+          {tab === "discord" && (
+            <>
+      <Card
+        title="Discord Rich Presence"
+        tone="blue"
+        icon={<BrandIcon name="discord" />}
+        description="What your Discord profile shows while the launcher is open."
+      >
+        <div className="discord-status">
+          <span className={`dot ${discordAvailable ? "dot-on" : ""}`} aria-hidden="true" />
+          <div>
+            <strong>
+              {discordAvailable === null
+                ? "Checking for Discord…"
+                : discordAvailable
+                  ? "Discord is running"
+                  : "Discord is not running"}
+            </strong>
+            <span className="muted small">
+              {discordAvailable
+                ? "Maple connects to the Discord client on this PC. No second presence service is used."
+                : "Open Discord Desktop and Maple will connect on its own. Nothing is left showing when it is closed."}
+            </span>
+          </div>
+          <Badge tone={discordAvailable ? "good" : "neutral"}>{discordAvailable ? "Connected" : "Offline"}</Badge>
+        </div>
+        {discord ? (
+          <label className="switch-row">
+            <span>
+              <strong>Show what I&apos;m playing on Discord</strong>
+              <span className="muted small"> Your Discord status shows Maple Client and the version you play.</span>
+            </span>
+            <input type="checkbox" role="switch" aria-label="Discord Presence" checked={discord.enabled} onChange={discord.onToggle} />
+          </label>
+        ) : (
+          <p className="muted small">Rich Presence is only available inside the desktop app.</p>
+        )}
+      </Card>
+      <Card title="Community" icon={<InfoIcon />} description="Questions, bug reports and ideas.">
+        <div className="row">
+          <button
+            type="button"
+            className="btn btn-discord"
+            onClick={() => void api.openCommunity().catch((e: unknown) => setNotice({ tone: "bad", text: errorMessage(e) }))}
+          >
+            <BrandIcon name="discord" />
+            Open Discord
+          </button>
+        </div>
+      </Card>
+            </>
+          )}
           {tab === "keybinds" && (
             <>
       <Card title="Shortcuts" icon={<KeyboardIcon />} description="Press these anywhere in the launcher.">
@@ -804,7 +874,7 @@ function SettingsForm({
       <Card title="Version" icon={<DownloadIcon />} description="What is installed right now.">
         <dl className="config-list">
           <div>
-            <dt>Cirrus Client</dt>
+            <dt>Maple Client</dt>
             <dd>
               <strong>{data.app.status === "ready" ? `v${data.app.data.version}` : "…"}</strong>
               <span className="muted small"> · early build</span>
@@ -818,7 +888,7 @@ function SettingsForm({
           </div>
         </dl>
       </Card>
-      <Card title="Launcher updates" icon={<DownloadIcon />} description="Checked against the official Cirrus releases on GitHub.">
+      <Card title="Launcher updates" icon={<DownloadIcon />} description="Checked against Maple's release feed over HTTPS.">
         <label className="check switch">
           <input
             type="checkbox"
@@ -828,24 +898,19 @@ function SettingsForm({
               writeAutoUpdateCheck(e.target.checked);
             }}
           />
-          <span>Check for launcher updates automatically when Cirrus starts</span>
+          <span>Check for launcher updates automatically when Maple starts</span>
         </label>
         <UpdateCheckPanel />
       </Card>
-      <Card title="What an update keeps" icon={<InfoIcon />} description="Updating Cirrus never touches your game data.">
+      <Card title="What an update keeps" icon={<InfoIcon />} description="Updating Maple never touches your game data.">
         <p className="muted small">
           Accounts, settings, instances, mods, worlds and Java choices live outside the launcher file and are kept when a
           new build replaces it.
         </p>
-        <div className="row">
-          <button
-            type="button"
-            className="btn"
-            onClick={() => void api.openGithub().catch((e: unknown) => setNotice({ tone: "bad", text: errorMessage(e) }))}
-          >
-            Open the GitHub page
-          </button>
-        </div>
+        <p className="muted small">
+          Maple Client is distributed privately. Updates arrive through the launcher itself; there is no repository page
+          to visit and no source download to install.
+        </p>
       </Card>
             </>
           )}
@@ -900,7 +965,7 @@ function SettingsForm({
   );
 }
 
-/** Manual and automatic checking of official Cirrus releases. */
+/** Manual and automatic checking of official Maple releases. */
 function UpdateCheckPanel() {
   const [state, setState] = useState<{ phase: "idle" | "checking" | "done" | "error"; check?: UpdateCheck; message?: string }>({
     phase: "idle",
@@ -921,7 +986,7 @@ function UpdateCheckPanel() {
   return (
     <div className="update-panel" aria-live="polite">
       {state.phase === "checking" && (
-        <p className="muted small">Checking for a newer Cirrus release…</p>
+        <p className="muted small">Checking for a newer Maple release…</p>
       )}
       {state.phase === "error" && <p className="error-text">{state.message}</p>}
       {state.phase === "done" && state.check && (
@@ -964,13 +1029,13 @@ function UpdateCheckPanel() {
   );
 }
 
-/** Back to the normal Windows frame if the Cirrus title bar ever misbehaves. */
+/** Back to the normal Windows frame if the Maple title bar ever misbehaves. */
 function NativeFrameSwitch() {
   const native = useNativeFrame();
   return (
     <label className="check switch">
       <input type="checkbox" checked={native} onChange={(e) => setNativeFrame(e.target.checked)} />
-      <span>Use the normal Windows title bar instead of the Cirrus one</span>
+      <span>Use the normal Windows title bar instead of the Maple one</span>
     </label>
   );
 }

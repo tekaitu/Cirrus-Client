@@ -196,7 +196,7 @@ export function InstallDialog({
             )}
 
             <p className="install-optifine muted small">
-              <OptifineIcon /> <strong>OptiFine</strong> is not offered for {version}: Cirrus could not verify a compatible
+              <OptifineIcon /> <strong>OptiFine</strong> is not offered for {version}: Maple could not verify a compatible
               release this build can install safely. On Fabric, Sodium and Lithium give the same kind of boost.
             </p>
 

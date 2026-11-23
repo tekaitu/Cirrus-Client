@@ -268,7 +268,7 @@ pub fn upsert(root: &Path, cfg: InstanceConfig) -> Result<InstanceConfig, String
         Some(slot) => *slot = cfg.clone(),
         None => {
             if list.len() >= MAX_INSTANCES {
-                return Err(format!("That is the most instances Cirrus keeps ({MAX_INSTANCES}). Delete one first."));
+                return Err(format!("That is the most instances Maple keeps ({MAX_INSTANCES}). Delete one first."));
             }
             list.push(cfg.clone());
         }
@@ -392,7 +392,7 @@ pub fn clone_instance(root: &Path, id: &str, name: &str, copy_data: bool) -> Res
     let name = valid_name(name)?;
     let mut list = load(root);
     if list.len() >= MAX_INSTANCES {
-        return Err(format!("That is the most instances Cirrus keeps ({MAX_INSTANCES}). Delete one first."));
+        return Err(format!("That is the most instances Maple keeps ({MAX_INSTANCES}). Delete one first."));
     }
     let base = format!("i-{}", slug(&name));
     let mut new_id = base.clone();
@@ -457,17 +457,26 @@ pub fn list(root: &Path) -> Vec<InstanceView> {
     let mut configs = load(root);
     let mut out = Vec::new();
     let mut changed = false;
-    for info in game::installed_infos(root) {
+    let infos = game::installed_infos(root);
+    for info in &infos {
         let cfg = match configs.iter().find(|c| c.id == info.profile_id) {
             Some(c) => c.clone(),
             None => {
-                let cfg = default_for(&info);
+                let cfg = default_for(info);
                 configs.push(cfg.clone());
                 changed = true;
                 cfg
             }
         };
-        out.push(view(root, &cfg, Some(&info)));
+        out.push(view(root, &cfg, Some(info)));
+    }
+    // An instance created in the launcher but not downloaded yet is still an
+    // instance: it has its own name, loader and settings, so it belongs in the
+    // Library instead of disappearing until the first launch.
+    for cfg in &configs {
+        if !infos.iter().any(|i| i.profile_id == cfg.id) {
+            out.push(view(root, cfg, None));
+        }
     }
     if changed {
         let _ = save(root, &configs);

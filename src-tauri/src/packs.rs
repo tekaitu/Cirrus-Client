@@ -724,7 +724,7 @@ fn download(c: &reqwest::blocking::Client, spec: &FileSpec, dest: &Path) -> Resu
         return Err("The pack site did not publish a checksum for this file, so it was not downloaded.".to_string());
     }
     if spec.size.map(|n| n > MAX_PACK_BYTES).unwrap_or(false) {
-        return Err("This pack is larger than Cirrus downloads in one go.".to_string());
+        return Err("This pack is larger than Maple downloads in one go.".to_string());
     }
     let resp = c.get(url).send().map_err(|e| net_error(&e))?;
     if !resp.status().is_success() {
@@ -734,7 +734,7 @@ fn download(c: &reqwest::blocking::Client, spec: &FileSpec, dest: &Path) -> Resu
         return Err("The download was redirected somewhere that is not allowed.".to_string());
     }
     if resp.content_length().map(|n| n > MAX_PACK_BYTES).unwrap_or(false) {
-        return Err("This pack is larger than Cirrus downloads in one go.".to_string());
+        return Err("This pack is larger than Maple downloads in one go.".to_string());
     }
     let part = dest.with_extension("zip.part");
     let result = (|| -> Result<(), String> {
@@ -751,7 +751,7 @@ fn download(c: &reqwest::blocking::Client, spec: &FileSpec, dest: &Path) -> Resu
             }
             total += n as u64;
             if total > MAX_PACK_BYTES {
-                return Err("This pack is larger than Cirrus downloads in one go.".to_string());
+                return Err("This pack is larger than Maple downloads in one go.".to_string());
             }
             h1.update(&buffer[..n]);
             h512.update(&buffer[..n]);

@@ -34,7 +34,7 @@ export type PageId =
 
 export const PAGE_TITLES: Record<PageId, string> = {
   home: "Play",
-  versions: "Versions",
+  versions: "Add version",
   library: "Instances",
   browse: "Mods",
   mods: "Mods",
@@ -55,14 +55,17 @@ interface NavItem {
   section?: string;
 }
 
-/** The main destinations, in the order the sidebar shows them. */
+/**
+ * The main destinations, in the order the sidebar shows them. Chat and Media
+ * have no page or backend in this build, so no placeholder is listed for them.
+ */
 export const NAV_ITEMS: NavItem[] = [
   { id: "home", label: "Play", icon: <HomeIcon /> },
   { id: "library", label: "Instances", icon: <LibraryIcon /> },
   { id: "versions", label: "Versions", icon: <CubeIcon /> },
+  { id: "servers", label: "Servers", icon: <ServerIcon /> },
   { id: "mods", label: "Mods", icon: <ModsIcon /> },
   { id: "modpacks", label: "Modpacks", icon: <PackageIcon /> },
-  { id: "servers", label: "Servers", icon: <ServerIcon /> },
   { id: "skins", label: "Character", icon: <ShirtIcon /> },
   { id: "home", label: "News", icon: <NewsIcon />, section: "news" },
 ];
@@ -88,10 +91,10 @@ export function Sidebar({ page, section, onNavigate }: SidebarProps) {
 
   return (
     <aside className="side">
-      <button type="button" className="side-brand" onClick={() => onNavigate("home")} aria-label="Cirrus Client home">
+      <button type="button" className="side-brand" onClick={() => onNavigate("home")} aria-label="Maple Client home">
         <LogoMark size={30} />
         <span className="side-brand-name" aria-hidden="true">
-          CIRRUS
+          MAPLE
         </span>
       </button>
 
@@ -108,6 +111,7 @@ export function Sidebar({ page, section, onNavigate }: SidebarProps) {
                   aria-current={active ? "page" : undefined}
                   onClick={() => onNavigate(item.id, item.section)}
                 >
+                  <span className="side-marker" aria-hidden="true" />
                   <span className="side-icon" aria-hidden="true">
                     {item.icon}
                   </span>
@@ -125,6 +129,7 @@ export function Sidebar({ page, section, onNavigate }: SidebarProps) {
             aria-current={page === "settings" ? "page" : undefined}
             onClick={() => onNavigate("settings")}
           >
+            <span className="side-marker" aria-hidden="true" />
             <span className="side-icon" aria-hidden="true">
               <SettingsIcon />
             </span>

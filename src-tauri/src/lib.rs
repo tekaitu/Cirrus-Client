@@ -69,7 +69,7 @@ pub struct AppInfo {
 
 pub fn app_info() -> AppInfo {
     AppInfo {
-        name: "Cirrus Client",
+        name: "Maple Client",
         version: env!("CARGO_PKG_VERSION"),
         target_minecraft: TARGET_MINECRAFT,
         launcher_ready: false,
@@ -263,7 +263,7 @@ async fn install_java(
         Err(runtime::InstallError::Cancelled) => Ok(InstallResult::bare("cancelled", None)),
         Err(runtime::InstallError::Failed(message)) => Ok(InstallResult::bare("failed", Some(message))),
         Ok(done) => {
-            // Only Cirrus Client' own copy is written to Settings; an existing
+            // Only Maple Client's own copy is written to Settings; an existing
             // system Java is left alone and reported. A Java older than 21 is
             // installed for an older instance and never becomes the launcher-wide
             // choice, because 1.20.5+ cannot run on it.
@@ -466,7 +466,7 @@ async fn auth_sign_in(app: AppHandle, state: State<'_, AuthState>) -> Result<Aut
             "notConfigured",
             false,
             None,
-            Some("Sign-in is not available in this build of Cirrus Client.".to_string()),
+            Some("Sign-in is not available in this build of Maple Client.".to_string()),
         ));
     };
     let cancel = Arc::new(AtomicBool::new(false));
@@ -512,7 +512,7 @@ async fn auth_sign_in_window(app: AppHandle, state: State<'_, AuthState>) -> Res
             "notConfigured",
             false,
             None,
-            Some("Sign-in is not available in this build of Cirrus Client.".to_string()),
+            Some("Sign-in is not available in this build of Maple Client.".to_string()),
         ));
     };
     let cancel = Arc::new(AtomicBool::new(false));
@@ -679,7 +679,7 @@ fn auth_sign_out(app: AppHandle, state: State<'_, AuthState>, id: Option<String>
 
 /// Open the Microsoft sign-in page in the default browser. Only Microsoft
 /// pages are accepted, and no shell is involved.
-/// The one non-Microsoft page the app can open: the Cirrus Client community server.
+/// The one non-Microsoft page the app can open: the Maple Client community server.
 const COMMUNITY_URL: &str = "https://discord.gg/tWmvXNP7Af";
 
 fn open_in_browser(url: &str) -> Result<(), String> {
@@ -713,15 +713,15 @@ fn open_community() -> Result<(), String> {
     open_in_browser(COMMUNITY_URL)
 }
 
-/// The project page on GitHub (the repository was renamed to Cirrus-Client; GitHub redirects the old name).
-const GITHUB_URL: &str = "https://github.com/tekaitu/Cirrus-Client";
+/// The project page on GitHub (the repository was renamed to Maple-Client; GitHub redirects the old name).
+const GITHUB_URL: &str = "https://github.com/tekaitu/Maple-Client";
 
 #[tauri::command]
 fn open_github() -> Result<(), String> {
     open_in_browser(GITHUB_URL)
 }
 
-/// The newest official Cirrus Client release, compared with this build.
+/// The newest official Maple Client release, compared with this build.
 #[tauri::command]
 async fn check_for_updates() -> Result<updater::UpdateCheck, String> {
     let fetched = tauri::async_runtime::spawn_blocking(|| updater::check(env!("CARGO_PKG_VERSION"))).await;
@@ -735,7 +735,7 @@ async fn check_for_updates() -> Result<updater::UpdateCheck, String> {
 #[tauri::command]
 fn open_update_page(url: String) -> Result<(), String> {
     if !updater::allowed_page(&url) {
-        return Err("Only official Cirrus Client release pages can be opened.".to_string());
+        return Err("Only official Maple Client release pages can be opened.".to_string());
     }
     open_in_browser(&url)
 }
@@ -1425,15 +1425,15 @@ async fn launch_game(
         let mut head = &out;
         let _ = writeln!(
             head,
-            "[Cirrus Client {}] Starting Minecraft {} ({})",
+            "[Maple Client {}] Starting Minecraft {} ({})",
             env!("CARGO_PKG_VERSION"),
             version,
             if fabric { "Fabric" } else { "Vanilla" }
         );
-        let _ = writeln!(head, "[Cirrus Client] Java: {}", java.display());
-        let _ = writeln!(head, "[Cirrus Client] Memory: {memory} MB");
-        let _ = writeln!(head, "[Cirrus Client] Player: {} ({})", player.name, mode);
-        let _ = writeln!(head, "[Cirrus Client] Game folder: {}", spec.cwd.display());
+        let _ = writeln!(head, "[Maple Client] Java: {}", java.display());
+        let _ = writeln!(head, "[Maple Client] Memory: {memory} MB");
+        let _ = writeln!(head, "[Maple Client] Player: {} ({})", player.name, mode);
+        let _ = writeln!(head, "[Maple Client] Game folder: {}", spec.cwd.display());
         let _ = writeln!(head, "----------------------------------------");
     }
     let started_at = std::time::SystemTime::now();
@@ -1943,7 +1943,7 @@ pub fn run() {
             remove_resource_pack
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Cirrus Client");
+        .expect("error while running Maple Client");
 }
 
 #[cfg(test)]

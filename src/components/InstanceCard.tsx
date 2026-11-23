@@ -3,6 +3,7 @@ import { Button } from "./Button";
 import { FolderIcon, ModsIcon, PlayArrowIcon, SettingsIcon } from "./Icons";
 import { VersionArt } from "./VersionCard";
 import { lastPlayedText } from "../core/instances";
+import { readInstanceIcon } from "../core/instanceIcons";
 
 function loaderLine(instance: InstanceView) {
   if (instance.loader === "fabric") {
@@ -14,7 +15,7 @@ function loaderLine(instance: InstanceView) {
 }
 
 /**
- * An installed instance as the older Cirrus card: full-bleed Minecraft art, the
+ * An installed instance as the older Maple card: full-bleed Minecraft art, the
  * version and loader as the title, the instance name and loader line beneath,
  * then Launch (and Mods for Fabric) along the bottom.
  *
@@ -42,6 +43,8 @@ export function InstanceCard({
   launchTitle?: string;
 }) {
   const title = `${instance.minecraft} ${instance.loader === "fabric" ? "Fabric" : "Vanilla"}`;
+  // A picture chosen for this instance wins over the Minecraft family art.
+  const photo = readInstanceIcon(instance.id);
   return (
     <article className={`ic ${selected ? "ic-selected" : ""}`} aria-label={instance.name}>
       <button
@@ -51,7 +54,11 @@ export function InstanceCard({
         aria-label={`Select ${instance.name}`}
         onClick={onSelect}
       >
-        <VersionArt version={instance.minecraft} extra={instance.loader} className="ic-art" />
+        {photo ? (
+          <img className="ic-art ic-photo" src={photo} alt="" aria-hidden="true" />
+        ) : (
+          <VersionArt version={instance.minecraft} extra={instance.loader} className="ic-art" />
+        )}
         <span className="ic-shade" aria-hidden="true" />
         {selected && <span className="ic-badge">Selected</span>}
         <span className="ic-text">
@@ -62,11 +69,11 @@ export function InstanceCard({
         </span>
       </button>
       <div className="ic-actions">
-        <Button variant="primary" size="sm" onClick={onLaunch} disabled={launchDisabled} title={launchTitle}>
+        <Button variant="primary" size="md" onClick={onLaunch} disabled={launchDisabled} title={launchTitle}>
           <PlayArrowIcon /> Launch
         </Button>
         {instance.loader === "fabric" && onMods && (
-          <Button variant="secondary" size="sm" onClick={onMods} title={`Manage mods for ${instance.name}`}>
+          <Button variant="secondary" size="md" onClick={onMods} title={`Manage mods for ${instance.name}`}>
             <ModsIcon /> Mods
           </Button>
         )}

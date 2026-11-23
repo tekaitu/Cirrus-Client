@@ -28,7 +28,7 @@ function ProfileCard({
     <Card
       title="Minecraft profile"
       icon={<UserIcon />}
-      description="The account Cirrus will start Minecraft with."
+      description="The account Maple will start Minecraft with."
       action={<Badge tone="good">Active account</Badge>}
     >
       <div className="account-profile-card">
@@ -226,7 +226,7 @@ export function AccountsPage({
 
           <Card title="Your sign-in is protected" icon={<ShieldIcon />}>
             <p className="muted small">
-              You sign in on Microsoft's own page; Cirrus never sees your password. Each account's sign-in token is
+              You sign in on Microsoft's own page; Maple never sees your password. Each account's sign-in token is
               kept in Windows Credential Manager, never in a settings file.
             </p>
           </Card>

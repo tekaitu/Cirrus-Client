@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Cirrus draws its own title bar (minimise, maximise, close). If that ever misbehaves on a PC, Settings >
+ * Maple draws its own title bar (minimise, maximise, close). If that ever misbehaves on a PC, Settings >
  * Appearance can switch back to the normal Windows frame. The choice is remembered.
  */
 
@@ -30,7 +30,7 @@ async function withWindow(run: (w: import("@tauri-apps/api/window").Window) => P
   }
 }
 
-/** Switches between the Cirrus title bar and the Windows frame. */
+/** Switches between the Maple title bar and the Windows frame. */
 export function setNativeFrame(native: boolean) {
   try {
     window.localStorage.setItem(KEY, native ? "1" : "0");
@@ -52,7 +52,7 @@ export const windowActions = {
   close: () => void withWindow((w) => w.close()),
 };
 
-/** True while Cirrus draws its own title bar (inside the desktop app, and not switched to the Windows frame). */
+/** True while Maple draws its own title bar (inside the desktop app, and not switched to the Windows frame). */
 export function useCustomFrame(): boolean {
   const native = useSyncExternalStore(
     (cb) => {

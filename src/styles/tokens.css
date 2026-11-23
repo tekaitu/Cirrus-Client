@@ -1,12 +1,11 @@
 /* ==========================================================================
-   Cirrus design tokens. Every colour, radius, blur and timing used by the
+   Maple design tokens. Every colour, radius, blur and timing used by the
    interface lives here, once, for both appearances (Dark and Light).
 
-   The palette is monochrome, taken from the Cirrus mark: pure black and
-   near-black surfaces, pure white for text, icons, active states and
-   highlights, and neutral grays for panels, cards, borders and secondary
-   elements. There is no hue in the system: contrast and spacing carry the
-   design, not colour.
+   The palette is neutral on purpose: near-black surfaces, white text and grey
+   support, with one brand colour - maple orange - used only where it means
+   something: the selected section, the primary action, progress, focus rings
+   and active controls. Orange is a signal, not a coat of paint.
    ========================================================================== */
 :root {
   color-scheme: dark;
@@ -34,15 +33,17 @@
   --text-soft: #c4c4c4;
   --muted: #8a8a8a;
 
-  /* the one highlight: white. Grays carry the small labels. */
-  --accent: #ffffff;
-  --accent-strong: #dedede;
-  --accent-bright: #ffffff;
-  --accent-2: #a3a3a3;
+  /* the one brand colour: maple orange. Used for selection, primary actions,
+     progress and focus - never as a background wash. */
+  --brand: #e25303;
+  --accent: #e25303;
+  --accent-strong: #c94803;
+  --accent-bright: #ff8a4c;
+  --accent-2: #f08a4b;
   --violet: #8f8f8f;
-  --accent-rgb: 255 255 255;
-  --accent-soft: rgb(var(--accent-rgb) / 0.12);
-  --on-accent: #0a0a0a;
+  --accent-rgb: 226 83 3;
+  --accent-soft: rgb(var(--accent-rgb) / 0.16);
+  --on-accent: #ffffff;
   /* status only, never decoration */
   --good: #4fbf8b;
   --warn: #d3a24c;
@@ -110,13 +111,14 @@
   --text: #101010;
   --text-soft: #2e2e2e;
   --muted: #606060;
-  --accent: #0c0c0c;
-  --accent-strong: #2a2a2a;
-  --accent-bright: #101010;
-  --accent-2: #5e5e5e;
+  --brand: #c94803;
+  --accent: #c94803;
+  --accent-strong: #a83a02;
+  --accent-bright: #e25303;
+  --accent-2: #e25303;
   --violet: #6a6a6a;
-  --accent-rgb: 12 12 12;
-  --accent-soft: rgb(var(--accent-rgb) / 0.09);
+  --accent-rgb: 201 72 3;
+  --accent-soft: rgb(var(--accent-rgb) / 0.12);
   --on-accent: #ffffff;
   --good: #10855a;
   --warn: #94621b;

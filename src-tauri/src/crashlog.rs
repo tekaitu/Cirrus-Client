@@ -90,7 +90,7 @@ pub fn diagnose(text: &str) -> Option<String> {
     } else if has("could not reserve enough space") || has("could not create the java virtual machine") {
         "Java could not start with the amount of memory chosen. Lower it in Settings > Memory and RAM."
     } else if has("unsupportedclassversionerror") || has("class file version") {
-        "A mod or Minecraft needs a newer Java than the one used. Install Java 21 from Cirrus Client and try again."
+        "A mod or Minecraft needs a newer Java than the one used. Install Java 21 from Maple Client and try again."
     } else if has("fabric-api") && (has("which is missing") || has("requires any version of fabric-api") || has("requires version")) {
         "A mod needs Fabric API, which is not installed. Install Fabric API from the Mods page."
     } else if has("incompatible mod set") || has("incompatible mods found") || has("modresolutionexception") {

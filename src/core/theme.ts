@@ -1,7 +1,12 @@
 /**
- * The launcher's looks. Classic brings back the older Cirrus identity: a vertical
- * navigation rail and monochrome surfaces behind full-bleed Minecraft cards.
- * Colorful keeps the brighter, blue-accented treatment with vivid artwork.
+ * The launcher's looks.
+ *
+ * Classic is the older launcher identity: a vertical navigation rail, neutral
+ * near-black surfaces and full-bleed Minecraft cards, with maple orange used
+ * only for the selected section and the primary action.
+ *
+ * Colorful keeps the bright Minecraft key art behind the whole window, with
+ * translucent dark panels for readability and the same orange accent.
  *
  * Light is still offered in Settings for anyone who chose it before; the
  * first-launch chooser asks between the two themes this release introduces.
@@ -17,27 +22,29 @@ export interface ThemeInfo {
   accent: string;
 }
 
+export const BRAND_ORANGE = "#e25303";
+
 export const THEMES: readonly ThemeInfo[] = [
   {
     id: "classic",
     label: "Classic",
-    blurb: "Sidebar navigation, monochrome panels, full-bleed instance cards",
-    swatch: ["#050505", "#101010", "#1e1e1e"],
-    accent: "#ffffff",
+    blurb: "Deep neutral surfaces, full-bleed instance art and one maple-orange accent",
+    swatch: ["#080706", "#141110", "#221d1a"],
+    accent: "#e25303",
   },
   {
     id: "colorful",
     label: "Colorful",
-    blurb: "The old bright Minecraft key art and blue Play button, neutral panels, the same launcher underneath",
-    swatch: ["#0a1020", "#13203a", "#1d2f52"],
-    accent: "#4f8cff",
+    blurb: "The bright Minecraft key art fills the window, with translucent panels and maple orange",
+    swatch: ["#0b1524", "#16233a", "#22344f"],
+    accent: "#e25303",
   },
   {
     id: "light",
     label: "Light",
     blurb: "Bright and clean",
     swatch: ["#eef1f6", "#ffffff", "#e4e8f0"],
-    accent: "#0c0c0c",
+    accent: "#c94803",
   },
 ];
 

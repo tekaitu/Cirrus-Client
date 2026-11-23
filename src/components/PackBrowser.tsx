@@ -186,7 +186,7 @@ export function PackBrowser({
       if (!mounted.current) return;
       setNotice({
         tone: "good",
-        text: `${pack.fileName} is installed. Turn it on in Installed — Cirrus never switches a pack on by itself.`,
+        text: `${pack.fileName} is installed. Turn it on in Installed — Maple never switches a pack on by itself.`,
       });
       notify({ title: "Texture pack installed", body: pack.fileName, tone: "good" });
       setInstalled((current) => (current ? [...current, pack] : current));
@@ -588,7 +588,7 @@ export function PackBrowser({
               <DownloadIcon />
               <h2>No texture packs installed</h2>
               <p className="muted small">
-                Install one from Browse packs. Packs are kept apart from mods, and Cirrus only lists the ones in this
+                Install one from Browse packs. Packs are kept apart from mods, and Maple only lists the ones in this
                 version's resourcepacks folder.
               </p>
               <button type="button" className="btn btn-small" onClick={() => setTab("browse")}>

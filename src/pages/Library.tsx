@@ -3,8 +3,9 @@ import { api, errorMessage } from "../api/client";
 import type { InstanceView } from "../api/types";
 import { Button } from "../components/Button";
 import { InstanceCard } from "../components/InstanceCard";
-import { LibraryIcon, PlusIcon, SearchIcon } from "../components/Icons";
+import { LibraryIcon, PlusIcon, SearchIcon, SparkIcon } from "../components/Icons";
 import { InstanceEditor } from "../components/InstanceEditor";
+import { CreateInstanceDialog } from "../components/CreateInstance";
 import type { PageId } from "../components/Navigation";
 import { Banner, Skeleton } from "../components/ui";
 import { usernameError } from "../core/game";
@@ -34,6 +35,7 @@ export function LibraryPage({
   const [filter, setFilter] = useState<"all" | "fabric" | "vanilla">("all");
   const [sort, setSort] = useState<Sort>("recent");
   const [editing, setEditing] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -61,7 +63,17 @@ export function LibraryPage({
     if (selection.instance?.id !== pending) return;
     if (!game.status) return;
     setPending(null);
-    if (!java || !game.status.installed) return;
+    if (!game.status.installed) {
+      // Nothing is downloaded yet. The Play page owns the set-up flow and its
+      // real progress, so the launch hands over to it instead of doing nothing.
+      setActionError(`Minecraft ${selection.instance?.minecraft ?? ""} is not downloaded yet. Finish setting it up on the Play page.`);
+      onNavigate("home");
+      return;
+    }
+    if (!java) {
+      setActionError("Java is needed before Minecraft can start. Set it up in Settings.");
+      return;
+    }
     game.play(java.path, playAs.mode, playAs.name);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, selection.instance?.id, game.status, java, playAs.mode, playAs.name]);
@@ -94,12 +106,22 @@ export function LibraryPage({
       <header className="page-head page-head-row library-page-head">
         <div>
           <p className="eyebrow">Installed</p>
-          <h1>Library</h1>
+          <h1>Instances</h1>
           <p>Every instance on this PC, with its own settings, mods, worlds and Java.</p>
         </div>
-        <Button variant="primary" onClick={() => onNavigate("versions")} icon={<PlusIcon />}>
-          Add Version
-        </Button>
+        <div className="page-head-actions">
+          <Button
+            variant="secondary"
+            icon={<PlusIcon />}
+            onClick={() => onNavigate("versions")}
+            title="Install another Minecraft version"
+          >
+            Add version
+          </Button>
+          <Button variant="primary" icon={<SparkIcon />} onClick={() => setCreating(true)}>
+            Create instance
+          </Button>
+        </div>
       </header>
 
       {list.length > 0 && (
@@ -215,15 +237,9 @@ export function LibraryPage({
                 }}
                 onSettings={() => setEditing(instance.id)}
                 onFolder={() => openFolder(instance)}
-                launchDisabled={running || installing || !game.status?.installed}
+                launchDisabled={running || installing}
                 launchTitle={
-                  !game.status?.installed
-                    ? "Game files are being checked…"
-                    : running
-                      ? "Minecraft is already running."
-                      : installing
-                        ? "A download is running."
-                        : "Start this instance"
+                  running ? "Minecraft is already running." : installing ? "A download is running." : "Start this instance"
                 }
               />
             );
@@ -244,6 +260,18 @@ export function LibraryPage({
           data={data}
           onClose={() => setEditing(null)}
           onChanged={() => data.reloadInstances()}
+        />
+      )}
+
+      {creating && (
+        <CreateInstanceDialog
+          data={data}
+          onClose={() => setCreating(false)}
+          onCreated={(instance) => {
+            setCreating(false);
+            void data.reloadInstances();
+            selection.selectInstance(instance);
+          }}
         />
       )}
     </div>
