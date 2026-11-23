@@ -12,6 +12,7 @@ import "./styles/pages.css";
 import "./styles/effects.css";
 import "./styles/studio.css";
 import "./styles/ui.css";
+import "./styles/classic.css";
 
 initTheme();
 initWindowFrame();

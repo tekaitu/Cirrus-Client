@@ -6,7 +6,9 @@ import { SignInDialog } from "./components/SignInDialog";
 import { GameDialog } from "./components/GameDialog";
 import { FooterBar } from "./components/FooterBar";
 import { AppBackground, type BackdropId } from "./components/Scene";
-import { TopNav, type PageId } from "./components/Navigation";
+import { Header, Sidebar, type PageId } from "./components/Navigation";
+import { ThemeChooser } from "./components/ThemeChooser";
+import { hasThemeChoice } from "./core/theme";
 import { LICENSE_VERSION } from "./content/license";
 import { api } from "./api/client";
 import { useAppData } from "./hooks/useAppData";
@@ -52,6 +54,8 @@ export default function App() {
   const playAs = usePlayAs();
   const [page, setPage] = useState<PageId>("home");
   const [section, setSection] = useState<string | undefined>(undefined);
+  // First launch asks for a look; once answered (or saved by an older build) it never asks again.
+  const [themeChosen, setThemeChosen] = useState(() => hasThemeChoice());
   const [accountOpen, setAccountOpen] = useState(false);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [accepted, setAccepted] = useState(() => {
@@ -89,6 +93,15 @@ export default function App() {
     setSection(nextSection);
     setAccountOpen(false);
   };
+
+  // Sidebar anchors (Home's news) scroll the content once the page is mounted.
+  useEffect(() => {
+    if (page !== "home" || section !== "news") return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("news")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [page, section]);
   const openAccount = () => setAccountOpen(true);
   // The Accounts page already shows the account, so the account button does not also open the panel there.
   const toggleAccount = () => (page === "accounts" ? undefined : setAccountOpen((v) => !v));
@@ -217,9 +230,9 @@ export default function App() {
     <div className="layout">
       <AppBackground id={BACKDROPS[page]} />
       <div className="workspace">
-        <TopNav
-          page={page}
-          onNavigate={navigate}
+        <Sidebar page={page} section={section} onNavigate={navigate} />
+        <div className="workspace-col">
+        <Header
           onAccount={toggleAccount}
           onOpenAccount={openAccount}
           accountOpen={accountOpen}
@@ -243,10 +256,12 @@ export default function App() {
         </main>
         <UpdateNotice />
         <FooterBar data={data} onNavigate={navigate} />
+        </div>
       </div>
       {!accepted && (
         <LicenseDialog mode="gate" onAccept={accept} onDecline={() => void api.quitApp().catch(() => {})} />
       )}
+      {accepted && !themeChosen && <ThemeChooser onChosen={() => setThemeChosen(true)} />}
       {accepted && <SignInDialog account={data.account} />}
       {accepted && <GameDialog data={data} onNavigate={navigate} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}

@@ -89,8 +89,22 @@ function openAddVersion() {
   fireEvent.click(screen.getByRole("button", { name: "Add Version" }));
 }
 
-function goTo(name: "Home" | "Versions" | "Library" | "Browse" | "Modpacks" | "Mods" | "Character" | "Servers" | "Settings") {
-  fireEvent.click(screen.getByRole("button", { name }));
+/** Navigation labels as the sidebar shows them. */
+const GO_TO: Record<string, string> = {
+  Home: "Play",
+  Library: "Instances",
+  Browse: "Mods",
+};
+
+function goTo(name: string) {
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByRole("button", { name: GO_TO[name] ?? name }));
+}
+
+/** The start button inside the play panel (the sidebar also has a section called Play). */
+function playButton() {
+  const found = screen.getAllByRole("button", { name: "Play" }).find((el) => el.closest(".play-panel"));
+  if (!found) throw new Error("The play panel has no Play button");
+  return found;
 }
 
 /** About lives in the footer (and in Settings). */
@@ -190,6 +204,8 @@ beforeEach(() => {
   resetAppearanceCache();
   window.localStorage.clear();
   window.localStorage.setItem("unlimited.license", "2");
+  // The look is chosen on first launch; the rest of the suite starts past that screen.
+  window.localStorage.setItem("unlimited.theme", "classic");
   mocked.listGameVersions.mockResolvedValue(["1.21.11", "1.21.1", "1.20.6"]);
   mocked.listVersionCatalog.mockResolvedValue([
     { id: "1.21.11", kind: "release", released: null, supported: true },
@@ -297,21 +313,22 @@ describe("Home", () => {
     expect(screen.queryByRole("heading", { level: 1, name: /1\.21\.11\s+Fabric/ })).toBeNull();
     expect(screen.getByRole("heading", { name: "Recently played" })).toBeTruthy();
     expect(screen.getByText("Nothing played yet")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: /In Cirrus/ })).toBeTruthy();
-    expect(screen.getByRole("navigation", { name: "Shortcuts" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /News/ })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Quick join" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Choose a version" })).toBeTruthy();
   });
 
-  it("has a top bar with the page tabs, a bell, Settings and the account", async () => {
+  it("has a vertical sidebar with labelled sections, a bell and the account", async () => {
     render(<App />);
     const main = screen.getByRole("navigation", { name: "Main" });
-    for (const name of ["Home", "Versions", "Browse", "Mods", "Modpacks", "Character", "Servers"]) {
+    for (const name of ["Play", "Instances", "Versions", "Mods", "Modpacks", "Servers", "Character"]) {
       expect(main.contains(screen.getByRole("button", { name }))).toBe(true);
     }
     for (const name of ["Accounts", "About", "Diagnostics", "Re-scan Java", "Discord Presence"]) {
       expect(main.contains(screen.queryByRole("button", { name }))).toBe(false);
     }
-    expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+    expect(within(main).getByRole("button", { name: "Play" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("button", { name: "News" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Account" })).toBeTruthy();
@@ -1054,11 +1071,11 @@ describe("Play", () => {
     render(<App />);
     await loaded();
     const recent = await screen.findByRole("region", { name: "Recently played" });
-    const cards = within(recent).getAllByRole("listitem");
+    const cards = within(recent).getAllByRole("article");
     expect(cards).toHaveLength(2);
     expect(cards[0]!.textContent).toContain("PvP");
     expect(cards[1]!.textContent).toContain("Building");
-    fireEvent.click(within(cards[0]!).getByRole("button", { name: /Select & play/ }));
+    fireEvent.click(within(cards[0]!).getByRole("button", { name: "Select PvP" }));
     expect(window.localStorage.getItem("unlimited.instance")).toBe("a");
     expect((await screen.findAllByText(/Minecraft 1\.21\.11 · Fabric/)).length).toBeGreaterThan(0);
   });
@@ -1142,7 +1159,7 @@ describe("Play", () => {
     expect(window.localStorage.getItem("unlimited.playMode")).toBe("offline");
     expect((await screen.findAllByText("Herobrine")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Close account panel" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Play" }));
+    fireEvent.click(await playButton());
     await waitFor(() =>
       expect(mocked.launchGame).toHaveBeenCalledWith(
         expect.any(String),
@@ -1174,7 +1191,7 @@ describe("Play", () => {
     render(<App />);
     await loaded();
     await playOfflineAs("Alex");
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(playButton());
     await waitFor(() =>
       expect(mocked.launchGame).toHaveBeenCalledWith(
         expect.any(String),
@@ -1193,11 +1210,11 @@ describe("Play", () => {
     render(<App />);
     await waitReady();
     await playOfflineAs("bad name");
-    const play = screen.getByRole("button", { name: "Play" }) as HTMLButtonElement;
+    const play = playButton() as HTMLButtonElement;
     expect(play.disabled).toBe(true);
     expect(screen.getByText(/Choose a valid player name first/)).toBeTruthy();
     await playOfflineAs("Steve_01");
-    expect((screen.getByRole("button", { name: "Play" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((playButton() as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("launches offline with the chosen name, version and loader, then shows the running state", async () => {
@@ -1206,7 +1223,7 @@ describe("Play", () => {
     render(<App />);
     await waitReady();
     await playOfflineAs("Steve_01");
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(playButton());
     await waitFor(() =>
       expect(mocked.launchGame).toHaveBeenCalledWith(
         expect.stringContaining("java"),
@@ -1230,7 +1247,7 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
     await waitReady();
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(playButton());
     await waitFor(() =>
       expect(mocked.launchGame).toHaveBeenCalledWith(
         expect.any(String),
@@ -1250,7 +1267,7 @@ describe("Play", () => {
     render(<App />);
     await waitReady();
     await playOfflineAs("Steve");
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(playButton());
     expect((await screen.findAllByText("Minecraft could not be started")).length).toBeGreaterThan(0);
     expect((await screen.findAllByText("A game file is missing.")).length).toBeGreaterThan(0);
   });
@@ -1322,25 +1339,45 @@ describe("Modpacks", () => {
 });
 
 describe("Themes", () => {
-  it("offers only a dark and a light appearance, applies it at once and remembers it", async () => {
+  it("offers Classic, Colorful and Light, applies a choice at once and remembers it", async () => {
     initTheme();
     render(<App />);
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("classic");
     await goToSettings("Appearance");
-    expect(screen.getAllByRole("radio", { name: /theme$/ })).toHaveLength(2);
-    fireEvent.click(await screen.findByRole("radio", { name: "Light theme" }));
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(window.localStorage.getItem("unlimited.theme")).toBe("light");
-    expect(screen.getByRole("radio", { name: "Light theme" }).getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(screen.getByRole("radio", { name: "Dark theme" }));
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(screen.getAllByRole("radio", { name: /theme$/ })).toHaveLength(3);
+    fireEvent.click(await screen.findByRole("radio", { name: "Colorful theme" }));
+    expect(document.documentElement.dataset.theme).toBe("colorful");
+    expect(window.localStorage.getItem("unlimited.theme")).toBe("colorful");
+    expect(screen.getByRole("radio", { name: "Colorful theme" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("radio", { name: "Classic theme" }));
+    expect(document.documentElement.dataset.theme).toBe("classic");
   });
 
-  it("falls back to dark when an old theme name is stored", async () => {
+  it("asks first-launch players for a look and remembers the answer", async () => {
+    window.localStorage.removeItem("unlimited.theme");
+    initTheme();
+    render(<App />);
+    const dialog = await screen.findByRole("dialog", { name: "Choose your look" });
+    expect(dialog).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Colorful theme" }));
+    expect(document.documentElement.dataset.theme).toBe("colorful");
+    expect(window.localStorage.getItem("unlimited.theme")).toBe("colorful");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Choose your look" })).toBeNull());
+    await settled();
+  });
+
+  it("does not ask again once a theme is saved", async () => {
+    initTheme();
+    render(<App />);
+    expect(screen.queryByRole("dialog", { name: "Choose your look" })).toBeNull();
+    await settled();
+  });
+
+  it("falls back to classic when an old theme name is stored", async () => {
     window.localStorage.setItem("unlimited.theme", "ocean");
     initTheme();
     render(<App />);
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("classic");
   });
 
   it("offers the Discord community from Settings", async () => {
@@ -1377,9 +1414,9 @@ describe("Library", () => {
     expect(screen.getByText("Building")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open folder for Building" }));
     await waitFor(() => expect(mocked.openInstanceFolder).toHaveBeenCalledWith("b"));
-    const rows = screen.getAllByRole("listitem");
+    const rows = screen.getAllByRole("article");
     const building = rows.find((r) => r.textContent?.includes("Building"))!;
-    fireEvent.click(within(building).getByRole("button", { name: "Play" }));
+    fireEvent.click(within(building).getByRole("button", { name: "Launch" }));
     await waitFor(() => expect(window.localStorage.getItem("unlimited.instance")).toBe("b"));
   });
 
@@ -1414,7 +1451,7 @@ describe("Launch log and crash details", () => {
     render(<App />);
     await loaded();
     await screen.findAllByText("Steve");
-    fireEvent.click(await screen.findByRole("button", { name: "Play" }));
+    fireEvent.click(await playButton());
     await waitFor(() => expect(mocked.launchGame).toHaveBeenCalled());
     await waitFor(() => expect(gameExitHandler).not.toBeNull());
   };
@@ -2109,7 +2146,7 @@ describe("Account switching and removal", () => {
     render(<App />);
     await loaded();
     await screen.findAllByText("Steve");
-    const play = await screen.findByRole("button", { name: "Play" });
+    const play = await playButton();
     fireEvent.click(play);
     fireEvent.click(play);
     await waitFor(() => expect(mocked.launchGame).toHaveBeenCalledTimes(1));

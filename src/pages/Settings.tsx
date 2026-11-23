@@ -41,6 +41,7 @@ import {
   type SettingsErrors,
 } from "../core/settings";
 import { THEMES, getTheme, setTheme } from "../core/theme";
+import { readAutoUpdateCheck, writeAutoUpdateCheck } from "../core/updates";
 import { insideTauri, setNativeFrame, useNativeFrame } from "../core/windowFrame";
 import type { AppData } from "../hooks/useAppData";
 
@@ -162,6 +163,7 @@ function SettingsForm({
   const [confirmReset, setConfirmReset] = useState(false);
   const [javaTest, setJavaTest] = useState<JavaTest>({ status: "idle" });
   const [look, setLook] = useState(() => ({ theme: getTheme() }));
+  const [autoUpdates, setAutoUpdates] = useState(readAutoUpdateCheck);
   const [characterSpin, setCharacterSpin] = useState(() => readLocal("cirrus.characterSpin") !== "off");
 
   // After a successful save or reset the backend hands back a new settings object.
@@ -817,6 +819,17 @@ function SettingsForm({
         </dl>
       </Card>
       <Card title="Launcher updates" icon={<DownloadIcon />} description="Checked against the official Cirrus releases on GitHub.">
+        <label className="check switch">
+          <input
+            type="checkbox"
+            checked={autoUpdates}
+            onChange={(e) => {
+              setAutoUpdates(e.target.checked);
+              writeAutoUpdateCheck(e.target.checked);
+            }}
+          />
+          <span>Check for launcher updates automatically when Cirrus starts</span>
+        </label>
         <UpdateCheckPanel />
       </Card>
       <Card title="What an update keeps" icon={<InfoIcon />} description="Updating Cirrus never touches your game data.">

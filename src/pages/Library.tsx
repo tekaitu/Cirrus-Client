@@ -2,19 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstanceView } from "../api/types";
 import { Button } from "../components/Button";
-import {
-  FolderIcon,
-  LibraryIcon,
-  PlayArrowIcon,
-  PlusIcon,
-  SearchIcon,
-  SettingsIcon,
-} from "../components/Icons";
+import { InstanceCard } from "../components/InstanceCard";
+import { LibraryIcon, PlusIcon, SearchIcon } from "../components/Icons";
 import { InstanceEditor } from "../components/InstanceEditor";
 import type { PageId } from "../components/Navigation";
-import { Badge, Banner, Skeleton } from "../components/ui";
+import { Banner, Skeleton } from "../components/ui";
 import { usernameError } from "../core/game";
-import { iconGlyph, iconLabel, lastPlayedText, recentSearchText, sortInstances } from "../core/instances";
+import { recentSearchText, sortInstances } from "../core/instances";
 import type { AppData } from "../hooks/useAppData";
 import { usePlayAs } from "../hooks/usePlayAs";
 
@@ -205,80 +199,36 @@ export function LibraryPage({
       )}
 
       {shown.length > 0 && (
-        <ul className="library-grid">
+        <div className="instance-grid library-grid">
           {shown.map((instance) => {
             const selected = selection.instance?.id === instance.id;
             return (
-              <li key={instance.id} className={`lib-card ${selected ? "is-selected" : ""}`}>
-                <div className={`lib-icon lib-icon-${instance.icon % 8}`} aria-hidden="true">
-                  {iconGlyph(instance.icon)}
-                </div>
-                <div className="lib-main">
-                  <div className="lib-title-row">
-                    <h2>{instance.name}</h2>
-                    {selected && <Badge tone="info">Selected</Badge>}
-                  </div>
-                  <p className="lib-meta">
-                    <span>Minecraft {instance.minecraft}</span>
-                    <span className="dot-sep" aria-hidden="true">
-                      ·
-                    </span>
-                    <span>{instance.loader === "fabric" ? `Fabric ${instance.loaderVersion ?? ""}`.trim() : "Vanilla"}</span>
-                    {instance.loader === "fabric" && instance.modCount > 0 && (
-                      <>
-                        <span className="dot-sep" aria-hidden="true">
-                          ·
-                        </span>
-                        <span>
-                          {instance.modCount} {instance.modCount === 1 ? "mod" : "mods"}
-                        </span>
-                      </>
-                    )}
-                  </p>
-                  <p className="lib-last muted small">
-                    {lastPlayedText(instance.lastPlayed)} · {iconLabel(instance.icon)} icon
-                    {instance.customGameDir ? " · custom folder" : ""}
-                  </p>
-                </div>
-                <div className="lib-actions">
-                  <Button
-                    variant={selected ? "primary" : "secondary"}
-                    size="sm"
-                    onClick={() => launch(instance)}
-                    disabled={running || installing || !game.status?.installed}
-                    title={
-                      !game.status?.installed
-                        ? "Game files are being checked…"
-                        : running
-                          ? "Minecraft is already running."
-                          : "Start this instance"
-                    }
-                  >
-                    <PlayArrowIcon /> Play
-                  </Button>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`Settings for ${instance.name}`}
-                    data-tip="Instance settings"
-                    onClick={() => setEditing(instance.id)}
-                  >
-                    <SettingsIcon />
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`Open folder for ${instance.name}`}
-                    data-tip="Open folder"
-                    onClick={() => openFolder(instance)}
-                  >
-                    <FolderIcon />
-                  </button>
-                </div>
-              </li>
+              <InstanceCard
+                key={instance.id}
+                instance={instance}
+                selected={selected}
+                onSelect={() => selection.selectInstance(instance)}
+                onLaunch={() => launch(instance)}
+                onMods={() => {
+                  selection.selectInstance(instance);
+                  onNavigate("mods");
+                }}
+                onSettings={() => setEditing(instance.id)}
+                onFolder={() => openFolder(instance)}
+                launchDisabled={running || installing || !game.status?.installed}
+                launchTitle={
+                  !game.status?.installed
+                    ? "Game files are being checked…"
+                    : running
+                      ? "Minecraft is already running."
+                      : installing
+                        ? "A download is running."
+                        : "Start this instance"
+                }
+              />
             );
           })}
-        </ul>
+        </div>
       )}
 
       {list.length > 0 && (

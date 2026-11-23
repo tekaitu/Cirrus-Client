@@ -3,6 +3,7 @@ import { api, errorMessage } from "../api/client";
 import type { UpdateCheck } from "../api/types";
 import { CloseIcon, UpdateIcon } from "./Icons";
 import { Spinner } from "./ui";
+import { readAutoUpdateCheck } from "../core/updates";
 
 /**
  * One quiet line above the footer when a newer official Cirrus release exists.
@@ -17,6 +18,8 @@ export function UpdateNotice() {
   const [opening, setOpening] = useState(false);
 
   useEffect(() => {
+    // Settings > Updates can switch the start-up check off; a manual check still works.
+    if (!readAutoUpdateCheck()) return;
     // A short delay so start-up is never held up by a network request.
     const timer = window.setTimeout(() => {
       void api
