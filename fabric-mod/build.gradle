@@ -10,12 +10,24 @@ base {
 
 loom {
     splitEnvironmentSourceSets()
+    accessWidenerPath = file("src/main/resources/cirrus_fabric.accesswidener")
 
     mods {
         "cirrus_fabric" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }
+    }
+}
+
+fabricApi {
+    configureTests {
+        createSourceSet = false
+        modId = "cirrus_fabric"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+        clearRunDirectory = true
     }
 }
 

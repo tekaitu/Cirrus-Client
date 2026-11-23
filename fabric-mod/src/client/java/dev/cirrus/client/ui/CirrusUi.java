@@ -1,153 +1,163 @@
 package dev.cirrus.client.ui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import dev.cirrus.client.asset.CirrusAssetTextures;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.resources.Identifier;
-import dev.cirrus.client.asset.CirrusAssetTextures;
+import net.minecraft.util.FormattedCharSequence;
 
-/** Shared scalable surfaces and official Cirrus brand assets for Fabric screens. */
+/** Shared Cirrus surfaces, typography and brand drawing. Everything is drawn once, back to front, by the owning screen. */
 public final class CirrusUi {
-    private static final Identifier MARK=Identifier.fromNamespaceAndPath("cirrus_fabric","textures/gui/cirrus-mark.png");
-    private static final Identifier UI_FONT=Identifier.fromNamespaceAndPath("cirrus_fabric","ui");
-    private static final Identifier UI_SMALL=Identifier.fromNamespaceAndPath("cirrus_fabric","ui_small");
-    private static final Identifier UI_DISPLAY=Identifier.fromNamespaceAndPath("cirrus_fabric","ui_display");
-    private static final FontDescription UI_FONT_DESC=new FontDescription.Resource(UI_FONT);
-    private static final FontDescription UI_SMALL_DESC=new FontDescription.Resource(UI_SMALL);
-    private static final FontDescription UI_DISPLAY_DESC=new FontDescription.Resource(UI_DISPLAY);
-    public static final int ICON_DASHBOARD=0,ICON_LIBRARY=1,ICON_MODS=2,ICON_THEMES=3,ICON_SEARCH=4,ICON_FAVORITE=5,
-        ICON_HUD=6,ICON_PVP=7,ICON_VISUALS=8,ICON_PERFORMANCE=9,ICON_UTILITY=10,ICON_SETTINGS=11,
-        ICON_SINGLEPLAYER=12,ICON_MULTIPLAYER=13,ICON_BACK=14,ICON_CLOSE=15;
-    private CirrusUi(){}
+    private static final Identifier UI_FONT = Identifier.fromNamespaceAndPath("cirrus_fabric", "ui");
+    private static final Identifier UI_SMALL = Identifier.fromNamespaceAndPath("cirrus_fabric", "ui_small");
+    private static final Identifier UI_DISPLAY = Identifier.fromNamespaceAndPath("cirrus_fabric", "ui_display");
+    private static final FontDescription UI_FONT_DESC = new FontDescription.Resource(UI_FONT);
+    private static final FontDescription UI_SMALL_DESC = new FontDescription.Resource(UI_SMALL);
+    private static final FontDescription UI_DISPLAY_DESC = new FontDescription.Resource(UI_DISPLAY);
+    public static final int ICON_DASHBOARD = 0, ICON_LIBRARY = 1, ICON_MODS = 2, ICON_THEMES = 3, ICON_SEARCH = 4, ICON_FAVORITE = 5,
+        ICON_HUD = 6, ICON_PVP = 7, ICON_VISUALS = 8, ICON_PERFORMANCE = 9, ICON_UTILITY = 10, ICON_SETTINGS = 11,
+        ICON_SINGLEPLAYER = 12, ICON_MULTIPLAYER = 13, ICON_BACK = 14, ICON_CLOSE = 15;
+    /** Nominal line box of the UI fonts in GUI units. */
+    public static final int LINE = 9;
+    /** The Inter glyphs sit about one GUI pixel high in the 9px line box; body and small text are nudged down to centre optically. */
+    private static final int NUDGE = 1;
+    private CirrusUi() { }
 
-    public static void backdrop(GuiGraphics g,int width,int height,CirrusTheme t){
-        CirrusAssetTextures.drawBackdrop(g,width,height);
-        g.fill(0,0,width,height,t.overlay);
-        // A quiet neutral wash instead of a bloom: the picture stays visible, the text stays readable.
-        g.fill(0,0,width,Math.max(1,height/4),t.highlight);
-        g.fill(0,Math.max(0,height-height/5),width,height,Math.max(t.overlay,t.shadow));
-        g.fill(0,Math.max(0,height-1),width,height,t.border);
-    }
-    public static void dashboardBackdrop(GuiGraphics g,int width,int height,CirrusTheme t){
-        backdrop(g,width,height,t);
-        CirrusAssetTextures.drawDashboardAmbient(g,width,height);
-    }
-    /** The open page: one quiet ground from top to bottom, with no frame around the screen. */
-    public static void page(GuiGraphics g,int width,int height,CirrusTheme t){
-        gradient(g,0,0,width,height,t.pageTop,t.pageBottom);
-    }
-    /** A flat near-black surface with a hairline white border and a soft drop shadow. No glass, no frame art. */
-    public static void panel(GuiGraphics g,int x,int y,int w,int h,int radius,CirrusTheme t){
-        if(w<=0||h<=0)return;
-        rounded(g,x,y+2,w,h,radius,t.shadow);
-        rounded(g,x,y,w,h,radius,t.panel);
-        g.fill(x+radius,y+1,x+w-radius,y+2,t.highlight);
-        outline(g,x,y,w,h,radius,t.border);
-    }
-    /** Navigation without a plate: a quiet wash on hover and a short white rule when chosen. */
-    public static void railButton(GuiGraphics g,int x,int y,int w,int h,float hover,boolean selected,boolean active,CirrusTheme t){
-        if(w<=0||h<=0)return;
-        float amount=active?Math.max(0f,Math.min(1f,hover)):0f;
-        if(selected||amount>0.02f)g.fill(x,y,x+w,y+h,t.accentSoft);
-        if(selected)g.fill(x,y+4,x+2,y+h-4,t.accent);
-        else if(amount>0.02f)g.fill(x,y+h/2-7,x+2,y+h/2+7,blend(t.accent,0x00000000,amount));
-    }
-    /** Quiet control: flat surface, hairline border, accent on hover, one-pixel press. */
-    public static void button(GuiGraphics g,int x,int y,int w,int h,float hover,boolean active,CirrusTheme t){
-        float amount=Math.max(0f,Math.min(1f,hover));
-        int radius=Math.min(9,h/2);
-        int fill=blend(active?t.surface:t.panel,t.accentSoft,amount*0.9f);
-        rounded(g,x,y,w,h,radius,fill);
-        outline(g,x,y,w,h,radius,blend(t.border,t.accent,amount*0.8f));
-        if(amount>0.02f)g.fill(x+4,y+5,x+6,y+h-5,blend(t.accent,0x00000000,amount));
-    }
-    /** The one filled control: the highlight colour with its type cut out, a soft shadow underneath, nothing else. */
-    public static void primaryButton(GuiGraphics g,int x,int y,int w,int h,float hover,CirrusTheme t){
-        float amount=Math.max(0f,Math.min(1f,hover));
-        int radius=Math.min(9,h/2);
-        rounded(g,x,y+2,w,h,radius,t.glow);
-        // Hover mixes ten percent of the type colour into the fill, so the light
-        // theme (black fill) and the dark theme (white fill) both answer the pointer.
-        rounded(g,x,y,w,h,radius,blend(t.accent,t.onAccent,1f-amount*0.12f));
-    }
-    /** A small state badge: ON in green, OFF in muted grey. */
-    public static void statusPill(GuiGraphics g,Font font,String label,int x,int y,boolean on,CirrusTheme t){
-        int w=Math.max(32,font.width(label)+12),h=13;
-        rounded(g,x,y,w,h,6,blend(t.surface,on?t.good:t.muted,0.22f));
-        outline(g,x,y,w,h,6,on?blend(t.good,t.border,0.35f):t.border);
-        centeredSmall(g,font,label,x+w/2,y+3,on?t.good:t.muted);
-    }
-    public static void section(GuiGraphics g,int x,int y,int w,String label,CirrusTheme t){
-        headingText(g,net.minecraft.client.Minecraft.getInstance().font,label,x,y,t.text);
-        g.fill(x,y+14,x+w,y+15,t.border);
-        g.fill(x,y+14,x+Math.min(28,w),y+15,t.accent);
-    }
-    /** Shortens a line with an ellipsis so it never runs past the width it is given. */
-    public static String fit(Font font,String value,int maxWidth,boolean small){
-        if(value==null||value.isEmpty()||maxWidth<=0)return "";
-        if(font.width(small?small(value):body(value))<=maxWidth)return value;
-        String dots="…";int low=0,high=value.length();
-        while(low<high){int mid=(low+high+1)/2;String cut=value.substring(0,mid)+dots;if(font.width(small?small(cut):body(cut))<=maxWidth)low=mid;else high=mid-1;}
-        return low<=0?dots:value.substring(0,low)+dots;
-    }
-    public static Component body(String value){return Component.literal(value).withStyle(s->s.withFont(UI_FONT_DESC));}
-    public static Component small(String value){return Component.literal(value).withStyle(s->s.withFont(UI_SMALL_DESC));}
-    public static Component heading(String value){return Component.literal(value).withStyle(s->s.withFont(UI_DISPLAY_DESC));}
-    public static FormattedCharSequence formatSearch(String value){return Language.getInstance().getVisualOrder(body(value));}
-    public static void text(GuiGraphics g,Font fallback,String value,int x,int y,int color,boolean shadow){g.drawString(fallback,body(value),x,y,color,shadow);}
-    public static void smallText(GuiGraphics g,Font fallback,String value,int x,int y,int color,boolean shadow){g.drawString(fallback,small(value),x,y,color,shadow);}
-    public static void headingText(GuiGraphics g,Font fallback,String value,int x,int y,int color){g.drawString(fallback,heading(value),x,y,color,true);}
-    public static void centered(GuiGraphics g,Font fallback,String value,int x,int y,int color){g.drawCenteredString(fallback,body(value),x,y,color);}
-    public static void centeredSmall(GuiGraphics g,Font fallback,String value,int x,int y,int color){g.drawCenteredString(fallback,small(value),x,y,color);}
-    public static void centeredHeading(GuiGraphics g,Font fallback,String value,int x,int y,int color){g.drawCenteredString(fallback,heading(value),x,y,color);}
+    // ---- surfaces -------------------------------------------------------------------------------------------------
 
-    /** Shared outline icon vocabulary, drawn as scalable strokes in GUI coordinates. */
-    public static void icon(GuiGraphics g,int x,int y,int size,int kind,int color){
-        CirrusAssetTextures.drawIcon(g,x,y,Math.max(8,size),kind,color);
+    public static void backdrop(GuiGraphics g, int width, int height, CirrusTheme t) {
+        CirrusAssetTextures.drawBackdrop(g, width, height);
+        g.fill(0, 0, width, height, t.overlay);
+        g.fillGradient(0, 0, width, Math.max(1, height / 3), t.highlight, Gfx.withAlpha(t.highlight, 0));
+        g.fillGradient(0, height * 2 / 3, width, height, Gfx.withAlpha(t.shadow, 0), t.shadow);
     }
-    public static void emptyLibrary(GuiGraphics g,int x,int y,int width,int height){CirrusAssetTextures.drawEmptyLibrary(g,x,y,width,height);}
-    public static void loadingFrame(GuiGraphics g,int x,int y,int size,long frame){CirrusAssetTextures.drawLoadingFrame(g,x,y,size,frame);}
-    public static void brand(GuiGraphics g,int x,int y,int markSize,CirrusTheme t){
-        int markWidth=Math.max(1,(markSize*640+236)/473);
-        Identifier brandMark=dev.cirrus.client.asset.CirrusAssetTextures.mark();
-        g.blit(brandMark,x,y,markWidth,markSize,0f,0f,1f,1f);
-        headingText(g,net.minecraft.client.Minecraft.getInstance().font,"Cirrus Client",x+markWidth+9,y+(markSize-10)/2,t.text);
+
+    public static void dashboardBackdrop(GuiGraphics g, int width, int height, CirrusTheme t) {
+        backdrop(g, width, height, t);
+        CirrusAssetTextures.drawDashboardAmbient(g, width, height);
     }
-    public static void rounded(GuiGraphics g,int x,int y,int w,int h,int radius,int color){
-        if(w<=0||h<=0)return;int r=Math.max(0,Math.min(radius,Math.min(w/2,h/2)));
-        if(r==0){g.fill(x,y,x+w,y+h,color);return;}
-        g.fill(x+r,y,x+w-r,y+h,color);g.fill(x,y+r,x+w,y+h-r,color);
-        for(int dy=0;dy<r;dy++){
-            int inset=r-(int)Math.floor(Math.sqrt((double)r*r-(double)(r-dy)*(r-dy)));
-            g.fill(x+inset,y+dy,x+w-inset,y+dy+1,color);
-            g.fill(x+inset,y+h-dy-1,x+w-inset,y+h-dy,color);
+
+    /** Glass panel: soft shadow, translucent body, top sheen and a hairline border. */
+    public static void panel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
+        if (w <= 0 || h <= 0) return;
+        Gfx.shadow(g, x, y, w, h, radius, 6, t.shadow);
+        Gfx.fillRound(g, x, y, w, h, radius, t.panel);
+        if (w > radius * 2) Gfx.hairline(g, x + radius, y + 1, w - radius * 2, Gfx.scaleAlpha(t.highlight, 2.2f));
+        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
+    }
+
+    /** Light-weight surface for always-on HUD elements: no shadow stack, so it stays cheap every frame. */
+    public static void hudPanel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
+        Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(t.panel, 0xFF000000, 0.15f));
+        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
+    }
+
+    /** A flatter inset surface used inside panels (cards, fields, chips). */
+    public static void card(GuiGraphics g, float x, float y, float w, float h, float radius, int fill, int border) {
+        Gfx.fillRound(g, x, y, w, h, radius, fill);
+        if (border != 0) Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, border);
+    }
+
+    public static void section(GuiGraphics g, int x, int y, int w, String label, CirrusTheme t) {
+        headingText(g, Minecraft.getInstance().font, label, x, y, t.text);
+        g.fill(x, y + 13, x + w, y + 14, t.border);
+    }
+
+    /** Toggle switch with an animated knob (progress 0..1). */
+    public static void toggle(GuiGraphics g, int x, int y, boolean on, float progress, CirrusTheme t) {
+        int w = 24, h = 12;
+        Gfx.fillRound(g, x, y, w, h, h / 2f, Gfx.mix(t.surface, t.accent, progress));
+        Gfx.strokeRound(g, x, y, w, h, h / 2f, 0.5f, Gfx.mix(t.border, t.cyan, progress));
+        float kx = x + 2 + (w - h) * progress;
+        Gfx.fillRound(g, kx, y + 2, h - 4, h - 4, (h - 4) / 2f, Gfx.mix(t.muted, 0xFFFFFFFF, progress));
+    }
+
+    public static void scrollbar(GuiGraphics g, int x, int y, int h, float offset, float visible, CirrusTheme t) {
+        if (visible >= 1f) return;
+        Gfx.fillRound(g, x, y, 3, h, 1.5f, Gfx.scaleAlpha(t.border, 0.6f));
+        float thumb = Math.max(14f, h * visible);
+        Gfx.fillRound(g, x, y + (h - thumb) * offset, 3, thumb, 1.5f, t.accent);
+    }
+
+    /** "Tune" glyph (three sliders) used for settings buttons; the icon sheet has no cog. */
+    public static void sliders(GuiGraphics g, int x, int y, int size, int color) {
+        float lineH = Math.max(1f, size / 10f), knob = Math.max(3f, size / 4f);
+        float[] ys = {size * 0.18f, size * 0.5f, size * 0.82f};
+        float[] ks = {0.65f, 0.3f, 0.55f};
+        for (int i = 0; i < 3; i++) {
+            Gfx.fillRound(g, x, y + ys[i] - lineH / 2, size, lineH, lineH / 2, Gfx.scaleAlpha(color, 0.75f));
+            Gfx.fillRound(g, x + (size - knob) * ks[i], y + ys[i] - knob / 2, knob, knob, knob / 2, color);
         }
     }
-    public static void outline(GuiGraphics g,int x,int y,int w,int h,int radius,int color){
-        if(w<=0||h<=0)return;int r=Math.max(0,Math.min(radius,Math.min(w/2,h/2)));
-        if(r==0){g.fill(x,y,x+w,y+1,color);g.fill(x,y+h-1,x+w,y+h,color);g.fill(x,y,x+1,y+h,color);g.fill(x+w-1,y,x+w,y+h,color);return;}
-        for(int dy=0;dy<r;dy++){
-            int inset=r-(int)Math.floor(Math.sqrt((double)r*r-(double)(r-dy)*(r-dy)));
-            g.fill(x+inset,y+dy,x+w-inset,y+dy+1,color);
-            g.fill(x+inset,y+h-dy-1,x+w-inset,y+h-dy,color);
-        }
-        g.fill(x,y+r,x+1,y+h-r,color);g.fill(x+w-1,y+r,x+w,y+h-r,color);
+
+    // ---- typography -----------------------------------------------------------------------------------------------
+
+    public static Component body(String value) { return Component.literal(value).withStyle(s -> s.withFont(UI_FONT_DESC)); }
+    public static Component small(String value) { return Component.literal(value).withStyle(s -> s.withFont(UI_SMALL_DESC)); }
+    public static Component heading(String value) { return Component.literal(value).withStyle(s -> s.withFont(UI_DISPLAY_DESC)); }
+    public static FormattedCharSequence formatSearch(String value) { return Language.getInstance().getVisualOrder(body(value)); }
+
+    public static int bodyWidth(Font f, String v) { return f.width(body(v)); }
+    public static int smallWidth(Font f, String v) { return f.width(small(v)); }
+    public static int headingWidth(Font f, String v) { return f.width(heading(v)); }
+
+    /** Trims a string with an ellipsis so it never exceeds maxWidth in the given style. */
+    public static String fit(Font f, String value, int maxWidth, java.util.function.Function<String, Component> style) {
+        if (maxWidth <= 0) return "";
+        if (f.width(style.apply(value)) <= maxWidth) return value;
+        String s = value;
+        while (s.length() > 1 && f.width(style.apply(s + "…")) > maxWidth) s = s.substring(0, s.length() - 1);
+        return s + "…";
     }
-    private static void gradient(GuiGraphics g,int x,int y,int w,int h,int top,int bottom){
-        if(w<=0||h<=0)return;
-        int steps=Math.min(32,Math.max(1,h));
-        for(int i=0;i<steps;i++){
-            int y1=y+h*i/steps,y2=y+h*(i+1)/steps;
-            g.fill(x,y1,x+w,y2,blend(top,bottom,(i+0.5f)/steps));
-        }
+    public static String fitBody(Font f, String v, int w) { return fit(f, v, w, CirrusUi::body); }
+    public static String fitSmall(Font f, String v, int w) { return fit(f, v, w, CirrusUi::small); }
+
+    public static void text(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, body(value), x, y + NUDGE, color, shadow); }
+    public static void smallText(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { g.drawString(f, small(value), x, y + NUDGE, color, shadow); }
+    public static void headingText(GuiGraphics g, Font f, String value, int x, int y, int color) { g.drawString(f, heading(value), x, y, color, false); }
+    public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = body(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
+    public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = small(value); g.drawString(f, c, x - f.width(c) / 2, y + NUDGE, color, false); }; }
+    public static void centeredHeading(GuiGraphics g, Font f, String value, int x, int y, int color) { { Component c = heading(value); g.drawString(f, c, x - f.width(c) / 2, y, color, false); }; }
+    /** Draws short text centred on (cx, cy) in the largest of heading/body/small that fits maxW (monograms in small tiles). */
+    public static void centeredFit(GuiGraphics g, Font f, String value, int cx, int cy, int maxW, int color) {
+        if (headingWidth(f, value) <= maxW) centeredHeading(g, f, value, cx, cy - LINE / 2, color);
+        else if (bodyWidth(f, value) <= maxW) centered(g, f, value, cx, cy - LINE / 2, color);
+        else centeredSmall(g, f, value, cx, cy - LINE / 2, color);
     }
-    private static int blend(int a,int b,float weight){
-        float other=1f-weight;
-        int aa=(int)(((a>>>24)&255)*weight+((b>>>24)&255)*other),r=(int)(((a>>>16)&255)*weight+((b>>>16)&255)*other),gg=(int)(((a>>>8)&255)*weight+((b>>>8)&255)*other),bb=(int)((a&255)*weight+(b&255)*other);
-        return aa<<24|r<<16|gg<<8|bb;
+    public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { g.drawString(f, small(value), right - smallWidth(f, value), y + NUDGE, color, false); }
+
+    // ---- icons and brand ------------------------------------------------------------------------------------------
+
+    public static void icon(GuiGraphics g, int x, int y, int size, int kind, int color) { CirrusAssetTextures.drawIcon(g, x, y, Math.max(8, size), kind, color); }
+    public static void emptyLibrary(GuiGraphics g, int x, int y, int width, int height) { CirrusAssetTextures.drawEmptyLibrary(g, x, y, width, height); }
+    public static void loadingFrame(GuiGraphics g, int x, int y, int size, long frame) { CirrusAssetTextures.drawLoadingFrame(g, x, y, size, frame); }
+
+    /** Width of the brand lockup (mark plus wordmark). */
+    public static int brandWidth(Font f, int markSize) {
+        int markWidth = Math.max(1, (markSize * 640 + 236) / 473);
+        return markWidth + 8 + headingWidth(f, "Cirrus Client");
     }
+
+    /** Just the cloud mark, for narrow rails. */
+    public static void mark(GuiGraphics g, int x, int y, int size, CirrusTheme t) {
+        CirrusAssetTextures.drawMark(g, x, y, Math.max(1, (size * 640 + 236) / 473), size, markColor(t));
+    }
+
+    /** The mark art is white; on light themes it is tinted with the accent so it stays visible. */
+    private static int markColor(CirrusTheme t) { return t == CirrusTheme.LIGHT ? t.accent : 0xFFFFFFFF; }
+
+    public static void brand(GuiGraphics g, int x, int y, int markSize, CirrusTheme t) {
+        int markWidth = Math.max(1, (markSize * 640 + 236) / 473);
+        CirrusAssetTextures.drawMark(g, x, y, markWidth, markSize, markColor(t));
+        headingText(g, Minecraft.getInstance().font, "Cirrus Client", x + markWidth + 8, y + (markSize - LINE) / 2, t.text);
+    }
+
+    // ---- compatibility wrappers (older call sites) ----------------------------------------------------------------
+
+    public static void rounded(GuiGraphics g, int x, int y, int w, int h, int radius, int color) { Gfx.fillRound(g, x, y, w, h, radius, color); }
+    public static void outline(GuiGraphics g, int x, int y, int w, int h, int radius, int color) { Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, color); }
 }
-

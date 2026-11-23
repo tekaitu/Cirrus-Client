@@ -1,35 +1,49 @@
 package dev.cirrus.client;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.CirrusTheme;
-import dev.cirrus.client.ui.CirrusUi;
-import net.minecraft.client.Minecraft;
+import dev.cirrus.client.ui.*;
 import net.minecraft.client.gui.GuiGraphics;
-import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 /** First-run choices are persisted per game directory; skipping completes onboarding with defaults. */
-public final class CirrusWelcomeScreen extends Screen {
-    private final Screen parent;
-    public CirrusWelcomeScreen(Screen parent){super(Component.literal("Welcome to Cirrus"));this.parent=parent;}
-    protected void init(){int x=width/2-92,y=height/2+4;
-        addRenderableWidget(CirrusButton.nav(x,y,180,22,Component.literal("Dark theme"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.DARK)));
-        addRenderableWidget(CirrusButton.nav(x,y+29,180,22,Component.literal("Light theme"),CirrusUi.ICON_THEMES,b->CirrusTheme.set(config(),CirrusTheme.LIGHT)));
-        addRenderableWidget(CirrusButton.of(x,y+66,86,22,Component.literal("Continue"),b->finish()));
-        addRenderableWidget(CirrusButton.of(x+94,y+66,86,22,Component.literal("Skip"),b->finish()));
-    }
-    public void render(GuiGraphics g,int mx,int my,float d){
-        renderBackground(g,mx,my,d);var t=CirrusTheme.current(config());CirrusUi.backdrop(g,width,height,t);
-        int cardW=Math.min(420,width-28),cardH=Math.min(260,height-28),left=(width-cardW)/2,top=(height-cardH)/2;
-        CirrusUi.panel(g,left,top,cardW,cardH,20,t);CirrusUi.brand(g,width/2-63,top+30,32,t);
-        CirrusUi.centeredHeading(g,font,"WELCOME TO CIRRUS",width/2,top+84,t.text);
-        CirrusUi.centered(g,font,"Make the interface yours.",width/2,top+108,t.cyan);
-        CirrusUi.centeredSmall(g,font,"Choose a theme. You can change it anytime in Settings.",width/2,top+132,t.muted);
-        CirrusUi.centeredSmall(g,font,"Your preferences stay in this Minecraft instance.",width/2,top+147,t.muted);super.render(g,mx,my,d);
-    }
-    private CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
-    private void finish(){config().put("onboarding.complete","true");minecraft.setScreen(parent);}
-    public void onClose(){finish();}
-}
+public final class CirrusWelcomeScreen extends CirrusScreen {
+    private int px, py, pw, ph, brandSize;
+    private boolean roomy;
 
+    public CirrusWelcomeScreen(Screen parent) { super(Component.literal("Welcome to Cirrus"), parent); }
+
+    @Override protected void init() {
+        pw = Math.min(300, width - 16);
+        roomy = height >= 230;
+        brandSize = roomy ? 32 : 22;
+        ph = Math.min(height - 16, roomy ? 214 : 150);
+        px = (width - pw) / 2;
+        py = (height - ph) / 2;
+        int bw = pw - 48, x = px + 24, rowH = 22;
+        int y = py + ph - 14 - rowH;
+        int half = (bw - 6) / 2;
+        addRenderableWidget(CirrusButton.primary(x, y, half, rowH, Component.literal("Continue"), b -> finish()));
+        addRenderableWidget(CirrusButton.of(x + half + 6, y, half, rowH, Component.literal("Skip"), b -> finish()));
+        y -= rowH + 6;
+        addRenderableWidget(CirrusButton.nav(x, y, bw, rowH, Component.literal("Light theme"), CirrusUi.ICON_THEMES, b -> CirrusTheme.set(config(), CirrusTheme.LIGHT)));
+        y -= rowH + 4;
+        addRenderableWidget(CirrusButton.nav(x, y, bw, rowH, Component.literal("Dark theme"), CirrusUi.ICON_THEMES, b -> CirrusTheme.set(config(), CirrusTheme.DARK)));
+    }
+
+    @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
+        CirrusUi.panel(g, px, py, pw, ph, 18, t);
+        int y = py + 14;
+        CirrusUi.brand(g, (width - CirrusUi.brandWidth(font, brandSize)) / 2, y, brandSize, t);
+        y += brandSize + 10;
+        CirrusUi.centeredHeading(g, font, "WELCOME TO CIRRUS", width / 2, y, t.text);
+        y += 14;
+        CirrusUi.centered(g, font, "Make the interface yours.", width / 2, y, t.cyan);
+        if (roomy) {
+            y += 16;
+            CirrusUi.centeredSmall(g, font, "Choose a theme. You can change it anytime in Settings.", width / 2, y, t.muted);
+        }
+    }
+
+    private void finish() { config().put("onboarding.complete", "true"); minecraft.setScreen(parent); }
+    @Override public void onClose() { finish(); }
+}

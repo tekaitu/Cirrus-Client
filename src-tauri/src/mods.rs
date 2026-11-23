@@ -700,7 +700,7 @@ pub fn list_installed(mods_dir: &Path) -> Vec<InstalledMod> {
     out
 }
 
-const DISABLED_SUFFIX: &str = ".disabled";
+pub const DISABLED_SUFFIX: &str = ".disabled";
 
 /// Validates a listed mod file name (`x.jar` or `x.jar.disabled`) and returns it with whether it is enabled.
 fn listed_name(file_name: &str) -> Result<(String, bool), String> {

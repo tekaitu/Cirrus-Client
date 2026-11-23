@@ -1,0 +1,6 @@
+accessWidener v2 named
+
+# The vanilla server list keeps its entry list protected. Cirrus appends its dashboard-provided partner servers to the
+# existing Multiplayer list (it does not replace the screen), which needs to add and remove list rows.
+accessible method net/minecraft/client/gui/components/AbstractSelectionList addEntry (Lnet/minecraft/client/gui/components/AbstractSelectionList$Entry;)I
+accessible method net/minecraft/client/gui/components/AbstractSelectionList removeEntry (Lnet/minecraft/client/gui/components/AbstractSelectionList$Entry;)V

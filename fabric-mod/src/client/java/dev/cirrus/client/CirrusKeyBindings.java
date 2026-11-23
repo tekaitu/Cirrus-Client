@@ -17,8 +17,8 @@ final class CirrusKeyBindings {
     static void register(){
         KeyMapping key=KeyBindingHelper.registerKeyBinding(new KeyMapping("key.cirrus.open_gui",InputConstants.Type.KEYSYM,GLFW.GLFW_KEY_RIGHT_SHIFT,new KeyMapping.Category(Identifier.fromNamespaceAndPath("cirrus_fabric","general"))));
         ClientTickEvents.END_CLIENT_TICK.register(client->{while(key.consumeClick()){
-            if(client.screen instanceof CirrusDashboardScreen){client.setScreen(null);continue;}
-            if(client.screen==null||client.screen instanceof TitleScreen||client.screen instanceof PauseScreen){client.setScreen(new CirrusDashboardScreen(client.screen));}
+            // In gameplay and vanilla navigation screens Right Shift opens the mod menu. Inside Cirrus screens CirrusScreen closes itself.
+            if(client.screen==null||client.screen instanceof TitleScreen||client.screen instanceof PauseScreen){client.setScreen(new CirrusMenuScreen(client.screen));}
         }});
     }
 }

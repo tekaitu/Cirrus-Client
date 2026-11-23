@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "revision": 0,
+  "_note": "Bundled safe fallback. Intentionally contains no promotions, partners or links: all of that content comes from the Cirrus dashboard.",
+  "store": { "label": "STORE", "url": "", "enabled": false },
+  "partners": [],
+  "banners": [],
+  "storePromos": []
+}

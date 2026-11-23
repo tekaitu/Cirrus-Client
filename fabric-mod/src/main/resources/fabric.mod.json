@@ -7,8 +7,10 @@
   "authors": ["Cirrus Client"],
   "license": "All-Rights-Reserved",
   "environment": "client",
+  "accessWidener": "cirrus_fabric.accesswidener",
   "entrypoints": {
-    "client": ["dev.cirrus.client.CirrusFabricClient"]
+    "client": ["dev.cirrus.client.CirrusFabricClient"],
+    "fabric-client-gametest": ["dev.cirrus.client.gametest.CirrusScreenshotTest"]
   },
   "depends": {
     "fabricloader": ">=0.20.1",

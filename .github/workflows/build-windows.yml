@@ -25,6 +25,19 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install Java (to build the Cirrus Fabric mod)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build the Cirrus Fabric mod (it is embedded into the launcher)
+        working-directory: fabric-mod
+        shell: bash
+        run: |
+          java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build --no-daemon
+          ls -l build/libs
+
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
 

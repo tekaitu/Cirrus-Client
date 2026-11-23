@@ -2,6 +2,7 @@ pub mod accounts;
 pub mod base64;
 pub mod auth;
 pub mod crashfix;
+pub mod cirrus_mod;
 pub mod crashlog;
 pub mod discord;
 pub mod game;
@@ -1397,6 +1398,16 @@ async fn launch_game(
         },
         None => None,
     };
+    if fabric {
+        // The Cirrus mod is part of this app: put it (and Fabric API) into the profile before every Fabric launch.
+        let mods_dir = game::instance_dir(&root, instance_id.as_deref().unwrap_or(&info.profile_id)).join("mods");
+        let mc_version = version.clone();
+        match tauri::async_runtime::spawn_blocking(move || cirrus_mod::prepare(&mods_dir, &mc_version)).await {
+            Ok(Ok(())) => {}
+            Ok(Err(m)) => return refuse(&m),
+            Err(_) => return refuse("Preparing the Cirrus mod was interrupted. Try again."),
+        }
+    }
     let game_dir = instance_cfg.as_ref().map(|cfg| instance::game_dir(&root, cfg));
     let spec = match game::build_launch(
         &root,
