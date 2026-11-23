@@ -1605,15 +1605,26 @@ fn mods_folder(app: &AppHandle, version: &str, profile: Option<&str>) -> Result<
     let (root, _) = game_root(app)?;
     let info = game::installed(&root, version, true)
         .ok_or_else(|| format!("Install Minecraft {version} with Fabric first (use Play on the Home page)."))?;
-    let instance = match profile {
-        Some(id) => game::list_profiles(&root)
-            .into_iter()
-            .find(|p| p.id == id && p.minecraft == version && p.fabric)
-            .map(|p| p.id)
-            .ok_or("That profile does not use Fabric for this version.")?,
-        None => info.profile_id,
+    // A selected instance owns its folder, which may be a custom one or a clone
+    // that is not in the legacy profile list. Mods must go where that instance's
+    // game actually looks, or an install would look successful and load nothing.
+    let game_dir = match profile {
+        Some(id) => {
+            let cfg = instance::find(&root, id).ok_or("That instance no longer exists.")?;
+            if cfg.minecraft != version {
+                return Err(format!(
+                    "This instance runs Minecraft {}, not {version}.",
+                    cfg.minecraft
+                ));
+            }
+            if cfg.loader != "fabric" {
+                return Err("Mods need Fabric. Switch this instance to Fabric first.".to_string());
+            }
+            instance::game_dir(&root, &cfg)
+        }
+        None => game::instance_dir(&root, &info.profile_id),
     };
-    let dir = game::instance_dir(&root, &instance).join("mods");
+    let dir = game_dir.join("mods");
     std::fs::create_dir_all(&dir).map_err(|e| format!("Could not create the mods folder: {e}"))?;
     Ok(dir)
 }

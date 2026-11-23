@@ -13,6 +13,7 @@ import "./styles/effects.css";
 import "./styles/studio.css";
 import "./styles/ui.css";
 import "./styles/classic.css";
+import "./styles/buttons.css";
 
 initTheme();
 initWindowFrame();

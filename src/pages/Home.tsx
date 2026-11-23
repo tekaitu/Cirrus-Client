@@ -36,7 +36,7 @@ function Identity({ data, onOpenAccount }: { data: AppData; onOpenAccount: () =>
 
   return (
     <div className="home-identity" aria-label="Active account">
-      <SkinHead uuid={player?.id ?? null} name={player?.name ?? offline ?? null} size={38} />
+      <SkinHead uuid={player?.id ?? null} name={player?.name ?? offline ?? null} size={34} />
       <div className="home-id-text">
         <span className="home-id-name">
           {player ? player.name : offline || (offlineMode ? "No offline name" : "Not signed in")}
@@ -47,7 +47,7 @@ function Identity({ data, onOpenAccount }: { data: AppData; onOpenAccount: () =>
       </div>
       {!player && !offlineMode && (
         <div className="home-id-actions">
-          <Button size="sm" variant="primary" onClick={onOpenAccount}>
+          <Button size="sm" variant="secondary" onClick={onOpenAccount}>
             Sign in
           </Button>
         </div>
@@ -56,15 +56,29 @@ function Identity({ data, onOpenAccount }: { data: AppData; onOpenAccount: () =>
   );
 }
 
-/** The branded hero: a headline, not a version string; the details sit underneath. */
+/**
+ * The branded hero: the headline, what it will launch, then the one Play button
+ * in the middle of the screen. Every other action is a quiet link underneath it.
+ */
 function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: (page: PageId) => void; onOpenAccount: () => void }) {
   const { selection } = data;
+  const playAs = usePlayAs();
   const instance = selection.instance;
   const running = data.game.run.phase === "running" || data.game.run.phase === "starting";
+  // When nobody is signed in the Play button already offers sign-in; a second
+  // account chip saying the same thing would just repeat it.
+  const showIdentity = playAs.mode === "offline" || data.account.state.phase === "signedIn";
+  const loader = instance ? instance.loader : selection.loader;
+  const versionTitle = instance
+    ? `${instance.minecraft} ${loader === "fabric" ? "Fabric" : "Vanilla"}`
+    : selection.version
+      ? `${selection.version} ${selection.loader === "fabric" ? "Fabric" : "Vanilla"}`
+      : "Minecraft: Java Edition";
+
   return (
     <section className="home-hero" aria-labelledby="hero-title">
       <div className="home-lockup" aria-hidden="true">
-        <LogoMark size={54} />
+        <LogoMark size={46} />
         <span className="home-lockup-name">
           Cirrus <em>Client</em>
         </span>
@@ -72,10 +86,14 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
       <h1 id="hero-title" className="home-title">
         Sky is the limit.
       </h1>
+      <p className="home-version" aria-label="Selected version">
+        {versionTitle}
+        {instance ? <span className="home-version-name">{instance.name}</span> : null}
+      </p>
       <p className="home-sub">
         {instance ? (
           <>
-            <strong>{instance.name}</strong> · Minecraft {instance.minecraft}
+            Minecraft {instance.minecraft}
             {instance.loader === "fabric" ? ` · Fabric ${instance.loaderVersion ?? ""}`.trimEnd() : " · Vanilla"}
             {instance.lastPlayed > 0 ? ` · ${lastAgo(instance.lastPlayed)}` : ""}
           </>
@@ -86,7 +104,12 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
         ) : (
           "Pick a version and start your first world."
         )}
+        {running && <Badge tone="good">Minecraft is running</Badge>}
       </p>
+
+      <div className="home-hero-play">
+        <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
+      </div>
 
       <div className="home-hero-links">
         <button type="button" className="link-inline" onClick={() => onNavigate("versions")}>
@@ -98,18 +121,17 @@ function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: 
         <button type="button" className="link-inline" onClick={() => onNavigate("library")}>
           {instance ? "Manage instances" : "Open the Library"}
         </button>
-        {running && <Badge tone="good">Minecraft is running</Badge>}
       </div>
 
-      <Identity data={data} onOpenAccount={onOpenAccount} />
+      {showIdentity && <Identity data={data} onOpenAccount={onOpenAccount} />}
     </section>
   );
 }
 
 const lastAgo = (at: number) => formatAgo(at);
 
-/** The dedicated area that starts the selected instance. */
-function QuickJoin({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: (page: PageId) => void; onOpenAccount: () => void }) {
+/** The selected instance and the ones played recently — the quick way back in. */
+function QuickJoin({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
   const instance = data.selection.instance;
   const recent = recentlyPlayed(data.instances.status === "ready" ? data.instances.data : [], readRecent());
   return (
@@ -130,11 +152,12 @@ function QuickJoin({ data, onNavigate, onOpenAccount }: { data: AppData; onNavig
           {instance ? "Change" : "Get started"}
         </button>
       </header>
-      {recent.length > 0 && (
+
+      {recent.length > 0 ? (
         <div className="quick-recents">
-          <span className="muted small">Jump back in</span>
+          <span className="quick-recents-label">Jump back in</span>
           <div className="quick-recents-row">
-            {recent.slice(0, 3).map((item) => (
+            {recent.slice(0, 4).map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -150,8 +173,14 @@ function QuickJoin({ data, onNavigate, onOpenAccount }: { data: AppData; onNavig
             ))}
           </div>
         </div>
+      ) : (
+        <div className="quick-empty">
+          <p className="muted small">Played instances show up here, one click away.</p>
+          <Button variant="secondary" size="sm" onClick={() => onNavigate("versions")}>
+            Install a version
+          </Button>
+        </div>
       )}
-      <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
     </section>
   );
 }
@@ -231,7 +260,7 @@ function RecentlyPlayed({
         </div>
       ) : (
         <div className="instance-grid">
-          {recent.slice(0, 2).map((instance) => (
+          {recent.slice(0, 4).map((instance) => (
             <InstanceCard
               key={instance.id}
               instance={instance}
@@ -267,8 +296,8 @@ function News({ onNavigate }: { onNavigate: (page: PageId) => void }) {
           <div>
             <strong>Classic is back</strong>
             <p className="muted small">
-              The sidebar and the big image cards return, with the launcher's current buttons kept as they were. Pick
-              Classic or Colorful on first launch; change it later in Settings.
+              The sidebar and the big image cards return, with Play in the middle of the screen. Pick Classic or
+              Colorful on first launch; change it later in Settings.
             </p>
           </div>
         </li>
@@ -316,12 +345,10 @@ export function HomePage({
 }) {
   return (
     <div className="home">
-      <div className="home-top">
-        <Hero data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
-        <QuickJoin data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
-      </div>
+      <Hero data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
+      <RecentlyPlayed data={data} onNavigate={onNavigate} />
       <div className="home-lower">
-        <RecentlyPlayed data={data} onNavigate={onNavigate} />
+        <QuickJoin data={data} onNavigate={onNavigate} />
         <News onNavigate={onNavigate} />
       </div>
     </div>

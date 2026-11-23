@@ -28,7 +28,7 @@ export const THEMES: readonly ThemeInfo[] = [
   {
     id: "colorful",
     label: "Colorful",
-    blurb: "Bright Minecraft artwork, blue highlights, the same launcher underneath",
+    blurb: "The old bright Minecraft key art and blue Play button, neutral panels, the same launcher underneath",
     swatch: ["#0a1020", "#13203a", "#1d2f52"],
     accent: "#4f8cff",
   },
@@ -65,6 +65,15 @@ function write(key: string, value: string) {
   }
 }
 
+type ThemeListener = () => void;
+const listeners = new Set<ThemeListener>();
+
+/** Notified whenever the look changes, so views that depend on it can redraw. */
+export function subscribeTheme(listener: ThemeListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 /** Anything an older build saved (Dark, Ocean, Forest, …) becomes Classic. */
 export function getTheme(): ThemeId {
   const saved = read(THEME_KEY);
@@ -82,6 +91,7 @@ function apply(theme: ThemeId) {
   root.dataset.theme = theme;
   delete root.dataset.accent;
   root.style.colorScheme = theme === "light" ? "light" : "dark";
+  listeners.forEach((listener) => listener());
 }
 
 export function setTheme(id: ThemeId) {
