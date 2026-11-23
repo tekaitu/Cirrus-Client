@@ -38,7 +38,7 @@ export function CharacterPreview({
   /** Screen pixels per skin pixel. */
   scale?: number;
   showControls?: boolean;
-  /** Draw the account's own cape. A Cirrus cape is never implied here. */
+  /** Draw the account's own cape. A Maple cape is never implied here. */
   showCape?: boolean;
   compact?: boolean;
   onViewChange?: (view: CharacterView) => void;
@@ -117,7 +117,7 @@ export function CharacterPreview({
       {!error && usingFallback && !loading && (
         <p className="character-note" role="status">
           <WarningIcon />
-          <span>This account has no skin Cirrus can read, so a default look is shown.</span>
+          <span>This account has no skin Maple can read, so a default look is shown.</span>
         </p>
       )}
 

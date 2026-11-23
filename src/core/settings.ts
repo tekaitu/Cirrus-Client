@@ -61,7 +61,7 @@ export function validateDraft(s: Settings, limits: MemoryLimits): SettingsErrors
   if (s.gameDir.trim() === "") {
     errors.gameDir = "Game directory is required.";
   } else if (!WINDOWS_ABSOLUTE.test(s.gameDir.trim()) && !s.gameDir.trim().startsWith("/")) {
-    errors.gameDir = "Use a full path, for example C:\\Users\\you\\CirrusClient.";
+    errors.gameDir = "Use a full path, for example C:\\Users\\you\\MapleClient.";
   }
   if (!Number.isFinite(s.windowWidth) || s.windowWidth < MIN_WINDOW_WIDTH || s.windowWidth > MAX_WINDOW_SIZE) {
     errors.windowWidth = `Window width must be between ${MIN_WINDOW_WIDTH} and ${MAX_WINDOW_SIZE} pixels.`;

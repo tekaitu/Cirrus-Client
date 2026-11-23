@@ -42,17 +42,23 @@ export function CodeQr({ code }: { code: string }) {
 export function AccountPanel({
   account,
   onManage,
+  title = "Account",
+  compact = false,
 }: {
   account: Account;
-  /** Shown as a "Manage accounts" button (the pop-up in the top bar); the Accounts page itself leaves it out. */
+  /** Shown as a "Manage accounts" button (the side panel in the top bar); the Accounts page itself leaves it out. */
   onManage?: () => void;
+  /** Heading of the card; the account panel names it for the Microsoft path. */
+  title?: string;
+  /** In the side panel only who is signed in and what can be done is shown; the UUID and details stay on the Accounts page. */
+  compact?: boolean;
 }) {
   const { state } = account;
   const profile = state.phase === "signedIn" ? state.profile : null;
   const appearance = usePlayerAppearance(profile?.id ?? null);
 
   return (
-    <Card title="Account" className="account-card">
+    <Card title={title} className="account-card">
       {state.phase === "checking" && <Skeleton label="Checking account" lines={2} />}
 
       {state.phase === "notConfigured" && (
@@ -114,7 +120,7 @@ export function AccountPanel({
               </span>
             </div>
           </div>
-          <dl className="account-details">
+          {!compact && <dl className="account-details">
             <div>
               <dt>Player name</dt>
               <dd>{state.profile.name}</dd>
@@ -139,8 +145,8 @@ export function AccountPanel({
               <dt>Minecraft UUID</dt>
               <dd className="account-uuid">{formatUuid(state.profile.id)}</dd>
             </div>
-          </dl>
-          {account.accounts.length > 1 && (
+          </dl>}
+          {!compact && account.accounts.length > 1 && (
             <p className="muted small">{account.accounts.length} accounts signed in on this PC</p>
           )}
           {state.note && <p className="muted small">{state.note}</p>}

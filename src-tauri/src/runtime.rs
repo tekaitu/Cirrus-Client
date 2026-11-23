@@ -9,7 +9,7 @@
 //! * Extraction refuses paths that escape the target folder, symlinks, and
 //!   absurd sizes; files are written into a staging folder and moved into
 //!   place only after the new `java` has been run and reports Java 21+.
-//! * Nothing outside the Cirrus Client runtime folder is touched. No PATH,
+//! * Nothing outside the Maple Client runtime folder is touched. No PATH,
 //!   registry, Defender, or Windows Update changes. No administrator rights.
 
 use crate::java;
@@ -26,6 +26,27 @@ pub const REQUIRED_MAJOR: u32 = 21;
 pub const METADATA_URL: &str = "https://api.adoptium.net/v3/assets/latest/21/hotspot?architecture=x64&image_type=jre&os=windows&vendor=eclipse";
 /// Folder (inside the runtime folder) that holds the installed versions.
 pub const MANAGED_DIR: &str = "temurin-21";
+/// Java versions this launcher can install. Minecraft 1.8 - 1.16 need 8,
+/// 1.17 - 1.20.4 need 17, and 1.20.5 and newer need 21.
+pub const SUPPORTED_MAJORS: [u32; 3] = [8, 17, 21];
+
+pub fn supported_major(major: u32) -> bool {
+    SUPPORTED_MAJORS.contains(&major)
+}
+
+pub fn metadata_url(major: u32) -> String {
+    format!(
+        "https://api.adoptium.net/v3/assets/latest/{major}/hotspot?architecture=x64&image_type=jre&os=windows&vendor=eclipse"
+    )
+}
+
+pub fn managed_dir(major: u32) -> String {
+    format!("temurin-{major}")
+}
+
+fn binary_prefix(major: u32) -> String {
+    format!("/adoptium/temurin{major}-binaries/")
+}
 
 const MAX_DOWNLOAD_BYTES: u64 = 400 * 1024 * 1024;
 const MAX_EXTRACT_BYTES: u64 = 1536 * 1024 * 1024;
@@ -42,7 +63,7 @@ const ALLOWED_HOSTS: &[&str] = &[
     "release-assets.githubusercontent.com",
     "github-releases.githubusercontent.com",
 ];
-const BINARY_PATH_PREFIX: &str = "/adoptium/temurin21-binaries/";
+
 
 // ------------------------------------------------------------------ types
 
@@ -136,7 +157,7 @@ pub struct InstallOutcome {
     pub version: Option<String>,
     /// Where an already-present runtime was found.
     pub source: String,
-    /// Whether this runtime is Cirrus Client' own copy (then Settings points at it).
+    /// Whether this runtime is Maple Client's own copy (then Settings points at it).
     pub managed: bool,
 }
 
@@ -176,17 +197,21 @@ pub fn install_dir_name(release_name: &str) -> String {
 
 /// Read the Adoptium "latest assets" answer and pick the Windows x64 JRE zip.
 pub fn parse_release(json: &str, policy: &UrlPolicy) -> Result<Release, String> {
+    parse_release_for(json, policy, REQUIRED_MAJOR)
+}
+
+pub fn parse_release_for(json: &str, policy: &UrlPolicy, major_wanted: u32) -> Result<Release, String> {
     let value: serde_json::Value = serde_json::from_str(json)
         .map_err(|e| format!("The Java download information was not understood ({e})."))?;
     let items = value
         .as_array()
         .ok_or("The Java download information had an unexpected shape.")?;
     if items.is_empty() {
-        return Err("The vendor did not list a Java 21 download for Windows x64.".to_string());
+        return Err(format!("The vendor did not list a Java {major_wanted} download for Windows x64."));
     }
-    let mut last_problem = String::from("No usable Java 21 download was listed.");
+    let mut last_problem = format!("No usable Java {major_wanted} download was listed.");
     for item in items {
-        match release_from_item(item, policy) {
+        match release_from_item_for(item, policy, major_wanted) {
             Ok(r) => return Ok(r),
             Err(e) => last_problem = e,
         }
@@ -195,6 +220,14 @@ pub fn parse_release(json: &str, policy: &UrlPolicy) -> Result<Release, String> 
 }
 
 fn release_from_item(item: &serde_json::Value, policy: &UrlPolicy) -> Result<Release, String> {
+    release_from_item_for(item, policy, REQUIRED_MAJOR)
+}
+
+fn release_from_item_for(
+    item: &serde_json::Value,
+    policy: &UrlPolicy,
+    major_wanted: u32,
+) -> Result<Release, String> {
     let text = |v: Option<&serde_json::Value>| v.and_then(|x| x.as_str()).map(str::to_string);
     let binary = item.get("binary").ok_or("A download entry had no binary.")?;
     let pkg = binary.get("package").ok_or("A download entry had no package.")?;
@@ -233,8 +266,8 @@ fn release_from_item(item: &serde_json::Value, policy: &UrlPolicy) -> Result<Rel
     }
     let url = Url::parse(&link).map_err(|e| format!("The download address was invalid ({e})."))?;
     policy.check(&url)?;
-    if policy.https_only && !url.path().starts_with(BINARY_PATH_PREFIX) {
-        return Err("The download address is not an official Temurin 21 release.".to_string());
+    if policy.https_only && !url.path().starts_with(&binary_prefix(major_wanted)) {
+        return Err(format!("The download address is not an official Temurin {major_wanted} release."));
     }
 
     let version = text(item.get("version").and_then(|v| v.get("semver")))
@@ -245,8 +278,8 @@ fn release_from_item(item: &serde_json::Value, policy: &UrlPolicy) -> Result<Rel
         .next()
         .and_then(|m| m.parse().ok())
         .unwrap_or(0);
-    if major != REQUIRED_MAJOR {
-        return Err(format!("The vendor offered Java {major}, not Java {REQUIRED_MAJOR}."));
+    if major != major_wanted {
+        return Err(format!("The vendor offered Java {major}, not Java {major_wanted}."));
     }
     let release_name = text(item.get("release_name")).unwrap_or_else(|| format!("jdk-{version}"));
     let size = pkg.get("size").and_then(|s| s.as_u64());
@@ -280,7 +313,7 @@ fn http_client(policy: &UrlPolicy, timeout: Duration) -> Result<reqwest::blockin
         .redirect(redirect)
         .connect_timeout(Duration::from_secs(20))
         .timeout(timeout)
-        .user_agent(concat!("CirrusClient/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("MapleClient/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| format!("Could not set up a secure connection: {e}"))
 }
@@ -293,6 +326,28 @@ fn friendly_net_error(e: &reqwest::Error) -> String {
     } else {
         format!("Network problem: {e}")
     }
+}
+
+pub fn fetch_release_for(
+    metadata_url: &str,
+    policy: &UrlPolicy,
+    major: u32,
+) -> Result<Release, String> {
+    let url = Url::parse(metadata_url).map_err(|e| format!("Bad metadata address: {e}"))?;
+    policy.check(&url)?;
+    let client = http_client(policy, Duration::from_secs(30))?;
+    let resp = client.get(url).send().map_err(|e| friendly_net_error(&e))?;
+    if !resp.status().is_success() {
+        return Err(format!(
+            "The Java download service answered with an error ({}).",
+            resp.status()
+        ));
+    }
+    let mut body = String::new();
+    resp.take(2 * 1024 * 1024)
+        .read_to_string(&mut body)
+        .map_err(|e| format!("Could not read the download information: {e}"))?;
+    parse_release_for(&body, policy, major)
 }
 
 pub fn fetch_release(metadata_url: &str, policy: &UrlPolicy) -> Result<Release, String> {
@@ -520,11 +575,17 @@ pub fn find_java_home(extracted: &Path) -> Option<PathBuf> {
 
 /// Check a runtime by running it. Returns the version text it reported.
 pub fn verify_runtime(java_exe: &Path) -> Result<String, String> {
+    verify_runtime_for(java_exe, REQUIRED_MAJOR)
+}
+
+/// Runs the new Java and makes sure it is the major version that was asked for
+/// (or newer, which is always safe within the same era).
+pub fn verify_runtime_for(java_exe: &Path, wanted: u32) -> Result<String, String> {
     let output = java::run_java_version(java_exe, Duration::from_secs(30))?;
     let major = java::parse_java_major(&output)
         .ok_or_else(|| "The new Java did not report a version.".to_string())?;
-    if major < REQUIRED_MAJOR {
-        return Err(format!("The new Java reports version {major}, not {REQUIRED_MAJOR} or newer."));
+    if major < wanted || (wanted == 8 && major > 8) {
+        return Err(format!("The new Java reports version {major}, not {wanted}."));
     }
     Ok(java::parse_java_version_string(&output).unwrap_or_else(|| major.to_string()))
 }
@@ -533,9 +594,16 @@ fn managed_root(runtime_dir: &Path) -> PathBuf {
     runtime_dir.join(MANAGED_DIR)
 }
 
-/// Where the roots to search for our own runtimes are.
+fn managed_root_for(runtime_dir: &Path, major: u32) -> PathBuf {
+    runtime_dir.join(managed_dir(major))
+}
+
+/// Where the roots to search for our own runtimes are: one per installable Java.
 pub fn managed_roots(runtime_dir: &Path) -> Vec<PathBuf> {
-    vec![managed_root(runtime_dir)]
+    SUPPORTED_MAJORS
+        .iter()
+        .map(|m| managed_root_for(runtime_dir, *m))
+        .collect()
 }
 
 /// Delete leftovers of an earlier interrupted install (only inside `runtime_dir`).
@@ -560,6 +628,26 @@ pub fn install_from_zip(
     cancel: &AtomicBool,
     verify: &dyn Fn(&Path) -> Result<String, String>,
     on_progress: ProgressFn<'_>,
+) -> Result<(PathBuf, String), InstallError> {
+    install_from_zip_for(
+        runtime_dir,
+        zip_path,
+        dir_name,
+        cancel,
+        verify,
+        on_progress,
+        REQUIRED_MAJOR,
+    )
+}
+
+pub fn install_from_zip_for(
+    runtime_dir: &Path,
+    zip_path: &Path,
+    dir_name: &str,
+    cancel: &AtomicBool,
+    verify: &dyn Fn(&Path) -> Result<String, String>,
+    on_progress: ProgressFn<'_>,
+    major: u32,
 ) -> Result<(PathBuf, String), InstallError> {
     let staging = runtime_dir.join(format!(".staging-{}", std::process::id()));
     let _ = fs::remove_dir_all(&staging);
@@ -593,7 +681,7 @@ pub fn install_from_zip(
         }
     };
 
-    let root = managed_root(runtime_dir);
+    let root = managed_root_for(runtime_dir, major);
     if let Err(e) = fs::create_dir_all(&root) {
         cleanup(&staging);
         return Err(io_err("Could not create the runtime folder", e));
@@ -614,7 +702,7 @@ pub fn install_from_zip(
     Ok((final_dir.join("bin").join(java::JAVA_EXE), version))
 }
 
-/// The newest Cirrus Client runtime that runs and is Java 21+, if any.
+/// The newest Maple Client runtime that runs and is Java 21+, if any.
 pub fn existing_managed(runtime_dir: &Path) -> Option<(PathBuf, String)> {
     let mut candidates = java::scan_vendor_roots(&managed_roots(runtime_dir), java::SRC_MANAGED);
     candidates.sort_by(|a, b| b.path.cmp(&a.path));
@@ -630,10 +718,31 @@ pub fn install_java(
     cancel: &AtomicBool,
     on_progress: ProgressFn<'_>,
 ) -> Result<InstallOutcome, InstallError> {
-    progress(on_progress, "checking", 0, None, "Looking for an existing Java 21…");
+    install_java_major(runtime_dir, configured, REQUIRED_MAJOR, cancel, on_progress)
+}
+
+pub fn install_java_major(
+    runtime_dir: &Path,
+    configured: Option<&str>,
+    major_wanted: u32,
+    cancel: &AtomicBool,
+    on_progress: ProgressFn<'_>,
+) -> Result<InstallOutcome, InstallError> {
+    if !supported_major(major_wanted) {
+        return Err(InstallError::failed(format!(
+            "Maple Client cannot install Java {major_wanted}. It can install Java 8, 17 and 21."
+        )));
+    }
+    progress(
+        on_progress,
+        "checking",
+        0,
+        None,
+        &format!("Looking for an existing Java {major_wanted}…"),
+    );
     let roots = managed_roots(runtime_dir);
     let detection = java::detect(configured, &roots);
-    if let Some((path, version)) = java::first_compatible(&detection, REQUIRED_MAJOR) {
+    if let Some((path, version)) = java::first_compatible(&detection, major_wanted) {
         let managed = detection
             .installs
             .iter()
@@ -644,7 +753,13 @@ pub fn install_java(
             .find(|i| i.path == path)
             .map(|i| i.source.clone())
             .unwrap_or_default();
-        progress(on_progress, "done", 0, None, "Java 21 is already available.");
+        progress(
+            on_progress,
+            "done",
+            0,
+            None,
+            &format!("Java {major_wanted} is already available."),
+        );
         return Ok(InstallOutcome {
             status: "alreadyInstalled",
             java_path: path,
@@ -659,8 +774,15 @@ pub fn install_java(
     clean_leftovers(runtime_dir);
 
     let policy = UrlPolicy::production();
-    progress(on_progress, "metadata", 0, None, "Asking Adoptium for the current Java 21 download…");
-    let release = fetch_release(METADATA_URL, &policy).map_err(InstallError::Failed)?;
+    progress(
+        on_progress,
+        "metadata",
+        0,
+        None,
+        &format!("Asking Adoptium for the current Java {major_wanted} download…"),
+    );
+    let release = fetch_release_for(&metadata_url(major_wanted), &policy, major_wanted)
+        .map_err(InstallError::Failed)?;
     check_cancel(cancel)?;
 
     let dir_name = install_dir_name(&release.release_name);
@@ -684,10 +806,25 @@ pub fn install_java(
     }
     progress(on_progress, "verifying", 0, None, "Checksum matches the vendor's. Installing…");
 
-    let installed = install_from_zip(runtime_dir, &zip_path, &dir_name, cancel, &verify_runtime, on_progress);
+    let verify = |exe: &Path| verify_runtime_for(exe, major_wanted);
+    let installed = install_from_zip_for(
+        runtime_dir,
+        &zip_path,
+        &dir_name,
+        cancel,
+        &verify,
+        on_progress,
+        major_wanted,
+    );
     let _ = fs::remove_dir_all(&downloads);
     let (exe, version) = installed?;
-    progress(on_progress, "done", 0, None, "Java 21 is installed.");
+    progress(
+        on_progress,
+        "done",
+        0,
+        None,
+        &format!("Java {major_wanted} is installed."),
+    );
     Ok(InstallOutcome {
         status: "installed",
         java_path: exe.display().to_string(),

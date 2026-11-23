@@ -4,13 +4,14 @@ import { BrandIcon } from "../components/BrandIcon";
 import { DownloadIcon, InfoIcon, SparkIcon } from "../components/Icons";
 import { CloudMark, Wordmark } from "../components/Logo";
 import { Banner, Card } from "../components/ui";
+import { MAPLE_ABOUT } from "../core/brand";
 import type { AppData } from "../hooks/useAppData";
 
 const CREDITS: Array<{ name: string; what: string }> = [
-  { name: "Fabric", what: "The mod loader Cirrus installs for you" },
+  { name: "Fabric", what: "The mod loader Maple installs for you" },
   { name: "Modrinth and CurseForge", what: "Where the Mods page finds mods" },
-  { name: "Eclipse Temurin (Adoptium)", what: "The Java runtime Cirrus can install" },
-  { name: "Tauri, React and Rust", what: "What Cirrus Client is built with" },
+  { name: "Eclipse Temurin (Adoptium)", what: "The Java runtime Maple can install" },
+  { name: "Tauri, React and Rust", what: "What Maple Client is built with" },
 ];
 
 /** Version, update information, credits and links. */
@@ -28,16 +29,15 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
     <div className="page about-page">
       <header className="page-head">
         <h1>About</h1>
-        
       </header>
 
-      <section className="about-hero" aria-label="Cirrus Client">
+      <section className="about-hero" aria-label="Maple Client">
         <span className="about-mark" aria-hidden="true">
-          <CloudMark size={72} />
+          <CloudMark size={64} />
         </span>
         <div>
-          <Wordmark height={30} />
-          <p className="about-tagline">The sky is the limit.</p>
+          <Wordmark height={34} />
+          <p className="about-tagline">Your world, your way.</p>
           <p className="muted small">
             {version ? `Version ${version}` : "Version unknown"}
             {target ? ` · built for Minecraft ${target}` : ""}
@@ -49,39 +49,29 @@ export function AboutPage({ data, onLicense }: { data: AppData; onLicense: () =>
 
       <div className="about-grid">
         <Card title="Updates" icon={<DownloadIcon />} description="How you get a newer version.">
-          <p className="muted small">New versions are published on GitHub. Your settings and worlds are kept when you update.</p>
-          <button type="button" className="btn btn-primary" onClick={() => open(() => api.openGithub())}>
-            <DownloadIcon />
-            Open the GitHub page
+          <p className="muted small">{MAPLE_ABOUT.updateSummary}</p>
+          <button type="button" className="btn" onClick={() => open(() => api.openCommunity())}>
+            <BrandIcon name="discord" />
+            Ask in Discord
           </button>
         </Card>
 
-        <Card title="Links" icon={<SparkIcon />} description="Community and source code.">
+        <Card title="Community" icon={<SparkIcon />} description="Where to find other players.">
           <div className="link-rows">
             <div>
               <div>
                 <strong>Discord</strong>
                 <p className="muted small">Questions, bug reports and ideas.</p>
               </div>
-              <button type="button" className="btn" onClick={() => open(() => api.openCommunity())}>
+              <button type="button" className="btn btn-discord" onClick={() => open(() => api.openCommunity())}>
                 <BrandIcon name="discord" />
                 Open Discord
-              </button>
-            </div>
-            <div>
-              <div>
-                <strong>GitHub</strong>
-                <p className="muted small">Source code and builds.</p>
-              </div>
-              <button type="button" className="btn" onClick={() => open(() => api.openGithub())}>
-                <BrandIcon name="github" />
-                Open GitHub
               </button>
             </div>
           </div>
         </Card>
 
-        <Card title="Credits" icon={<InfoIcon />} description="Projects Cirrus Client relies on.">
+        <Card title="Credits" icon={<InfoIcon />} description="Projects Maple Client relies on.">
           <ul className="credit-list">
             {CREDITS.map((c) => (
               <li key={c.name}>

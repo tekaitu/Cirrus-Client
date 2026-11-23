@@ -91,8 +91,8 @@ function installMock() {
     error: null,
   };
   const settings = {
-    settings: { version: 1, javaPath: null, memoryMb: 4096, gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\game", reduceMotion: false, msClientId: null },
-    status: "loaded", message: null, filePath: "C:\\Users\\player\\AppData\\Roaming\\com.cirrus.app\\settings.json",
+    settings: { version: 2, javaPath: null, memoryMb: 4096, gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\game", windowWidth: 1280, windowHeight: 720, jvmArgs: "", reduceMotion: false, msClientId: null },
+    status: "loaded", message: null, filePath: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\settings.json",
     totalRamMb: 15800, minMemoryMb: 1024, maxMemoryMb: 13568,
   };
   const profile = { id: "0123456789abcdef0123456789abcdef", name: "Brend4n" };
@@ -112,7 +112,7 @@ function installMock() {
   window.__crash = { hint: "Minecraft ran out of memory. Give it more in Settings > Memory and RAM, or switch off heavy mods.", report: crashReport, reportPath: "C:\\game\\crash-reports\\crash-2026-11-15.txt", logTail: log };
   let logOffset = 0;
   const handlers = {
-    get_app_info: () => ({ name: "Cirrus Client", version: "0.3.1", target_minecraft: "1.21.11", launcher_ready: true }),
+    get_app_info: () => ({ name: "Maple Client", version: "0.4.0", target_minecraft: "1.21.11", launcher_ready: true }),
     get_system_info: () => ({ osName: "Windows", osVersion: "10 (19045)", osLongVersion: "Windows 10 Pro", kernelVersion: "19045", arch: "x86_64", cpuBrand: "AMD Ryzen 5 PRO 4650G with Radeon Graphics", cpuLogicalCores: 12, cpuPhysicalCores: 6, totalRamMb: 15800, availableRamMb: 9000 }),
     detect_java: () => ({ installs: [java], candidatesChecked: 6, notes: ["Checked 6 places."] }),
     load_settings: () => settings, save_settings: () => ({ ok: true, errors: [], state: settings }),
@@ -123,6 +123,32 @@ function installMock() {
     list_game_versions: () => ["1.21.11", "1.21.10", "1.21.8", "1.20.6"],
     game_status: () => ({ installed: true, minecraft: "1.21.11", loader: "0.17.2", gameDir: settings.settings.gameDir, running: false }),
     list_instances: () => [{ minecraft: "1.21.11", loader: "0.17.2", modCount: 6 }, { minecraft: "1.20.6", loader: null, modCount: 0 }],
+    list_instance_views: () => [
+      { id: "inst-1", minecraft: "1.21.11", loader: "fabric", loaderVersion: "0.17.2", name: "PvP", icon: 0, javaPath: null, memoryMb: 6144, gameDir: settings.settings.gameDir, customGameDir: false, jvmArgs: "", lastPlayed: Date.now() - 3600000, modCount: 6, javaMajor: 21, clonedFrom: null },
+      { id: "inst-2", minecraft: "1.20.6", loader: "vanilla", loaderVersion: null, name: "Building", icon: 3, javaPath: null, memoryMb: null, gameDir: settings.settings.gameDir, customGameDir: false, jvmArgs: "", lastPlayed: Date.now() - 86400000 * 3, modCount: 0, javaMajor: 21, clonedFrom: null },
+      { id: "inst-3", minecraft: "1.8.9", loader: "vanilla", loaderVersion: null, name: "Old PvP", icon: 5, javaPath: null, memoryMb: 2048, gameDir: settings.settings.gameDir, customGameDir: false, jvmArgs: "", lastPlayed: 0, modCount: 0, javaMajor: 8, clonedFrom: null },
+    ],
+    list_game_version_catalog: () => [
+      { id: "1.21.11", kind: "release", released: "2025-12-02T10:00:00+00:00", supported: true, javaMajor: 21 },
+      { id: "1.21.8", kind: "release", released: "2025-07-17T10:00:00+00:00", supported: true, javaMajor: 21 },
+      { id: "1.21.1", kind: "release", released: "2024-08-08T10:00:00+00:00", supported: true, javaMajor: 21 },
+      { id: "1.20.6", kind: "release", released: "2024-04-29T10:00:00+00:00", supported: true, javaMajor: 21 },
+      { id: "1.20.1", kind: "release", released: "2023-06-12T10:00:00+00:00", supported: true, javaMajor: 17 },
+      { id: "1.12.2", kind: "release", released: "2017-09-18T10:00:00+00:00", supported: true, javaMajor: 8 },
+      { id: "1.8.9", kind: "release", released: "2015-12-09T10:00:00+00:00", supported: true, javaMajor: 8 },
+    ],
+    fabric_loader_versions: () => [
+      { version: "0.17.2", stable: true, minecraft: "1.21.11" },
+      { version: "0.16.10", stable: true, minecraft: "1.21.11" },
+      { version: "0.16.9", stable: false, minecraft: "1.21.11" },
+    ],
+    instance_contents: () => ({ worlds: 2, screenshots: 4, mods: 6, resourcePacks: 1 }),
+    save_instance: () => null, clone_instance: () => null, delete_instance: () => null,
+    repair_instance: () => ({ status: "installed", message: null, loader: "0.17.2" }),
+    switch_fabric_loader: () => null, open_instance_folder: () => null,
+    check_for_updates: () => ({ current: "0.4.0", latest: "0.4.0", available: false, notes: "", pageUrl: null, downloadUrl: null, publishedAt: null, installReady: false, installMessage: "Automatic installation needs a signed release; this build only checks the feed." }),
+    open_update_page: () => null,
+    diagnose_crash: () => ({ cause: "Minecraft ran out of the memory it was given. The heap filled up while the server tick loop was running.", confidence: "high", evidence: ["java.lang.OutOfMemoryError: Java heap space", "Memory: 4096 MiB"], fixes: [{ kind: "memory", label: "Raise this instance to 6144 MB", detail: "Changes only this instance's memory limit and keeps a backup of the settings file.", value: "6144", changesSettings: true }, { kind: "mods", label: "Review installed mods", detail: "A large modpack can need more memory than the default.", value: null, changesSettings: false }], excerpt: "java.lang.OutOfMemoryError: Java heap space", unknown: false }),
     list_profiles: () => [{ id: "pvp", name: "PvP", minecraft: "1.21.11", fabric: true, color: 0 }],
     list_mods: () => mods, search_mods: () => ({ hits, total: 6 }), curseforge_available: () => false,
     list_skins: () => skins, player_skin: () => steve,
@@ -192,7 +218,10 @@ const pages = [
   ["browse-list", async (p) => { await nav(p, "Browse"); await p.getByRole("radio", { name: "List results" }).click().catch(() => {}); await p.waitForTimeout(400); }],
   ["mods", (p) => nav(p, "Mods")],
   ["modpacks", (p) => nav(p, "Modpacks")],
-  ["skins", (p) => nav(p, "Skins")],
+  ["character", (p) => nav(p, "Character")],
+  ["library", (p) => nav(p, "Library")],
+  ["library-settings", async (p) => { await nav(p, "Library"); await p.getByRole("button", { name: "Settings for PvP" }).click(); await p.waitForTimeout(600); }],
+  ["install", async (p) => { await nav(p, "Versions"); await p.getByRole("button", { name: /Minecraft 1\.21/ }).click(); await p.waitForTimeout(500); await p.getByRole("button", { name: "Install", exact: true }).first().click(); await p.waitForTimeout(900); }],
   ["servers", (p) => nav(p, "Servers")],
   ["accounts", async (p) => { await p.getByRole("button", { name: "Account", exact: true }).click(); await p.waitForTimeout(500); await p.getByRole("button", { name: "Manage accounts" }).click(); await p.waitForTimeout(650); }],
   ["account-menu", async (p) => { await p.getByRole("button", { name: "Account", exact: true }).click(); await p.waitForTimeout(600); }],
@@ -202,8 +231,8 @@ const pages = [
   ["about", (p) => nav(p, "About")],
   ["diagnostics", async (p) => { await nav(p, "Settings"); await nav(p, "Diagnostics"); }],
 ];
-const core = ["home", "versions", "browse", "mods", "modpacks", "skins", "servers", "accounts", "settings"];
-await run("dark", 1920, 1080, pages.filter(([n]) => ["home", "versions", "browse", "mods"].includes(n)));
+const core = ["home", "versions", "library", "browse", "mods", "modpacks", "character", "servers", "accounts", "settings"];
+await run("dark", 1920, 1080, pages.filter(([n]) => ["home", "versions", "library", "install", "browse", "mods"].includes(n)));
 await run("dark", 1600, 900, pages);
 await run("light", 1600, 900, pages.filter(([n]) => core.includes(n)));
 await run("dark", 1366, 768, pages.filter(([n]) => core.includes(n)));

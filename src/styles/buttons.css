@@ -1,0 +1,261 @@
+/* ==========================================================================
+   One button system for the launcher, loaded last.
+
+   The earlier passes each styled their own flavour of `.btn` and `.ui-btn`,
+   which is why some buttons had no visible surface and their icons sat a
+   pixel or two above the label. This layer settles that:
+
+   • every button is one inline-flex box, so the icon, the label and the
+     spinner share a single vertical centre;
+   • a button always has a surface — even the quiet ones — so an action over
+     artwork is still recognisably a button;
+   • hover changes colour only, pressed moves one pixel, disabled fades;
+   • shape is consistent: 10px corners, 32/38/50px heights, one gap.
+   ========================================================================== */
+
+#root .ui-btn,
+#root .btn,
+#root .btn-pill,
+#root .btn-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: none;
+  height: 38px;
+  min-width: 38px;
+  padding: 0 16px;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.12);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.83rem;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  transform: none;
+  transition:
+    background-color 120ms var(--ease),
+    border-color 120ms var(--ease),
+    color 120ms var(--ease),
+    box-shadow 120ms var(--ease),
+    opacity 120ms linear;
+}
+
+#root .ui-btn:hover:not(:disabled),
+#root .btn:hover:not(:disabled),
+#root .btn-pill:hover:not(:disabled),
+#root .btn-small:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.15);
+  border-color: rgb(255 255 255 / 0.28);
+  transform: none;
+}
+
+#root .ui-btn:active:not(:disabled),
+#root .btn:active:not(:disabled),
+#root .btn-pill:active:not(:disabled),
+#root .btn-small:active:not(:disabled) {
+  background: rgb(255 255 255 / 0.19);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.3);
+  transform: translateY(1px);
+}
+
+#root .ui-btn:focus-visible,
+#root .btn:focus-visible,
+#root .btn-pill:focus-visible,
+#root .btn-small:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+#root .ui-btn:disabled,
+#root .btn:disabled,
+#root .btn-pill:disabled,
+#root .btn-small:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ------------------------------------------------------------ sizes */
+#root .ui-btn-sm,
+#root .btn-small {
+  height: 30px;
+  min-width: 30px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 9px;
+  font-size: 0.78rem;
+}
+#root .ui-btn-lg {
+  height: 50px;
+  min-width: 50px;
+  padding: 0 24px;
+  gap: 9px;
+  border-radius: 11px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+#root .ui-btn-icon,
+#root .icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  border-radius: 9px;
+  border-color: rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.06);
+  color: var(--text-soft);
+}
+#root .ui-btn-icon svg,
+#root .icon-btn svg { display: block; width: 16px; height: 16px; }
+#root .icon-btn:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.12);
+  color: var(--text);
+}
+#root .icon-btn-danger:hover:not(:disabled) {
+  border-color: rgb(224 106 106 / 0.5);
+  background: rgb(224 106 106 / 0.16);
+  color: #ffb4b4;
+}
+
+/* ------------------------------------------------------------ variants */
+#root .ui-btn-primary,
+#root .btn-primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.14) inset;
+}
+#root .ui-btn-primary:hover:not(:disabled),
+#root .btn-primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent-strong);
+}
+#root .ui-btn-primary:active:not(:disabled),
+#root .btn-primary:active:not(:disabled) { background: var(--accent-strong); }
+
+#root .ui-btn-secondary,
+#root .btn:not(.btn-primary):not(.btn-danger):not(.btn-quiet):not(.btn-discord):not(.btn-signin) {
+  border-color: rgb(255 255 255 / 0.18);
+  background: rgb(255 255 255 / 0.12);
+  color: var(--text);
+}
+
+#root .ui-btn-ghost,
+#root .btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-soft);
+  box-shadow: none;
+}
+#root .ui-btn-ghost:hover:not(:disabled),
+#root .btn-quiet:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.07);
+  color: var(--text);
+}
+
+#root .ui-btn-danger,
+#root .btn-danger {
+  border-color: transparent;
+  background: #bf3b3c;
+  color: #ffffff;
+}
+#root .ui-btn-danger:hover:not(:disabled),
+#root .btn-danger:hover:not(:disabled) { background: #cd4748; border-color: transparent; }
+#root .ui-btn-danger:active:not(:disabled),
+#root .btn-danger:active:not(:disabled) { background: #a52f30; }
+
+/* ------------------------------------------------------------ icon + label
+   The icon slot is a grid, so an SVG can never sit on the text baseline; the
+   label is a block with no extra line box under it. This is what makes the
+   pair look centred instead of "icon up, text down". */
+#root .ui-btn-icon-slot,
+#root .btn > svg,
+#root .btn-pill > svg,
+#root .btn-small > svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+#root .btn > svg,
+#root .btn-pill > svg,
+#root .btn-small > svg,
+#root .ui-btn-icon-slot svg,
+#root .ui-btn-icon-slot .brand-icon,
+#root .ui-btn-icon-slot img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+#root .ui-btn-label {
+  display: block;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#root .ui-btn-sm .ui-btn-icon-slot,
+#root .ui-btn-sm .ui-btn-icon-slot svg,
+#root .btn-small > svg { width: 14px; height: 14px; }
+#root .ui-btn-lg .ui-btn-icon-slot,
+#root .ui-btn-lg .ui-btn-icon-slot svg { width: 19px; height: 19px; }
+
+/* A spinner keeps the button's width where the icon was. */
+#root .ui-btn-spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.28);
+  border-top-color: currentColor;
+  animation: spin 700ms linear infinite;
+}
+
+/* Segmented controls have the same centre as buttons. */
+#root .seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+#root .seg button svg { display: block; }
+
+/* The light appearance: the same control, inverted. */
+:root[data-theme="light"] #root .ui-btn,
+:root[data-theme="light"] #root .btn,
+:root[data-theme="light"] #root .btn-pill,
+:root[data-theme="light"] #root .btn-small {
+  border-color: rgb(12 12 12 / 0.16);
+  background: rgb(12 12 12 / 0.06);
+  color: #111111;
+}
+:root[data-theme="light"] #root .ui-btn:hover:not(:disabled),
+:root[data-theme="light"] #root .btn:hover:not(:disabled),
+:root[data-theme="light"] #root .btn-pill:hover:not(:disabled) {
+  background: rgb(12 12 12 / 0.12);
+  border-color: rgb(12 12 12 / 0.3);
+}
+:root[data-theme="light"] #root .ui-btn-primary,
+:root[data-theme="light"] #root .btn-primary {
+  background: #0c0c0c;
+  color: #ffffff;
+  border-color: transparent;
+}
+:root[data-theme="light"] #root .ui-btn-ghost,
+:root[data-theme="light"] #root .btn-quiet { background: transparent; color: #333333; }

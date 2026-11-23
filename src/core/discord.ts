@@ -23,6 +23,7 @@ export function writeDiscordEnabled(on: boolean): void {
 const PAGE_LINES: Record<PageId, string> = {
   home: "On the home screen",
   versions: "Choosing a version to play",
+  library: "In the library",
   browse: "Browsing mods",
   mods: "Managing mods",
   modpacks: "Managing modpacks",
@@ -30,7 +31,7 @@ const PAGE_LINES: Record<PageId, string> = {
   servers: "Looking at servers",
   accounts: "Managing accounts",
   settings: "Tuning settings",
-  about: "Reading about Cirrus Client",
+  about: "Reading about Maple Client",
   diagnostics: "Checking diagnostics",
 };
 
@@ -49,5 +50,5 @@ export function presenceFor(i: PresenceInput): DiscordPresence {
     const loader = i.loader.toLowerCase() === "vanilla" ? "Vanilla" : i.loader.charAt(0).toUpperCase() + i.loader.slice(1);
     return { details: `Playing Minecraft ${i.version}`, state: loader, startedAt: i.startedAt };
   }
-  return { details: PAGE_LINES[i.page], state: "Cirrus Client launcher", startedAt: i.startedAt };
+  return { details: PAGE_LINES[i.page], state: "Maple Client launcher", startedAt: i.startedAt };
 }

@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client";
 import type { VersionEntry } from "../api/types";
-import { CubeIcon, RefreshArrowIcon, SearchIcon } from "./Icons";
+import { CheckIcon, ChevronDownIcon, CubeIcon, RefreshArrowIcon, SearchIcon } from "./Icons";
 import type { AppData } from "../hooks/useAppData";
+import { loaderLabel, loaderOf, useInstances } from "../hooks/useInstances";
 import {
   filterVersions,
   groupVersions,
@@ -13,19 +15,37 @@ import {
 } from "../core/versionCatalog";
 
 /**
- * Choosing what to play. The full catalog can be searched and filtered by
- * release or snapshot; each option says whether it is installed, and versions
- * this build cannot download are disabled with the reason. When Mojang's
- * manifest says which Java a version needs, the picker compares that with the
- * Java Cirrus actually found, so a mismatch is visible before Play is pressed.
+ * Choosing what to play, the way a launcher should: a compact card that always
+ * shows the chosen version, its loader and whether it is installed, and one
+ * panel for everything else. The panel lists what is already installed on this
+ * PC for quick switching, then every release and snapshot from Mojang's list
+ * with a search box and a type filter. Versions this build cannot download are
+ * visible but not selectable, with the reason, and the Java check compares the
+ * version's requirement with the Java Maple actually found.
  */
-export function VersionSelector({ data, disabled = false }: { data: AppData; disabled?: boolean }) {
+export function VersionSelector({
+  data,
+  disabled = false,
+  onPicked,
+}: {
+  data: AppData;
+  disabled?: boolean;
+  /** Called after a choice is made, so a dialog around the picker can close itself. */
+  onPicked?: () => void;
+}) {
   const { selection, game } = data;
+  const instances = useInstances(data);
   const [catalog, setCatalog] = useState<VersionEntry[] | null>(null);
   const [catalogError, setCatalogError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<"all" | "release" | "snapshot">("all");
+  const [open, setOpen] = useState(false);
+  const [place, setPlace] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const search = useRef<HTMLInputElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -49,6 +69,49 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
       live = false;
     };
   }, [reloadKey]);
+
+  // The panel closes on a click anywhere else, like a real menu.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      // The panel is rendered in a portal, so it is not inside `root`.
+      if (!root.current?.contains(target) && !panel.current?.contains(target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) search.current?.focus();
+  }, [open]);
+
+  /**
+   * The panel is fixed so a long version list is never cut off by the page or
+   * the card: it opens below the trigger, or above it when there is more room
+   * there, and always inside the window.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const rect = trigger.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = Math.min(Math.max(rect.width, 380), window.innerWidth - 24);
+      const left = Math.min(Math.max(12, rect.left), Math.max(12, window.innerWidth - width - 12));
+      const below = window.innerHeight - rect.bottom - 16;
+      const above = rect.top - 16;
+      const openUp = below < 300 && above > below;
+      const height = Math.max(220, Math.min(460, openUp ? above : below));
+      setPlace({ top: openUp ? rect.top - height - 6 : rect.bottom + 6, left, width, height });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [open]);
 
   const groups = useMemo(() => {
     if (catalog && catalog.length > 0) return groupVersions(catalog);
@@ -79,9 +142,11 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
   const detectedJava = data.java.status === "ready" ? (data.java.data.selected?.major ?? null) : null;
   const java = javaCompatibility(chosen?.javaMajor, detectedJava);
 
+  const installedList = instances.state.status === "ready" ? instances.state.data : [];
+
   /**
    * Keep the saved version visible in the list even when the filter hides it
-   * or Mojang's catalog no longer has it, so the select never shows a blank.
+   * or Mojang's catalog no longer has it, so the panel never shows a blank.
    */
   const pinned: VersionOption[] =
     chosen && ![...shown.releases, ...shown.snapshots].some((v) => v.id === chosen.id)
@@ -90,114 +155,221 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
         ? [{ id: selection.version, kind: "release", released: null, supported: true, javaMajor: null }]
         : [];
 
+  const pick = (option: VersionOption) => {
+    if (!option.supported) return;
+    selection.setVersion(option.id);
+    setOpen(false);
+    onPicked?.();
+  };
+
+  const pickInstance = (minecraft: string, loader: "fabric" | "vanilla") => {
+    selection.setVersion(minecraft);
+    selection.setLoader(loader);
+    setOpen(false);
+    onPicked?.();
+  };
+
+  const rows = (list: VersionOption[]) =>
+    list.map((v) => {
+      const isChosen = v.id === selection.version;
+      const isInstalled = isChosen ? installed : installedList.some((i) => i.minecraft === v.id);
+      const state = versionStatus(v, isInstalled);
+      return (
+        <li key={v.id} role="presentation">
+          <button
+            type="button"
+            role="option"
+            aria-selected={isChosen}
+            aria-disabled={!v.supported || undefined}
+            className={`vp-row ${isChosen ? "is-selected" : ""} ${!v.supported ? "is-blocked" : ""}`.trim()}
+            disabled={disabled || !v.supported}
+            title={!v.supported ? state.detail : undefined}
+            onClick={() => pick(v)}
+          >
+            <span className="vp-row-main">
+              <span className="vp-row-name">{v.id}</span>
+              {v.kind === "snapshot" && <span className="vp-row-kind">Snapshot</span>}
+              {v.released && <span className="vp-row-date">{releasedText(v)}</span>}
+            </span>
+            <span className={`vp-row-state vp-state-${!v.supported ? "warn" : isInstalled ? "good" : "muted"}`}>
+              {isChosen && <CheckIcon />}
+              {!v.supported ? "Not installable" : isInstalled ? "Installed" : "Not installed"}
+            </span>
+          </button>
+        </li>
+      );
+    });
+
   return (
     <div className="version-selector">
-      <div className="version-selected">
-        <span className="version-mark" aria-hidden="true">
-          <CubeIcon />
-        </span>
-        <div className="version-selected-text">
-          <p className="version-kicker">Selected version</p>
-          <p className="version-big">
-            {selection.version} <span className="version-loader-chip">{fabric ? "Fabric" : "Vanilla"}</span>
-            {chosen?.kind === "snapshot" && <span className="version-kind-chip">Snapshot</span>}
-          </p>
-          <p className={`version-status version-status-${status.tone}`}>
-            {checked ? status.label : "Checking install status…"}
-            {checked && <span className="version-status-detail"> · {status.detail}</span>}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Refresh version list"
-          data-tip="Refresh version list"
-          disabled={disabled}
-          onClick={load}
-        >
-          <RefreshArrowIcon />
-        </button>
-      </div>
-
-      <div className="version-filters">
-        <div className="search-box version-search">
-          <SearchIcon />
-          <input
-            type="text"
-            aria-label="Filter versions"
-            placeholder="Filter versions…"
-            value={query}
-            disabled={disabled}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <div className="seg" role="radiogroup" aria-label="Version type">
-          {(
-            [
-              ["all", "All"],
-              ["release", "Releases"],
-              ["snapshot", "Snapshots"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={kind === id}
-              className={kind === id ? "seg-on" : ""}
-              disabled={disabled}
-              onClick={() => setKind(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="version-fields">
-        <label className="pick">
-          <span>Minecraft version</span>
-          <select
+      <div className="version-options">
+        <div className="version-picker" ref={root}>
+          <button
+            ref={trigger}
+            type="button"
+            className="vp-trigger"
             aria-label="Minecraft version"
-            value={selection.version}
+            aria-haspopup="listbox"
+            aria-expanded={open}
             disabled={disabled}
-            onChange={(e) => selection.setVersion(e.target.value)}
+            onClick={() => setOpen((v) => !v)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                setOpen(true);
+              }
+            }}
           >
-            {pinned.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.id}
-              </option>
-            ))}
-            {shown.releases.length > 0 && (
-              <optgroup label="Releases">
-                {shown.releases.map((v) => (
-                  <option key={v.id} value={v.id} disabled={!v.supported}>
-                    {v.id}
-                    {!v.supported ? " — needs another Java" : ""}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {shown.snapshots.length > 0 && (
-              <optgroup label="Snapshots (not installable)">
-                {shown.snapshots.map((v) => (
-                  <option key={v.id} value={v.id} disabled>
-                    {v.id}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {pinned.length === 0 && filteredTotal === 0 && (
-              <option value={selection.version} disabled>
-                No version matches “{query.trim()}”
-              </option>
-            )}
-          </select>
-        </label>
+            <span className="vp-trigger-icon" aria-hidden="true">
+              <CubeIcon />
+            </span>
+            <span className="vp-trigger-text">
+              <span className="vp-kicker">Minecraft version</span>
+              <span className="vp-name">
+                {selection.version}
+                <span className="vp-chip">{fabric ? "Fabric" : "Vanilla"}</span>
+                {chosen?.kind === "snapshot" && <span className="vp-chip vp-chip-quiet">Snapshot</span>}
+              </span>
+              <span className={`vp-status vp-status-${status.tone}`}>
+                {checked ? status.label : "Checking install status…"}
+                {checked && <span className="vp-status-detail"> · {status.detail}</span>}
+              </span>
+            </span>
+            <span className={`vp-chevron ${open ? "is-open" : ""}`} aria-hidden="true">
+              <ChevronDownIcon />
+            </span>
+          </button>
 
-        <div className="pick">
+          {open &&
+            createPortal(
+            <div
+              ref={panel}
+              className="vp-panel"
+              style={place ? { position: "fixed", top: place.top, left: place.left, width: place.width, maxHeight: place.height } : undefined}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.stopPropagation();
+                  setOpen(false);
+                  trigger.current?.focus();
+                }
+              }}
+            >
+              {installedList.length > 0 && (
+                <div className="vp-installed">
+                  <p className="vp-section-label">Installed on this PC</p>
+                  <div className="vp-installed-row">
+                    {installedList.map((i) => {
+                      const l = loaderOf(i);
+                      const active = i.minecraft === selection.version && l === selection.loader;
+                      return (
+                        <button
+                          key={`${i.minecraft}-${l}`}
+                          type="button"
+                          className={`vp-installed-chip ${active ? "is-active" : ""}`.trim()}
+                          aria-pressed={active}
+                          onClick={() => pickInstance(i.minecraft, l)}
+                        >
+                          {i.minecraft}
+                          <span className="vp-chip vp-chip-quiet">{loaderLabel(l)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="vp-filters">
+                <div className="search-box vp-search">
+                  <SearchIcon />
+                  <input
+                    ref={search}
+                    type="text"
+                    aria-label="Filter versions"
+                    placeholder="Search versions…"
+                    value={query}
+                    disabled={disabled}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </div>
+                <div className="seg" role="radiogroup" aria-label="Version type">
+                  {(
+                    [
+                      ["all", "All"],
+                      ["release", "Releases"],
+                      ["snapshot", "Snapshots"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={kind === id}
+                      className={kind === id ? "seg-on" : ""}
+                      disabled={disabled}
+                      onClick={() => setKind(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="vp-list" role="listbox" aria-label="Minecraft versions">
+                {pinned.length > 0 && (
+                  <>
+                    <p className="vp-section-label">Selected</p>
+                    <ul className="vp-group">{rows(pinned)}</ul>
+                  </>
+                )}
+
+                {shown.releases.length > 0 && (
+                  <>
+                    <p className="vp-section-label">Releases</p>
+                    <ul className="vp-group">{rows(shown.releases)}</ul>
+                  </>
+                )}
+                {shown.snapshots.length > 0 && (
+                  <>
+                    <p className="vp-section-label">Snapshots</p>
+                    <ul className="vp-group">{rows(shown.snapshots)}</ul>
+                  </>
+                )}
+                {shown.releases.length === 0 && shown.snapshots.length === 0 && pinned.length === 0 && (
+                  <p className="vp-empty muted small">No version matches “{query.trim()}”.</p>
+                )}
+              </div>
+
+              <div className="vp-foot">
+                <span className="muted small" role="status">
+                  {query.trim() !== "" || kind !== "all"
+                    ? `Showing ${filteredTotal} of ${total} versions${query.trim() !== "" ? ` matching “${query.trim()}”` : ""}`
+                    : `${total} versions from Mojang`}
+                </span>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="Refresh version list"
+                  data-tip="Refresh version list"
+                  disabled={disabled}
+                  onClick={load}
+                >
+                  <RefreshArrowIcon />
+                </button>
+              </div>
+
+              {catalogError && (
+                <p className="vp-note small">
+                  Mojang&apos;s full version list could not be reached, so only the releases Maple knows are listed.
+                </p>
+              )}
+            </div>,
+            document.body,
+          )}
+        </div>
+
+        <div className="pick version-loader">
           <span id="loader-label">Loader</span>
-          <div className="seg" role="radiogroup" aria-labelledby="loader-label">
+          <div className="seg seg-stack" role="radiogroup" aria-labelledby="loader-label">
             {(["fabric", "vanilla"] as const).map((l) => (
               <button
                 key={l}
@@ -215,13 +387,6 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
         </div>
       </div>
 
-      {(query.trim() !== "" || kind !== "all") && (
-        <p className="version-count muted small" role="status">
-          Showing {filteredTotal} of {total} versions
-          {query.trim() !== "" ? ` matching “${query.trim()}”` : ""}.
-        </p>
-      )}
-
       {java && (
         <p className={`version-java version-java-${java.tone} small`} role="status">
           {java.label}
@@ -236,11 +401,7 @@ export function VersionSelector({ data, disabled = false }: { data: AppData; dis
             : `Fabric is the mod loader; Play installs its newest stable build for ${selection.version}.`
           : "Vanilla is plain Minecraft and cannot load mods."}
         {released ? ` Released ${released}.` : ""}
-        {catalogError
-          ? " Mojang's full version list could not be reached, so only releases are listed."
-          : groups.snapshots.length > 0
-            ? " Snapshots are shown for reference but cannot be installed here."
-            : ""}
+        {groups.snapshots.length > 0 ? " Snapshots are shown for reference but cannot be installed here." : ""}
       </p>
     </div>
   );

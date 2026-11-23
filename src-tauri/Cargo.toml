@@ -1,8 +1,8 @@
 [package]
 name = "cirrus-client"
-version = "0.3.1"
-authors = ["Cirrus Client"]
-description = "Cirrus Client: a Windows launcher for Minecraft Java 1.21.11 (interface and diagnostics build)"
+version = "0.4.0"
+authors = ["Maple Client"]
+description = "Maple Client: a Windows launcher for Minecraft Java Edition 1.21.11 with Fabric"
 edition = "2021"
 rust-version = "1.77"
 

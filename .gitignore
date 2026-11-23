@@ -25,9 +25,15 @@ accounts.json
 launcher_profiles.json
 tokens*.json
 
+# Generated preview material: screenshots stay out of the repository
+/artifacts/
+/shots/
+
 # Editor / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 coverage/
+/freebuff-sites-build/
+/.preview.vite.config.mjs

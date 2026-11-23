@@ -134,7 +134,7 @@ fn is_uuid(text: &str) -> bool {
     plain.len() == 32 && plain.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
-/// Normalizes a Mojang texture address to the HTTPS host Cirrus downloads from.
+/// Normalizes a Mojang texture address to the HTTPS host Maple downloads from.
 ///
 /// Session-server profiles still hand out `http://textures.minecraft.net/...`
 /// addresses, even though the host serves the same texture over HTTPS. Accept
@@ -293,7 +293,7 @@ pub fn http_client() -> Result<Client, String> {
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(30))
-        .user_agent(concat!("CirrusClient/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("MapleClient/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| format!("Could not set up a secure connection: {e}"))
 }
@@ -431,7 +431,7 @@ pub fn fetch_appearance(client: &Client, ep: &Endpoints, who: &str) -> Result<Ap
     })
 }
 
-const BOUNDARY: &str = "----CirrusClientSkinUpload7d1f3a9c";
+const BOUNDARY: &str = "----MapleClientSkinUpload7d1f3a9c";
 
 /// The multipart body Minecraft services expects: a `variant` field and the `file`.
 pub fn multipart_body(model: &str, png: &[u8]) -> Vec<u8> {

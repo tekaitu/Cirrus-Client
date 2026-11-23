@@ -3,7 +3,7 @@ import type { SkinModel } from "../api/types";
 /**
  * A neutral stand-in character for an account whose skin could not be loaded.
  *
- * Cirrus does not redistribute Mojang's Steve or Alex textures, so this draws
+ * Maple does not redistribute Mojang's Steve or Alex textures, so this draws
  * its own simple 64 × 64 skin with the same layout Minecraft uses. It is always
  * labelled as a default look in the interface, never passed off as the player's
  * own skin, and works without a canvas (an SVG data address is enough for the

@@ -25,7 +25,7 @@ Title bar: Cirrus draws its own (brand, tabs, tools, account chip, minimise / ma
 
 - **Pages:** Home (big "version + loader" title, Play, version cards along the bottom, status / recent / shortcuts and the launcher news below), Versions (every installed version as a card plus the full launch panel and launch configuration), Browse (Modrinth / CurseForge with categories, grid or list, sort, pagination), Mods (the mod manager for the selected version), Modpacks (your profiles).
 - **Not built, on purpose:** Servers and Stats. There is no backend for either, so there is no page and no fake data.
-- **Backgrounds:** drawn in code (see `src/core/scene.ts`), never Minecraft artwork. To use your own pictures, drop `home`, `library`, `browse`, `night` or `default` images into `src/assets/backgrounds/` (see the README there).
+- **Backgrounds:** drawn in code (see `src/core/scene.ts`) for Classic. The Colorful theme uses the owner's own Minecraft background from `src/assets/backgrounds/colorful.jpg` on every page; no Minecraft artwork ships with the launcher. Optional Classic pictures: `home`, `library`, `browse`, `night`, `default` in the same folder (see the README there).
 - **Styles:** `src/styles/tokens.css` (colours, glass, both themes), `base.css` (type, buttons, fields, dialogs), `shell.css` (window, top bar, backgrounds), `pages.css` (pages). `legacy.css` still carries the styles of Settings, Skins, About, Diagnostics and the dialogs.
 - **Motion:** short hover / fade animations only; they stop with the OS "reduce motion" setting or Settings > Appearance > Reduce motion.
 

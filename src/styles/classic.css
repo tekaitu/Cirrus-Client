@@ -1,0 +1,657 @@
+/* ==========================================================================
+   Classic launcher layout: vertical navigation, a centred hero with one Play
+   button, recent instance cards, then Quick join and News.
+
+   The Colorful theme keeps every rule here and changes only the palette and
+   how strongly the artwork shows through. Nothing is a second application.
+   ========================================================================== */
+
+/* ------------------------------------------------------------ shell */
+.workspace { flex-direction: row; }
+.workspace-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ------------------------------------------------------------ sidebar */
+.side {
+  position: relative;
+  z-index: 31;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 92px;
+  padding: 10px 8px 10px;
+  background: linear-gradient(180deg, rgb(8 8 8 / 0.72), rgb(6 6 6 / 0.88));
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(18px);
+}
+.side-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--fast) var(--ease);
+}
+.side-brand:hover { background: rgb(255 255 255 / 0.06); }
+.side-brand .logo-mark { color: var(--brand); }
+.side-brand-name {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--text);
+}
+.side-nav { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+.side-nav > ul { flex: none; }
+.side-nav ul, .side-foot { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.side-foot { flex: none; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+/* Navigation items are icons and labels on the rail itself: no tile, no box,
+   no border. Only the selected section gets a maple-orange marker. */
+.side-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 9px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--fast) var(--ease);
+}
+.side-marker {
+  display: block;
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand);
+  transform: translateY(-50%);
+  transition: height var(--fast) var(--ease);
+}
+.side-icon { display: grid; place-items: center; width: 22px; height: 22px; }
+.side-icon svg { display: block; width: 20px; height: 20px; }
+.side-label {
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  text-align: center;
+}
+.side-item:hover { color: var(--text); background: transparent; }
+.side-item:hover .side-icon { opacity: 0.92; }
+.side-item:focus-visible { outline: none; box-shadow: var(--focus); }
+.side-item.active { color: var(--text); background: transparent; }
+.side-item.active .side-icon { color: var(--brand); opacity: 1; }
+.side-item.active .side-label { color: var(--text); }
+.side-item.active .side-marker { height: 22px; }
+
+/* ------------------------------------------------------------ slim header */
+.hdr-lite {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 54px;
+  padding: 0 clamp(14px, 2vw, 26px);
+  background: linear-gradient(180deg, rgb(10 10 10 / 0.45), rgb(10 10 10 / 0));
+}
+.hdr-lite .hdr-right { margin-left: auto; }
+
+/* ------------------------------------------------------------ home */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-bottom: 8px;
+}
+
+/* ---- hero: one headline, one version line, one Play button in the middle */
+.home .home-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  padding: 10px 16px 16px;
+  text-align: center;
+}
+.home .home-hero::before {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: -6% -6%;
+  z-index: 0;
+  background: radial-gradient(56% 60% at 50% 44%, rgb(4 6 10 / 0.6) 0%, rgb(4 6 10 / 0.3) 58%, transparent 80%);
+  pointer-events: none;
+}
+.home .home-hero > * { position: relative; z-index: 1; }
+
+.home-lockup { display: flex; align-items: center; gap: 10px; margin: 0 auto; }
+.home-lockup .logo-mark { color: var(--brand); }
+.home-lockup-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 2px 14px rgb(0 0 0 / 0.55);
+}
+.home-lockup-name em { font-style: normal; font-weight: 600; color: rgb(255 255 255 / 0.62); }
+
+.home .home-title {
+  margin: 8px 0 0;
+  font-size: clamp(2.1rem, 3.8vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  color: #ffffff;
+  text-shadow: 0 14px 44px rgb(0 0 0 / 0.6);
+}
+
+/* The version reads as the second headline, the way the old launcher showed it. */
+.home-version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  color: rgb(255 255 255 / 0.95);
+  text-shadow: 0 6px 26px rgb(0 0 0 / 0.6);
+}
+.home-version-name {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.24);
+  background: rgb(0 0 0 / 0.32);
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.82);
+}
+
+.home-sub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  color: rgb(255 255 255 / 0.7);
+  text-shadow: 0 2px 14px rgb(0 0 0 / 0.55);
+}
+
+.home-hero-play {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 14px 0 4px;
+}
+.home-hero-play .play-panel.lp-quick {
+  align-items: center;
+  width: min(460px, 100%);
+  max-width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.home-hero-play .play-panel.lp-quick .play-dock,
+.home-hero-play .play-panel.lp-quick .hero-actions { justify-content: center; width: 100%; }
+.home-hero-play .play-panel.lp-quick .hero-actions .ui-btn.lp-go {
+  min-width: min(340px, 100%);
+  height: 54px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 750;
+}
+.home-hero-play .play-panel.lp-quick .hero-note {
+  margin: 8px auto 0;
+  max-width: 54ch;
+  text-align: center;
+  color: rgb(255 255 255 / 0.62);
+}
+.home-hero-play .banner { margin-top: 10px; }
+
+.home-hero-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+}
+.home-hero-links .link-inline { color: rgb(255 255 255 / 0.7); text-decoration: none; }
+.home-hero-links .link-inline:hover { color: #ffffff; text-decoration: underline; }
+.home-hero-links .dot-sep { color: rgb(255 255 255 / 0.35); }
+
+.home .home-identity {
+  width: auto;
+  max-width: 100%;
+  margin: 12px auto 0;
+  padding: 5px 14px 5px 5px;
+  gap: 9px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(10 12 16 / 0.5);
+  backdrop-filter: blur(14px);
+  text-align: left;
+}
+.home .home-identity:hover { border-color: rgb(255 255 255 / 0.3); background: rgb(255 255 255 / 0.08); }
+.home-identity .skin-head { border-radius: 50%; }
+.home-id-name { font-size: 0.8rem; }
+.home-id-name small { color: rgb(255 255 255 / 0.6); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.62rem; }
+.home-id-meta { font-size: 0.7rem; color: rgb(255 255 255 / 0.58); }
+.home-id-actions .ui-btn { height: 28px; border-radius: 999px; padding: 0 13px; }
+
+/* ---- sections */
+.home-section {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+}
+.home-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.home-section-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.02rem; letter-spacing: -0.01em; }
+.home-section-head h2 svg { width: 17px; height: 17px; color: var(--accent-bright); }
+.home-section-head p { margin: 2px 0 0; }
+.home-section-head .link-inline { white-space: nowrap; }
+.recent-error { color: var(--warn); margin: 0 0 8px; }
+#news, #recent { scroll-margin-top: 14px; }
+
+.home-lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* ---- quick join */
+.quick-join {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+}
+.quick-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.quick-head h2 { margin: 2px 0 2px; font-size: 1.08rem; letter-spacing: -0.01em; }
+.quick-head .link-inline { margin-left: 0; white-space: nowrap; }
+.quick-recents { display: flex; flex-direction: column; gap: 7px; }
+.quick-recents-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.quick-recents-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.quick-recent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.quick-recent:hover { border-color: var(--border-strong); background: var(--raised); }
+.quick-recent.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.quick-recent strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; font-weight: 650; }
+.quick-recent small { color: var(--muted); font-size: 0.72rem; }
+.quick-empty { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0 0; border-top: 1px solid var(--border); }
+.quick-empty p { margin: 0; }
+
+/* ---- news */
+.news-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.news-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
+.news-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.news-item strong { display: block; font-size: 0.87rem; }
+.news-item p { margin: 2px 0 0; line-height: 1.45; }
+.news-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+/* ---- empty states */
+.recent-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.recent-empty > svg { width: 22px; height: 22px; color: var(--muted); }
+.recent-empty strong { display: block; font-size: 0.9rem; }
+.recent-empty p { margin: 2px 0 0; max-width: 56ch; }
+.recent-empty .btn, .recent-empty .ui-btn { margin-left: auto; flex: none; }
+
+/* ------------------------------------------------------------ instance cards */
+.instance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
+}
+.ic {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-solid);
+  transition: border-color var(--fast) var(--ease), transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+.ic:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.ic-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.ic-main {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  padding: 0;
+  border: 0;
+  background: var(--raised-solid);
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.ic-main:focus-visible { outline: none; box-shadow: var(--focus) inset; }
+.ic-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(var(--z, 1.02));
+  transition: transform 260ms var(--ease);
+}
+.ic:hover .ic-art { transform: scale(1.06); }
+.ic-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.02) 28%, rgb(0 0 0 / 0.78) 100%);
+}
+.ic-badge {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.92);
+  color: #0b0b0b;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.ic-text {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.6);
+}
+.ic-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.76);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ic-title { font-size: 1.22rem; font-weight: 750; letter-spacing: -0.015em; line-height: 1.15; }
+.ic-meta {
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.7);
+}
+.ic-last { margin-top: 2px; font-size: 0.68rem; color: rgb(255 255 255 / 0.56); }
+.ic-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface-solid);
+  border-top: 1px solid var(--border);
+}
+.ic-actions .btn, .ic-actions .ui-btn { flex: none; }
+.ic-actions .ui-btn-primary { min-width: 108px; }
+.ic-tools { margin-left: auto; display: flex; gap: 4px; }
+.ic-photo { object-fit: cover; }
+
+/* The name, version and loader sit at the bottom of the art in the older card. */
+.ic-last { font-size: 0.7rem; }
+
+/* ------------------------------------------------------------ welcome chooser */
+.theme-card.theme-on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.welcome-backdrop { z-index: 70; }
+.welcome {
+  width: min(820px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-hi);
+  backdrop-filter: blur(30px) saturate(140%);
+  animation: pop-center 0.3s var(--ease) both;
+}
+.welcome-head h1 { margin: 4px 0 6px; font-size: clamp(1.6rem, 2.6vw, 2.1rem); letter-spacing: -0.02em; }
+.welcome-head p { margin: 0; max-width: 62ch; }
+.welcome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.welcome-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease), transform var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.welcome-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.welcome-card:focus-visible { outline: none; box-shadow: var(--focus); }
+.welcome-card.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.welcome-preview {
+  display: flex;
+  gap: 6px;
+  height: 148px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.wp-side { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 22px; padding: 8px 0; border-radius: 6px; }
+.wp-side i { width: 10px; height: 10px; border-radius: 3px; background: rgb(255 255 255 / 0.35); }
+.wp-side i:first-child { background: rgb(255 255 255 / 0.8); }
+.wp-body { position: relative; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.wp-hero { flex: 1.1; border-radius: 6px; }
+.wp-card { position: relative; flex: 1; border-radius: 6px; overflow: hidden; }
+.wp-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, rgb(0 0 0 / 0.55));
+}
+.wp-badge { position: absolute; right: 6px; top: 6px; width: 22px; height: 7px; border-radius: 999px; z-index: 1; }
+.wp-form { height: 18px; border-radius: 5px; }
+.wp-line { height: 5px; width: 70%; border-radius: 999px; background: rgb(255 255 255 / 0.25); }
+.wp-line.short { width: 46%; }
+.welcome-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1rem; }
+.welcome-check {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.welcome-blurb { color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
+.welcome-foot { margin: 0; }
+
+/* ------------------------------------------------------------ colorful theme
+   The supplied Minecraft key art fills the window; warm neutral chrome sits on
+   top of it so text stays readable. The accent is the same maple orange as
+   Classic - only the artwork and the amount it shows through change. */
+:root[data-theme="colorful"] {
+  --bg: #0c0a08;
+  --bg-2: #100d0a;
+  --surface: rgb(24 20 17 / 0.58);
+  --surface-solid: #17130f;
+  --raised: rgb(38 31 26 / 0.66);
+  --raised-solid: #211b16;
+  --raised-2: rgb(58 48 40 / 0.7);
+  --glass: rgb(18 14 11 / 0.7);
+  --glass-strong: rgb(16 13 10 / 0.94);
+  --glass-border: rgb(255 236 226 / 0.16);
+  --glass-hi: rgb(255 255 255 / 0.07);
+  --border: rgb(255 238 228 / 0.13);
+  --border-strong: rgb(255 238 228 / 0.3);
+  --text: #fdf8f4;
+  --text-soft: #e0d5cc;
+  --muted: #b6a79b;
+  --scene-filter: saturate(1.18) contrast(1.03) brightness(1.02);
+  --scene-veil: linear-gradient(180deg, rgb(16 11 8 / 0.42) 0%, rgb(16 11 8 / 0.1) 38%, rgb(16 11 8 / 0.72) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 42%, rgb(12 8 5 / 0.66) 100%);
+}
+:root[data-theme="colorful"] .side { background: linear-gradient(180deg, rgb(14 11 9 / 0.84), rgb(12 9 7 / 0.94)); }
+:root[data-theme="colorful"] .ic-badge { background: var(--brand); color: #ffffff; }
+:root[data-theme="colorful"] .hdr-lite { background: linear-gradient(180deg, rgb(12 9 7 / 0.5), rgb(12 9 7 / 0)); }
+/* The picture is the point of this look, so the veil only holds the text. */
+:root[data-theme="colorful"] .app-bg .app-bg-img { filter: var(--scene-filter); }
+/* Every page keeps the picture: the rest of the shell hides it so Classic pages
+   stay flat, but Colorful is one continuous scene. */
+:root[data-theme="colorful"] .app-bg:not([data-backdrop="home"]) .app-bg-img { opacity: 1; }
+:root[data-theme="colorful"] .app-bg:not([data-backdrop="home"]) .app-bg-vignette { display: block; }
+:root[data-theme="colorful"] .app-bg .app-bg-veil {
+  background:
+    radial-gradient(64% 54% at 50% 44%, rgb(14 9 6 / 0.5) 0%, rgb(14 9 6 / 0.16) 62%, transparent 82%),
+    linear-gradient(180deg, rgb(14 9 6 / 0.46) 0%, rgb(14 9 6 / 0.06) 40%, rgb(14 9 6 / 0.62) 100%);
+}
+/* Denser pages (Instances, Versions, Mods, Modpacks, Settings, account) hold more
+   type and cards, so the picture is held back further while staying visible. */
+:root[data-theme="colorful"] .app-bg:not([data-backdrop="home"]) .app-bg-veil {
+  background:
+    radial-gradient(120% 82% at 50% 0%, rgb(14 9 6 / 0.58) 0%, rgb(12 8 5 / 0.68) 56%, rgb(10 7 4 / 0.84) 100%),
+    linear-gradient(180deg, rgb(12 8 5 / 0.68) 0%, rgb(12 8 5 / 0.56) 46%, rgb(10 7 4 / 0.82) 100%);
+}
+:root[data-theme="colorful"] .home-section,
+:root[data-theme="colorful"] .quick-join {
+  background: linear-gradient(180deg, rgb(20 15 12 / 0.78), rgb(18 13 10 / 0.7));
+  border-color: rgb(255 238 228 / 0.18);
+  backdrop-filter: blur(22px) saturate(1.08);
+}
+:root[data-theme="colorful"] .quick-recent { background: rgb(255 238 228 / 0.06); }
+:root[data-theme="colorful"] .quick-recent:hover { background: rgb(255 238 228 / 0.12); }
+:root[data-theme="colorful"] .home .home-hero::before {
+  background: radial-gradient(58% 62% at 50% 42%, rgb(10 6 3 / 0.68) 0%, rgb(10 6 3 / 0.36) 60%, transparent 82%);
+}
+:root[data-theme="colorful"] .home-section-head h2,
+:root[data-theme="colorful"] .quick-head h2 { text-shadow: 0 2px 14px rgb(0 0 0 / 0.55); }
+:root[data-theme="colorful"] .home-version { color: #ffffff; }
+:root[data-theme="colorful"] .home-sub { color: rgb(255 255 255 / 0.9); text-shadow: 0 2px 10px rgb(0 0 0 / 0.85), 0 1px 2px rgb(0 0 0 / 0.9); }
+:root[data-theme="colorful"] .home-hero-links .link-inline { color: rgb(255 255 255 / 0.86); text-shadow: 0 1px 8px rgb(0 0 0 / 0.8); }
+/* Type over the key art keeps a shadow of its own, so a bright block behind it never swallows a line. */
+:root[data-theme="colorful"] .home-section p,
+:root[data-theme="colorful"] .quick-join p,
+:root[data-theme="colorful"] .news-item strong { text-shadow: 0 1px 4px rgb(0 0 0 / 0.7); }
+
+/* The brand lettering used in About. */
+.wordmark { display: inline-flex; align-items: center; gap: 10px; }
+
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 1180px) {
+  .home-lower { grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr); }
+}
+@media (max-width: 1020px) {
+  .home-lower { grid-template-columns: minmax(0, 1fr); }
+  .home-section, .quick-join { padding: 14px; }
+}
+@media (max-width: 880px) {
+  .side { width: 66px; padding: 8px 6px 8px; }
+  .side-label { display: none; }
+  .side-brand-name { display: none; }
+  .side-item { padding: 10px 4px; }
+  .side-icon svg { width: 21px; height: 21px; }
+  .welcome-grid { grid-template-columns: 1fr; }
+  .content { padding-left: 14px; padding-right: 14px; }
+  .instance-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .quick-recents-row { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-height: 720px) {
+  .home-lockup { display: none; }
+  .home .home-hero { padding-top: 0; }
+  .home .home-title { font-size: clamp(1.9rem, 3.2vw, 2.6rem); }
+}

@@ -7,7 +7,7 @@ import { notify, resetNotifications } from "../src/core/notifications";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
 import { resetAppearanceCache } from "../src/hooks/useAppearance";
-import type { AuthStatus, DeviceCodeInfo, GameExit, GameProgress, GameStatus, InstallProgress, InstallResult } from "../src/api/types";
+import type { AuthStatus, DeviceCodeInfo, GameExit, GameProgress, GameStatus, InstanceView, InstallProgress, InstallResult } from "../src/api/types";
 import { appInfo, java17Raw, java21Raw, settingsState, systemInfo } from "./helpers/fixtures";
 
 vi.mock("../src/api/client", () => ({
@@ -15,6 +15,18 @@ vi.mock("../src/api/client", () => ({
     getAppInfo: vi.fn(),
     gameStatus: vi.fn(),
     listInstances: vi.fn(),
+    listInstanceViews: vi.fn(),
+    saveInstance: vi.fn(),
+    cloneInstance: vi.fn(),
+    deleteInstance: vi.fn(),
+    instanceContents: vi.fn(),
+    repairInstance: vi.fn(),
+    switchFabricLoader: vi.fn(),
+    fabricLoaderVersions: vi.fn(),
+    openInstanceFolder: vi.fn(),
+    diagnoseCrash: vi.fn(),
+    checkForUpdates: vi.fn(),
+    openUpdatePage: vi.fn(),
     listProfiles: vi.fn(),
     createProfile: vi.fn(),
     deleteProfile: vi.fn(),
@@ -72,8 +84,27 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
-function goTo(name: "Home" | "Versions" | "Browse" | "Modpacks" | "Mods" | "Character" | "Servers" | "Settings") {
-  fireEvent.click(screen.getByRole("button", { name }));
+/** Opens the version catalogue from the library (its Add Version button). */
+function openAddVersion() {
+  fireEvent.click(screen.getByRole("button", { name: /^Add version$/i }));
+}
+
+/** Navigation labels as the sidebar shows them. */
+const GO_TO: Record<string, string> = {
+  Home: "Play",
+  Library: "Instances",
+  Browse: "Mods",
+};
+
+function goTo(name: string) {
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByRole("button", { name: GO_TO[name] ?? name }));
+}
+
+/** The start button inside the play panel (the sidebar also has a section called Play). */
+function playButton() {
+  const found = screen.getAllByRole("button", { name: "Play" }).find((el) => el.closest(".play-panel"));
+  if (!found) throw new Error("The play panel has no Play button");
+  return found;
 }
 
 /** About lives in the footer (and in Settings). */
@@ -137,6 +168,25 @@ const appearance = (extra: Partial<import("../src/api/types").PlayerAppearance> 
   ...extra,
 });
 
+const instanceView = (extra: Partial<InstanceView> = {}): InstanceView => ({
+  id: "inst-1",
+  minecraft: "1.21.11",
+  loader: "fabric",
+  loaderVersion: "0.17.0",
+  name: "Fabric 1.21.11",
+  icon: 0,
+  javaPath: null,
+  memoryMb: null,
+  gameDir: "C:\\Users\\player\\AppData\\Roaming\\com.limitedfps.app\\game",
+  customGameDir: false,
+  jvmArgs: "",
+  lastPlayed: 0,
+  modCount: 0,
+  javaMajor: 21,
+  clonedFrom: null,
+  ...extra,
+});
+
 const gameStatus = (extra: Partial<GameStatus> = {}): GameStatus => ({
   installed: false,
   minecraft: "1.21.11",
@@ -154,6 +204,8 @@ beforeEach(() => {
   resetAppearanceCache();
   window.localStorage.clear();
   window.localStorage.setItem("unlimited.license", "2");
+  // The look is chosen on first launch; the rest of the suite starts past that screen.
+  window.localStorage.setItem("unlimited.theme", "classic");
   mocked.listGameVersions.mockResolvedValue(["1.21.11", "1.21.1", "1.20.6"]);
   mocked.listVersionCatalog.mockResolvedValue([
     { id: "1.21.11", kind: "release", released: null, supported: true },
@@ -163,6 +215,44 @@ beforeEach(() => {
   mocked.curseforgeAvailable.mockResolvedValue(false);
   mocked.listMods.mockResolvedValue([]);
   mocked.listInstances.mockResolvedValue([]);
+  mocked.listInstanceViews.mockResolvedValue([]);
+  mocked.saveInstance.mockResolvedValue({} as never);
+  mocked.deleteInstance.mockResolvedValue(undefined);
+  mocked.cloneInstance.mockResolvedValue({} as never);
+  mocked.repairInstance.mockResolvedValue({ status: "installed", message: null, loader: "0.17.0" });
+  mocked.diagnoseCrash.mockResolvedValue({
+    cause: "Minecraft ran out of memory. Give it more in the instance's memory setting.",
+    confidence: "high",
+    evidence: ["java.lang.OutOfMemoryError: Java heap space"],
+    fixes: [
+      {
+        kind: "memory",
+        label: "Raise the memory limit",
+        detail: "Give this instance 4096 MB instead of the current limit.",
+        value: "4096",
+        changesSettings: true,
+      },
+    ],
+    excerpt: "java.lang.OutOfMemoryError: Java heap space",
+    unknown: false,
+  });
+  mocked.fabricLoaderVersions.mockResolvedValue([
+    { version: "0.17.0", stable: true, minecraft: "1.21.11" },
+    { version: "0.16.9", stable: true, minecraft: "1.21.11" },
+  ]);
+  mocked.openInstanceFolder.mockResolvedValue(undefined);
+  mocked.instanceContents.mockResolvedValue({ worlds: 0, screenshots: 0, mods: 0, resourcePacks: 0 });
+  mocked.checkForUpdates.mockResolvedValue({
+    current: "0.3.3",
+    latest: "0.3.3",
+    available: false,
+    notes: "",
+    pageUrl: null,
+    downloadUrl: null,
+    publishedAt: null,
+    installReady: false,
+    installMessage: "",
+  });
   mocked.listProfiles.mockResolvedValue([]);
   mocked.openCommunity.mockResolvedValue(undefined);
   mocked.openGithub.mockResolvedValue(undefined);
@@ -214,29 +304,31 @@ afterEach(() => {
 });
 
 describe("Home", () => {
-  it("shows the big title, the Play button and nothing else", async () => {
+  it("shows the branded hero, the Play button and the launcher's own sections", async () => {
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1, name: /1\.21\.11\s+Fabric/ })).toBeTruthy();
-    expect(screen.getByText("Minecraft Java Edition")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Your world, your way." })).toBeTruthy();
+    expect(screen.getByText(/Minecraft 1\.21\.11 · Fabric/)).toBeTruthy();
     expect(await screen.findByRole("button", { name: "Sign in to play" })).toBeTruthy();
-    // No status chips, news, shortcuts or recent-play cards on Home.
-    expect(screen.queryByText(/not live news/i)).toBeNull();
-    expect(screen.queryByText("Launcher news")).toBeNull();
-    expect(screen.queryByText("Java 21")).toBeNull();
-    expect(screen.queryByRole("list", { name: "Setup progress" })).toBeNull();
-    expect(screen.getByRole("button", { name: "All versions" })).toBeTruthy();
+    // The version is secondary information now, not the headline.
+    expect(screen.queryByRole("heading", { level: 1, name: /1\.21\.11\s+Fabric/ })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Recently played" })).toBeTruthy();
+    expect(screen.getByText("Nothing played yet")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /News/ })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Quick join" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Choose a version" })).toBeTruthy();
   });
 
-  it("has a top bar with the page tabs, a bell, Settings and the account", async () => {
+  it("has a vertical sidebar with labelled sections, a bell and the account", async () => {
     render(<App />);
     const main = screen.getByRole("navigation", { name: "Main" });
-    for (const name of ["Home", "Versions", "Browse", "Mods", "Modpacks", "Character", "Servers"]) {
+    for (const name of ["Play", "Instances", "Versions", "Mods", "Modpacks", "Servers", "Character"]) {
       expect(main.contains(screen.getByRole("button", { name }))).toBe(true);
     }
     for (const name of ["Accounts", "About", "Diagnostics", "Re-scan Java", "Discord Presence"]) {
       expect(main.contains(screen.queryByRole("button", { name }))).toBe(false);
     }
-    expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+    expect(within(main).getByRole("button", { name: "Play" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("button", { name: "News" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Account" })).toBeTruthy();
@@ -246,6 +338,7 @@ describe("Home", () => {
   it("lets the Discord status be switched off in Settings", async () => {
     render(<App />);
     goTo("Settings");
+    fireEvent.click(await screen.findByRole("tab", { name: "Discord" }));
     const toggle = (await screen.findByRole("switch", { name: "Discord Presence" })) as HTMLInputElement;
     expect(toggle.checked).toBe(true);
     fireEvent.click(toggle);
@@ -427,7 +520,7 @@ describe("Microsoft account", () => {
     await act(async () => finish(authStatus({ state: "signedIn", configured: true, savedLogin: true, profile: steve })));
     expect(await screen.findAllByText("Steve")).toBeTruthy();
     expect(document.querySelector(".account-card .skin-head")).toBeTruthy();
-    expect(screen.getAllByText("01234567-89ab-cdef-0123-456789abcdef").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { level: 2, name: "Microsoft account" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 
@@ -653,7 +746,7 @@ describe("Java installer", () => {
 });
 
 describe("Settings layout", () => {
-  it("has nine sections and shows one at a time", async () => {
+  it("has ten sections and shows one at a time", async () => {
     render(<App />);
     goTo("Settings");
     const nav = await screen.findByRole("tablist", { name: "Settings sections" });
@@ -667,6 +760,7 @@ describe("Settings layout", () => {
       "Launch settings",
       "Keybinds",
       "Updates",
+      "Discord",
     ];
     for (const name of names) expect(within(nav).getByRole("tab", { name })).toBeTruthy();
     expect(within(nav).getByRole("tab", { name: "General" }).getAttribute("aria-selected")).toBe("true");
@@ -714,11 +808,12 @@ describe("Settings layout", () => {
     expect(window.localStorage.getItem("unlimited.username")).toBe("Alex");
   });
 
-  it("opens the GitHub page from Updates", async () => {
+  it("keeps updates inside the launcher instead of sending people to a repository", async () => {
     render(<App />);
     await goToSettings("Updates");
-    fireEvent.click(await screen.findByRole("button", { name: "Open the GitHub page" }));
-    expect(mocked.openGithub).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(/Maple Client is distributed privately/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /GitHub/i })).toBeNull();
+    expect(mocked.openGithub).not.toHaveBeenCalled();
   });
 
   it("memory presets fill in the memory and mark unsaved changes", async () => {
@@ -754,7 +849,7 @@ describe("Diagnostics", () => {
     await goToDiagnostics();
     expect(await screen.findByText("Java in use")).toBeTruthy();
     expect(screen.getByText("Java 21 (21.0.4)")).toBeTruthy();
-    expect(screen.getByText("Where Cirrus Client looked (2)")).toBeTruthy();
+    expect(screen.getByText("Where Maple Client looked (2)")).toBeTruthy();
     expect(screen.getByText("JAVA_HOME is not set.")).toBeTruthy();
   });
 
@@ -784,7 +879,7 @@ describe("Diagnostics", () => {
     fireEvent.click(copy);
     expect(await screen.findByText("Report copied to the clipboard.")).toBeTruthy();
     expect(writeText).toHaveBeenCalledTimes(1);
-    expect(String(writeText.mock.calls[0][0])).toContain("Cirrus Client diagnostics report");
+    expect(String(writeText.mock.calls[0][0])).toContain("Maple Client diagnostics report");
   });
 
   it("tells the user when the clipboard is unavailable", async () => {
@@ -946,27 +1041,46 @@ describe("Play", () => {
     await loaded();
     await screen.findAllByText("Steve");
   };
-  const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
+  /** Sets offline play and its name where they live now: Settings › Launch settings. */
+  const playOfflineAs = async (name: string) => {
+    await goToSettings("Launch settings");
+    fireEvent.click(await screen.findByRole("radio", { name: "Offline name" }));
+    fireEvent.change(screen.getByLabelText("Offline player name"), { target: { value: name } });
+    goTo("Home");
+  };
   beforeEach(() => owned());
 
-  it("shows setup progress that fills in as each step is done", async () => {
-    ready();
+  it("shows the chosen version and loader under the branded headline", async () => {
     render(<App />);
-    await waitReady();
-    goTo("Versions");
-    const steps = screen.getByRole("list", { name: "Setup progress" });
-    expect(within(steps).getByText("Account")).toBeTruthy();
-    expect(within(steps).getByText("Java")).toBeTruthy();
-    expect(within(steps).getByText("Game files")).toBeTruthy();
-    expect(within(steps).getAllByText("✓")).toHaveLength(3);
+    expect(screen.getByRole("heading", { level: 1, name: "Your world, your way." })).toBeTruthy();
+    expect(screen.getByText(/Minecraft 1\.21\.11 · Fabric · no instance selected/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open the Library" })).toBeTruthy();
+    await settled();
   });
 
-  it("starts with the game files still to do when they are missing", async () => {
+  it("lists recently played instances newest first and selects one", async () => {
+    mocked.listInstanceViews.mockResolvedValue([
+      instanceView({ id: "a", name: "PvP", lastPlayed: 1_700_000_000_000 }),
+      instanceView({
+        id: "b",
+        name: "Building",
+        minecraft: "1.20.6",
+        loader: "vanilla",
+        loaderVersion: null,
+        lastPlayed: 1_600_000_000_000,
+      }),
+    ]);
+    ready();
     render(<App />);
-    await waitReady();
-    goTo("Versions");
-    const steps = screen.getByRole("list", { name: "Setup progress" });
-    await waitFor(() => expect(within(steps).getAllByText("✓")).toHaveLength(2));
+    await loaded();
+    const recent = await screen.findByRole("region", { name: "Recently played" });
+    const cards = within(recent).getAllByRole("article");
+    expect(cards).toHaveLength(2);
+    expect(cards[0]!.textContent).toContain("PvP");
+    expect(cards[1]!.textContent).toContain("Building");
+    fireEvent.click(within(cards[0]!).getByRole("button", { name: "Select PvP" }));
+    expect(window.localStorage.getItem("unlimited.instance")).toBe("a");
+    expect((await screen.findAllByText(/Minecraft 1\.21\.11 · Fabric/)).length).toBeGreaterThan(0);
   });
 
   it("sets everything up in one click: downloads the game, then starts it", async () => {
@@ -977,9 +1091,17 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Set up & play" }));
-    await waitFor(() => expect(mocked.installGame).toHaveBeenCalledWith("1.21.11", "fabric"));
+    await waitFor(() => expect(mocked.installGame).toHaveBeenCalledWith("1.21.11", "fabric", null));
     await waitFor(() =>
-      expect(mocked.launchGame).toHaveBeenCalledWith(expect.stringContaining("java"), "microsoft", null, "1.21.11", "fabric"),
+      expect(mocked.launchGame).toHaveBeenCalledWith(
+        expect.stringContaining("java"),
+        "microsoft",
+        null,
+        "1.21.11",
+        "fabric",
+        undefined,
+        undefined,
+      ),
     );
   });
 
@@ -1016,27 +1138,53 @@ describe("Play", () => {
     await waitFor(() => expect(mocked.installJava).toHaveBeenCalledTimes(1));
   });
 
-  it("lets the player pick the Minecraft version and the loader", async () => {
-    ready();
-    render(<App />);
-    await waitReady();
-    goTo("Versions");
-    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
-    expect(Array.from(select.options).map((o) => o.value)).toEqual(["1.21.11", "1.21.1", "1.20.6"]);
-    fireEvent.change(select, { target: { value: "1.20.6" } });
-    await waitFor(() => expect(mocked.gameStatus).toHaveBeenLastCalledWith("1.20.6", "fabric"));
-    fireEvent.click(screen.getByRole("radio", { name: "Vanilla" }));
-    await waitFor(() => expect(mocked.gameStatus).toHaveBeenLastCalledWith("1.20.6", "vanilla"));
-    expect(window.localStorage.getItem("unlimited.version")).toBe("1.20.6");
-    expect(screen.getByText("Why is there no OptiFine?")).toBeTruthy();
-  });
-
-  it("asks to sign in when the Minecraft account is not signed in", async () => {
-    mocked.authStatus.mockResolvedValue(authStatus());
+  it("opens the side account panel with both ways to play when nobody is signed in", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true }));
     ready();
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Sign in to play" }));
-    expect(await screen.findByRole("heading", { level: 1, name: "Accounts" })).toBeTruthy();
+    const panel = await screen.findByRole("dialog", { name: "Account" });
+    expect(within(panel).getByRole("button", { name: "Sign in with Microsoft" })).toBeTruthy();
+    expect(within(panel).getByLabelText("Cracked username")).toBeTruthy();
+    expect(within(panel).getByRole("button", { name: "Use this name" })).toBeTruthy();
+  });
+
+  it("plays as a cracked username chosen in the account panel, straight from Home", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus({ state: "signedOut", configured: true }));
+    ready();
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    render(<App />);
+    await loaded();
+    openAccount();
+    fireEvent.change(await screen.findByLabelText("Cracked username"), { target: { value: "Herobrine" } });
+    fireEvent.click(screen.getByRole("button", { name: "Use this name" }));
+    expect(window.localStorage.getItem("unlimited.username")).toBe("Herobrine");
+    expect(window.localStorage.getItem("unlimited.playMode")).toBe("offline");
+    expect((await screen.findAllByText("Herobrine")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Close account panel" }));
+    fireEvent.click(await playButton());
+    await waitFor(() =>
+      expect(mocked.launchGame).toHaveBeenCalledWith(
+        expect.any(String),
+        "offline",
+        "Herobrine",
+        "1.21.11",
+        "fabric",
+        undefined,
+        undefined,
+      ),
+    );
+  });
+
+  it("refuses a cracked username Minecraft would refuse", async () => {
+    mocked.authStatus.mockResolvedValue(authStatus());
+    ready();
+    render(<App />);
+    openAccount();
+    const field = await screen.findByLabelText("Cracked username");
+    fireEvent.change(field, { target: { value: "a" } });
+    expect((screen.getByRole("button", { name: "Use this name" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/3 to 16 characters/)).toBeTruthy();
   });
 
   it("plays offline without any Microsoft sign-in", async () => {
@@ -1045,12 +1193,18 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
     await loaded();
-    goTo("Versions");
-    chooseOffline();
-    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Alex" } });
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await playOfflineAs("Alex");
+    fireEvent.click(playButton());
     await waitFor(() =>
-      expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "offline", "Alex", "1.21.11", "fabric"),
+      expect(mocked.launchGame).toHaveBeenCalledWith(
+        expect.any(String),
+        "offline",
+        "Alex",
+        "1.21.11",
+        "fabric",
+        undefined,
+        undefined,
+      ),
     );
   });
 
@@ -1058,17 +1212,12 @@ describe("Play", () => {
     ready();
     render(<App />);
     await waitReady();
-    goTo("Versions");
-    chooseOffline();
-    const play = screen.getByRole("button", { name: "Play" }) as HTMLButtonElement;
+    await playOfflineAs("bad name");
+    const play = playButton() as HTMLButtonElement;
     expect(play.disabled).toBe(true);
-    const input = screen.getByLabelText("Player name");
-    fireEvent.change(input, { target: { value: "bad name" } });
-    fireEvent.blur(input);
-    expect(await screen.findByText("Use only letters, numbers and underscores.")).toBeTruthy();
-    expect(play.disabled).toBe(true);
-    fireEvent.change(input, { target: { value: "Steve_01" } });
-    expect(play.disabled).toBe(false);
+    expect(screen.getByText(/Choose a valid player name first/)).toBeTruthy();
+    await playOfflineAs("Steve_01");
+    expect((playButton() as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("launches offline with the chosen name, version and loader, then shows the running state", async () => {
@@ -1076,12 +1225,18 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: "C:\\log.txt" });
     render(<App />);
     await waitReady();
-    goTo("Versions");
-    chooseOffline();
-    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve_01" } });
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await playOfflineAs("Steve_01");
+    fireEvent.click(playButton());
     await waitFor(() =>
-      expect(mocked.launchGame).toHaveBeenCalledWith(expect.stringContaining("java"), "offline", "Steve_01", "1.21.11", "fabric"),
+      expect(mocked.launchGame).toHaveBeenCalledWith(
+        expect.stringContaining("java"),
+        "offline",
+        "Steve_01",
+        "1.21.11",
+        "fabric",
+        undefined,
+        undefined,
+      ),
     );
     fireEvent.click(await screen.findByRole("button", { name: "Stop Minecraft" }));
     expect(mocked.stopGame).toHaveBeenCalledTimes(1);
@@ -1095,9 +1250,17 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
     await waitReady();
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(playButton());
     await waitFor(() =>
-      expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "microsoft", null, "1.21.11", "fabric"),
+      expect(mocked.launchGame).toHaveBeenCalledWith(
+        expect.any(String),
+        "microsoft",
+        null,
+        "1.21.11",
+        "fabric",
+        undefined,
+        undefined,
+      ),
     );
   });
 
@@ -1106,10 +1269,8 @@ describe("Play", () => {
     mocked.launchGame.mockResolvedValue({ started: false, message: "A game file is missing.", logPath: null });
     render(<App />);
     await waitReady();
-    goTo("Versions");
-    chooseOffline();
-    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Steve" } });
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await playOfflineAs("Steve");
+    fireEvent.click(playButton());
     expect((await screen.findAllByText("Minecraft could not be started")).length).toBeGreaterThan(0);
     expect((await screen.findAllByText("A game file is missing.")).length).toBeGreaterThan(0);
   });
@@ -1119,13 +1280,13 @@ describe("License", () => {
   it("must be accepted before the launcher is used", async () => {
     window.localStorage.removeItem("unlimited.license");
     render(<App />);
-    const dialog = await screen.findByRole("dialog", { name: "Cirrus Client license" });
+    const dialog = await screen.findByRole("dialog", { name: "Maple Client license" });
     expect(within(dialog).getByText(/You need Minecraft/)).toBeTruthy();
     const accept = within(dialog).getByRole("button", { name: "Accept and continue" }) as HTMLButtonElement;
     expect(accept.disabled).toBe(true);
     fireEvent.click(within(dialog).getByRole("checkbox"));
     fireEvent.click(accept);
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Maple Client license" })).toBeNull());
     expect(window.localStorage.getItem("unlimited.license")).toBe("2");
   });
 
@@ -1139,84 +1300,87 @@ describe("License", () => {
 
   it("can be read again from About", async () => {
     render(<App />);
-    expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Maple Client license" })).toBeNull();
     goToAbout();
     fireEvent.click(await screen.findByRole("button", { name: "Read the license" }));
-    const dialog = await screen.findByRole("dialog", { name: "Cirrus Client license" });
+    const dialog = await screen.findByRole("dialog", { name: "Maple Client license" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-    expect(screen.queryByRole("dialog", { name: "Cirrus Client license" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Maple Client license" })).toBeNull();
   });
 });
 
 describe("Modpacks", () => {
-  const pvp = { id: "p-pvp", name: "PvP", minecraft: "1.21.11", fabric: true, color: 0 };
-  const ready = () => mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
-  const chooseOffline = () => fireEvent.click(screen.getByRole("radio", { name: "Offline name" }));
-
-  it("creates a profile from a name, version and loader", async () => {
-    mocked.createProfile.mockResolvedValue(pvp);
-    render(<App />);
-    goTo("Modpacks");
-    fireEvent.click(await screen.findByRole("button", { name: "Create profile" }));
-    expect(await screen.findByText("Give the profile a name.")).toBeTruthy();
-    expect(mocked.createProfile).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("Profile name"), { target: { value: "PvP" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create profile" }));
-    await waitFor(() => expect(mocked.createProfile).toHaveBeenCalledWith("PvP", "1.21.11", "fabric"));
-  });
-
-  it("lists profiles, plays one and passes it to the launcher", async () => {
-    mocked.listProfiles.mockResolvedValue([pvp]);
-    mocked.authStatus.mockResolvedValue(authStatus());
-    ready();
-    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+  it("lists instances as setups and sends one to its mods", async () => {
+    mocked.listInstanceViews.mockResolvedValue([
+      instanceView({ id: "a", name: "PvP", modCount: 3 }),
+      instanceView({ id: "b", name: "Building", minecraft: "1.20.6", loader: "vanilla", loaderVersion: null }),
+    ]);
     render(<App />);
     await settled();
     goTo("Modpacks");
-    expect(await screen.findByText("1.21.11 Fabric")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Play profile PvP" }));
-    expect(await screen.findByText("Profile:")).toBeTruthy();
-    chooseOffline();
-    fireEvent.change(screen.getByLabelText("Player name"), { target: { value: "Alex" } });
-    await waitFor(() => expect((screen.getByRole("button", { name: "Play" }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
-    await waitFor(() =>
-      expect(mocked.launchGame).toHaveBeenCalledWith(expect.any(String), "offline", "Alex", "1.21.11", "fabric", "p-pvp"),
-    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Modpacks" })).toBeTruthy();
+    const pvp = (await screen.findByText("PvP")).closest("li")!;
+    expect(pvp.textContent).toContain("Minecraft 1.21.11 · 3 mods");
+    fireEvent.click(within(pvp).getByRole("button", { name: "Mods" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
+    expect(window.localStorage.getItem("unlimited.instance")).toBe("a");
   });
 
-  it("deletes a profile only after a second click", async () => {
-    mocked.listProfiles.mockResolvedValue([pvp]);
-    mocked.deleteProfile.mockResolvedValue(undefined);
+  it("can show only the setups that have mods", async () => {
+    mocked.listInstanceViews.mockResolvedValue([
+      instanceView({ id: "a", name: "PvP", modCount: 3 }),
+      instanceView({ id: "b", name: "Building", minecraft: "1.20.6", loader: "vanilla", loaderVersion: null }),
+    ]);
     render(<App />);
+    await settled();
     goTo("Modpacks");
-    fireEvent.click(await screen.findByRole("button", { name: "Delete profile PvP" }));
-    expect(mocked.deleteProfile).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm delete PvP" }));
-    await waitFor(() => expect(mocked.deleteProfile).toHaveBeenCalledWith("p-pvp"));
+    await screen.findByText("PvP");
+    fireEvent.click(screen.getByRole("radio", { name: "With mods" }));
+    expect(screen.getByText("PvP")).toBeTruthy();
+    expect(screen.queryByText("Building")).toBeNull();
   });
 });
 
 describe("Themes", () => {
-  it("offers only a dark and a light appearance, applies it at once and remembers it", async () => {
+  it("offers Classic, Colorful and Light, applies a choice at once and remembers it", async () => {
     initTheme();
     render(<App />);
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("classic");
     await goToSettings("Appearance");
-    expect(screen.getAllByRole("radio", { name: /theme$/ })).toHaveLength(2);
-    fireEvent.click(await screen.findByRole("radio", { name: "Light theme" }));
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(window.localStorage.getItem("unlimited.theme")).toBe("light");
-    expect(screen.getByRole("radio", { name: "Light theme" }).getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(screen.getByRole("radio", { name: "Dark theme" }));
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(screen.getAllByRole("radio", { name: /theme$/ })).toHaveLength(3);
+    fireEvent.click(await screen.findByRole("radio", { name: "Colorful theme" }));
+    expect(document.documentElement.dataset.theme).toBe("colorful");
+    expect(window.localStorage.getItem("unlimited.theme")).toBe("colorful");
+    expect(screen.getByRole("radio", { name: "Colorful theme" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("radio", { name: "Classic theme" }));
+    expect(document.documentElement.dataset.theme).toBe("classic");
   });
 
-  it("falls back to dark when an old theme name is stored", async () => {
+  it("asks first-launch players for a look and remembers the answer", async () => {
+    window.localStorage.removeItem("unlimited.theme");
+    initTheme();
+    render(<App />);
+    const dialog = await screen.findByRole("dialog", { name: "Choose your look" });
+    expect(dialog).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Colorful theme" }));
+    expect(document.documentElement.dataset.theme).toBe("colorful");
+    expect(window.localStorage.getItem("unlimited.theme")).toBe("colorful");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Choose your look" })).toBeNull());
+    await settled();
+  });
+
+  it("does not ask again once a theme is saved", async () => {
+    initTheme();
+    render(<App />);
+    expect(screen.queryByRole("dialog", { name: "Choose your look" })).toBeNull();
+    await settled();
+  });
+
+  it("falls back to classic when an old theme name is stored", async () => {
     window.localStorage.setItem("unlimited.theme", "ocean");
     initTheme();
     render(<App />);
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("classic");
   });
 
   it("offers the Discord community from Settings", async () => {
@@ -1227,26 +1391,87 @@ describe("Themes", () => {
   });
 });
 
-describe("Installed versions", () => {
-  it("says when nothing is installed yet", async () => {
+describe("Library", () => {
+  it("says when nothing is installed and points at the version list", async () => {
     render(<App />);
-    goTo("Versions");
-    expect(await screen.findByText("Nothing installed yet")).toBeTruthy();
+    goTo("Library");
+    expect(await screen.findByRole("heading", { level: 1, name: "Instances" })).toBeTruthy();
+    expect(await screen.findByText("Your library is empty")).toBeTruthy();
+    openAddVersion();
+    expect(await screen.findByRole("heading", { level: 1, name: "Versions" })).toBeTruthy();
   });
 
-  it("lists installed setups and picks one for playing", async () => {
-    mocked.listInstances.mockResolvedValue([
-      { minecraft: "1.21.11", loader: "0.17.0", modCount: 3 },
-      { minecraft: "1.20.6", loader: null, modCount: 0 },
+  it("lists installed instances, selects one and opens its folder", async () => {
+    mocked.listInstanceViews.mockResolvedValue([
+      instanceView({ id: "a", name: "PvP", modCount: 3, lastPlayed: 1_700_000_000_000 }),
+      instanceView({ id: "b", name: "Building", minecraft: "1.20.6", loader: "vanilla", loaderVersion: null }),
     ]);
+    mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
     render(<App />);
-    goTo("Versions");
-    expect(await screen.findByText("Loader 0.17.0 · 3 mods")).toBeTruthy();
-    expect(screen.getAllByText("Vanilla").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Play Minecraft 1.20.6 vanilla" }));
-    expect(await screen.findByLabelText("Minecraft version")).toBeTruthy(); // stays on Play, with the choice applied
-    expect((screen.getByLabelText("Minecraft version") as HTMLSelectElement).value).toBe("1.20.6");
-    expect(window.localStorage.getItem("unlimited.loader")).toBe("vanilla");
+    mocked.launchGame.mockResolvedValue({ started: true, message: null, logPath: null });
+    await settled();
+    goTo("Library");
+    expect(await screen.findByRole("heading", { level: 2, name: "PvP" })).toBeTruthy();
+    expect(screen.getByText(/3 mods/)).toBeTruthy();
+    expect(screen.getByText("Building")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Open folder for Building" }));
+    await waitFor(() => expect(mocked.openInstanceFolder).toHaveBeenCalledWith("b"));
+    const rows = screen.getAllByRole("article");
+    const building = rows.find((r) => r.textContent?.includes("Building"))!;
+    fireEvent.click(within(building).getByRole("button", { name: "Launch" }));
+    await waitFor(() => expect(window.localStorage.getItem("unlimited.instance")).toBe("b"));
+  });
+
+  it("keeps deletion behind a confirmation and names what its folder holds", async () => {
+    mocked.listInstanceViews.mockResolvedValue([instanceView({ id: "a", name: "PvP" })]);
+    mocked.instanceContents.mockResolvedValue({ worlds: 2, screenshots: 1, mods: 1, resourcePacks: 0 });
+    render(<App />);
+    await settled();
+    goTo("Library");
+    fireEvent.click(await screen.findByRole("button", { name: "Settings for PvP" }));
+    const dialog = await screen.findByRole("dialog", { name: "PvP settings" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    expect(mocked.deleteInstance).not.toHaveBeenCalled();
+    expect(await within(dialog).findByText(/this removes 2 worlds, 1 mod, 1 screenshot/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete instance" }));
+    await waitFor(() => expect(mocked.deleteInstance).toHaveBeenCalledWith("a", false));
+  });
+
+  it("creates an instance through the two-step Create instance dialog", async () => {
+    mocked.listInstanceViews.mockResolvedValue([]);
+    mocked.saveInstance.mockImplementation(async (config) =>
+      instanceView({
+        id: config.id,
+        name: config.name,
+        minecraft: config.minecraft,
+        loader: config.loader,
+        loaderVersion: config.loaderVersion,
+      }),
+    );
+    render(<App />);
+    await settled();
+    goTo("Library");
+    fireEvent.click(await screen.findByRole("button", { name: "Create instance" }));
+    const dialog = await screen.findByRole("dialog", { name: "Create instance" });
+    // Step one: the four ways to start, with only Custom setup available.
+    expect(within(dialog).getByText("Start from a mod or modpack")).toBeTruthy();
+    expect(within(dialog).getAllByText("Not in this build").length).toBe(3);
+    fireEvent.click(within(dialog).getByRole("button", { name: /Custom setup/ }));
+    // Step two: the real configuration is written through the backend.
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Survival" } });
+    fireEvent.change(within(dialog).getByLabelText("Game version"), { target: { value: "1.20.6" } });
+    // Creating waits until Fabric has named the loader build it will install.
+    await within(dialog).findByText(/Fabric Loader 0\.17\.0 will be installed/);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create instance" }));
+    await waitFor(() => expect(mocked.saveInstance).toHaveBeenCalledTimes(1));
+    expect(mocked.saveInstance.mock.calls[0][0]).toMatchObject({
+      name: "Survival",
+      minecraft: "1.20.6",
+      loader: "fabric",
+      loaderVersion: "0.17.0",
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Create instance" })).toBeNull());
   });
 });
 
@@ -1265,7 +1490,7 @@ describe("Launch log and crash details", () => {
     render(<App />);
     await loaded();
     await screen.findAllByText("Steve");
-    fireEvent.click(await screen.findByRole("button", { name: "Play" }));
+    fireEvent.click(await playButton());
     await waitFor(() => expect(mocked.launchGame).toHaveBeenCalled());
     await waitFor(() => expect(gameExitHandler).not.toBeNull());
   };
@@ -1584,7 +1809,7 @@ describe("Skins page", () => {
     render(<App />);
     goTo("Character");
     expect(await screen.findByRole("heading", { level: 2, name: "No skins yet" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Choose file" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Choose a PNG file/ })).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
@@ -1663,54 +1888,63 @@ describe("Skins page", () => {
     expect(window.localStorage.getItem("cirrus.appliedSkin")).toBe("alex");
   });
 
-  it("shows a cape empty state when the account has none equipped", async () => {
+  it("shows an honest empty state when the account has no cape", async () => {
     signedIn();
     mocked.listSkins.mockResolvedValue([]);
     render(<App />);
     await settled();
     goTo("Character");
-    const capes = await screen.findByRole("radiogroup", { name: "Cape" });
-    expect(within(capes).queryByRole("radio", { name: /Your Minecraft cape/ })).toBeNull();
-    expect(within(capes).getByRole("radio", { name: /No cape/ })).toBeTruthy();
+    expect(await screen.findByText("No cape equipped")).toBeTruthy();
+    expect(screen.getByText(/Capes can only be equipped on minecraft.net/)).toBeTruthy();
+    expect(screen.queryByText(/Cirrus Cloud/)).toBeNull();
   });
 
-  it("previews the account character and switches capes as a local preview", async () => {
+  it("shows the cape the account actually has equipped and adds no cosmetics", async () => {
     signedIn();
     mocked.playerAppearance.mockResolvedValue(appearance({ cape: "data:image/png;base64,CCCC" }));
     mocked.listSkins.mockResolvedValue([]);
     render(<App />);
     await settled();
     goTo("Character");
-    expect(await screen.findByText("Steve's Minecraft character")).toBeTruthy();
-    const capes = await screen.findByRole("radiogroup", { name: "Cape" });
-    expect(within(capes).getByRole("radio", { name: /Your Minecraft cape/ })).toBeTruthy();
-    fireEvent.click(within(capes).getByRole("radio", { name: /Cirrus Cloud/ }));
-    expect(screen.getByText(/does not change your account/)).toBeTruthy();
+    expect(await screen.findByText("Equipped and synced")).toBeTruthy();
+    expect(screen.getByText("Account cape")).toBeTruthy();
+    expect(screen.queryByText(/Cirrus Cloud/)).toBeNull();
     expect(mocked.applySkin).not.toHaveBeenCalled();
   });
 
-  it("adds a Cirrus preset as a real PNG", async () => {
-    mocked.addSkinFile.mockResolvedValue(skin({ id: "preset", name: "Cirrus Sky" }));
+  it("uploads a PNG to the library and applies it to the account", async () => {
+    signedIn();
+    const uploaded = skin({ id: "hero", name: "hero" });
+    mocked.listSkins.mockResolvedValueOnce([]).mockResolvedValue([uploaded]);
+    mocked.addSkinFile.mockResolvedValue(uploaded);
+    mocked.applySkin.mockResolvedValue(undefined);
     render(<App />);
+    await settled();
     goTo("Character");
-    fireEvent.click(await screen.findByRole("button", { name: "Add preset Cirrus Sky" }));
+    const file = new File([new Uint8Array([137, 80, 78, 71])], "hero.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("Skin file"), { target: { files: [file] } });
     await waitFor(() => expect(mocked.addSkinFile).toHaveBeenCalledTimes(1));
-    const [name, model, base64] = mocked.addSkinFile.mock.calls[0]!;
-    expect(name).toBe("Cirrus Sky");
+    const [name, model] = mocked.addSkinFile.mock.calls[0]!;
+    expect(name).toBe("hero");
     expect(model).toBe("classic");
-    expect(String(base64).startsWith("iVBOR")).toBe(true);
-    expect(await screen.findByText(/Added “Cirrus Sky” to your library/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Apply to my account" }));
+    await waitFor(() => expect(mocked.applySkin).toHaveBeenCalledWith("hero"));
   });
 
   it("zooms the character preview without touching the account", async () => {
+    signedIn();
     mocked.listSkins.mockResolvedValue([skin()]);
     render(<App />);
+    await settled();
     goTo("Character");
-    const zoom = (await screen.findByLabelText("Zoom")) as HTMLInputElement;
-    expect(zoom.value).toBe("10");
-    fireEvent.change(zoom, { target: { value: "14" } });
-    expect(zoom.value).toBe("14");
-    expect(screen.getByText("140%")).toBeTruthy();
+    const zoomIn = await screen.findByRole("button", { name: "Zoom in" });
+    const zoomOut = screen.getByRole("button", { name: "Zoom out" });
+    expect(screen.getByText("100%")).toBeTruthy();
+    fireEvent.click(zoomIn);
+    fireEvent.click(zoomIn);
+    expect(screen.getByText("118%")).toBeTruthy();
+    fireEvent.click(zoomOut);
+    expect(screen.getByText("109%")).toBeTruthy();
     expect(mocked.applySkin).not.toHaveBeenCalled();
   });
 
@@ -1747,15 +1981,15 @@ describe("Skins page", () => {
 });
 
 describe("About page", () => {
-  it("shows the version, the tagline and the links, and opens Discord and GitHub", async () => {
+  it("shows the version, the tagline and the community link", async () => {
     render(<App />);
     goToAbout();
     expect(await screen.findByText(/Version 0\.1\.0/)).toBeTruthy();
-    expect(screen.getByText("The sky is the limit.")).toBeTruthy();
+    expect(screen.getByText("Your world, your way.")).toBeTruthy();
+    expect(screen.getByText(/no GitHub page to visit/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open Discord" }));
     expect(mocked.openCommunity).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "Open GitHub" }));
-    expect(mocked.openGithub).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: /GitHub/i })).toBeNull();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
@@ -1763,100 +1997,119 @@ describe("About page", () => {
     render(<App />);
     goToAbout();
     fireEvent.click(await screen.findByRole("button", { name: "Read the license" }));
-    expect(await screen.findByRole("dialog", { name: "Cirrus Client license" })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: "Maple Client license" })).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 
   it("shows an error when a link cannot be opened", async () => {
-    mocked.openGithub.mockRejectedValue(new Error("no browser"));
+    mocked.openCommunity.mockRejectedValue(new Error("no browser"));
     render(<App />);
     goToAbout();
-    fireEvent.click(await screen.findByRole("button", { name: "Open GitHub" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Discord" }));
     expect(await screen.findByText("no browser")).toBeTruthy();
     await waitFor(() => expect(mocked.detectJava).toHaveBeenCalled());
   });
 });
 
-describe("Versions page", () => {
-  it("shows the launch panel, launch configuration, profiles and installed versions", async () => {
+describe("Versions", () => {
+  const catalog = () => {
+    mocked.listVersionCatalog.mockResolvedValue([
+      { id: "1.21.11", kind: "release", released: "2025-12-02T10:00:00+00:00", supported: true, javaMajor: 21 },
+      { id: "1.21.1", kind: "release", released: "2024-08-08T10:00:00+00:00", supported: true, javaMajor: 21 },
+      { id: "1.20.6", kind: "release", released: "2024-04-29T10:00:00+00:00", supported: true, javaMajor: 21 },
+      { id: "1.12.2", kind: "release", released: "2017-09-18T10:00:00+00:00", supported: true, javaMajor: 8 },
+      { id: "25w45a", kind: "snapshot", released: "2025-11-05T10:00:00+00:00", supported: false, javaMajor: 21 },
+    ]);
+  };
+  const expand = async (title: RegExp) => {
+    const head = await screen.findByRole("button", { name: title });
+    fireEvent.click(head);
+    return head;
+  };
+
+  it("groups releases into families with their own artwork instead of one list", async () => {
+    catalog();
     render(<App />);
     goTo("Versions");
     expect(await screen.findByRole("heading", { level: 1, name: "Versions" })).toBeTruthy();
-    expect(screen.getByLabelText("Minecraft version")).toBeTruthy();
-    expect(await screen.findByText("Launch configuration")).toBeTruthy();
-    expect(await screen.findByText("Nothing installed yet")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /Minecraft 1\.21/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Minecraft 1\.12/ })).toBeTruthy();
+    const art = Array.from(document.querySelectorAll("img.family-art")).map((img) => img.getAttribute("src"));
+    expect(new Set(art).size).toBeGreaterThan(1);
+    // Snapshots are counted but never offered as an install in this build.
+    expect(screen.getByText(/snapshots are listed by Mojang but cannot be installed/)).toBeTruthy();
+    expect(screen.queryByText("25w45a")).toBeNull();
   });
 
-  it("changes the game memory from the launch configuration and saves it", async () => {
-    mocked.saveSettings.mockResolvedValue({ ok: true, errors: [], state: settingsState({ memoryMb: 6144 }) });
+  it("expands a family into its individual releases, newest first", async () => {
+    catalog();
     render(<App />);
     goTo("Versions");
-    fireEvent.click(await screen.findByRole("button", { name: "6 GB" }));
-    await waitFor(() =>
-      expect(mocked.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ memoryMb: 6144 })),
-    );
-    await waitFor(() => expect(screen.getByRole("button", { name: "6 GB" }).getAttribute("aria-pressed")).toBe("true"));
+    await expand(/Minecraft 1\.21/);
+    expect(screen.getByText("Minecraft 1.21.11")).toBeTruthy();
+    expect(screen.getByText("Minecraft 1.21.1")).toBeTruthy();
+    const rows = screen.getAllByText(/^Minecraft 1\.21\./);
+    expect(rows[0]!.textContent).toContain("1.21.11");
+    fireEvent.change(screen.getByLabelText("Order versions"), { target: { value: "oldest" } });
+    const oldest = screen.getAllByText(/^Minecraft 1\.21\./);
+    expect(oldest[0]!.textContent).toContain("1.21.1");
   });
 
-  it("links to the matching Settings section for Java and the game folder", async () => {
+  it("searches across families and hides what does not match", async () => {
+    catalog();
     render(<App />);
     goTo("Versions");
-    await screen.findByText("Launch configuration");
-    const changes = await screen.findAllByRole("button", { name: "Change" });
-    fireEvent.click(changes[changes.length - 1]);
-    expect((await screen.findByRole("tab", { name: "Game directory" })).getAttribute("aria-selected")).toBe("true");
-  });
-});
-
-describe("Version selection", () => {
-  it("groups releases and snapshots and never offers an unsupported version as installable", async () => {
-    mocked.listVersionCatalog.mockResolvedValue([
-      { id: "1.21.11", kind: "release", released: "2025-12-02T10:00:00+00:00", supported: true },
-      { id: "25w45a", kind: "snapshot", released: "2025-11-05T10:00:00+00:00", supported: false },
-      { id: "1.20.4", kind: "release", released: "2023-12-07T10:00:00+00:00", supported: false },
-    ]);
-    render(<App />);
-    goTo("Versions");
-    await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
-    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
-    const options = Array.from(select.options);
-    expect(options.find((o) => o.value === "25w45a")?.disabled).toBe(true);
-    expect(options.find((o) => o.value === "1.20.4")?.disabled).toBe(true);
-    expect(options.find((o) => o.value === "1.21.11")?.disabled).toBe(false);
-    expect(Array.from(select.querySelectorAll("optgroup")).map((g) => g.label)).toEqual([
-      "Releases",
-      "Snapshots (not installable)",
-    ]);
+    await screen.findByRole("button", { name: /Minecraft 1\.21/ });
+    fireEvent.change(screen.getByLabelText("Search Minecraft versions"), { target: { value: "1.12" } });
+    expect(await screen.findByRole("button", { name: /Minecraft 1\.12/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Minecraft 1\.21/ })).toBeNull();
+    expect(screen.getByText("Minecraft 1.12.2")).toBeTruthy();
   });
 
-  it("filters the picker by text and by version type", async () => {
-    mocked.listVersionCatalog.mockResolvedValue([
-      { id: "1.21.11", kind: "release", released: null, supported: true, javaMajor: 21 },
-      { id: "1.21.1", kind: "release", released: null, supported: true, javaMajor: 21 },
-      { id: "25w45a", kind: "snapshot", released: null, supported: false, javaMajor: 21 },
-    ]);
+  it("marks versions that already have an instance in the Library", async () => {
+    catalog();
+    mocked.listInstanceViews.mockResolvedValue([instanceView({ id: "a", minecraft: "1.21.11" })]);
     render(<App />);
+    await settled();
     goTo("Versions");
-    await waitFor(() => expect(mocked.listVersionCatalog).toHaveBeenCalled());
-    fireEvent.change(screen.getByLabelText("Filter versions"), { target: { value: "25w" } });
-    expect(await screen.findByText(/Showing 1 of 3 versions/)).toBeTruthy();
-    const select = screen.getByLabelText("Minecraft version") as HTMLSelectElement;
-    // The chosen version stays pinned so the select never goes blank.
-    expect(Array.from(select.options).some((o) => o.value === "1.21.11")).toBe(true);
-    expect(Array.from(select.options).some((o) => o.value === "1.21.1")).toBe(false);
-    expect(Array.from(select.options).some((o) => o.value === "25w45a")).toBe(true);
-    fireEvent.click(screen.getByRole("radio", { name: "Releases" }));
-    expect(await screen.findByText(/Showing 0 of 3 versions/)).toBeTruthy();
-    expect(screen.getByText(/Java 21 required/)).toBeTruthy();
+    await expand(/Minecraft 1\.21/);
+    expect(screen.getByText("In your Library")).toBeTruthy();
+    expect(screen.getByText("1 installed")).toBeTruthy();
   });
 
-  it("says whether the version on screen is installed", async () => {
-    mocked.gameStatus.mockResolvedValue(gameStatus({ installed: true, loader: "0.17.0" }));
+  it("offers Vanilla and Fabric with their own marks, and installs the chosen one", async () => {
+    catalog();
+    mocked.installGame.mockResolvedValue({ status: "installed", message: null, loader: "0.17.0" });
     render(<App />);
     goTo("Versions");
-    expect(await screen.findByText(/^Installed/)).toBeTruthy();
-    expect(screen.getByText(/Ready to play/)).toBeTruthy();
-    expect(screen.getByText(/Fabric 0\.17\.0 is installed/)).toBeTruthy();
+    await expand(/Minecraft 1\.21/);
+    const row = screen.getByText("Minecraft 1.21.11").closest("li")!;
+    fireEvent.click(within(row).getByRole("button", { name: "Install" }));
+    const dialog = await screen.findByRole("dialog", { name: "Install Minecraft 1.21.11" });
+    expect(within(dialog).getByRole("radio", { name: /^Fabric/ })).toBeTruthy();
+    expect(within(dialog).getByRole("radio", { name: /^Vanilla/ })).toBeTruthy();
+    // OptiFine is explained instead of being offered without a verified installer.
+    expect(within(dialog).getByText(/OptiFine/)).toBeTruthy();
+    // The recommended Fabric loader is preselected and can be changed before installing.
+    expect(await within(dialog).findByRole("combobox")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("radio", { name: /^Vanilla/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Install Vanilla" }));
+    await waitFor(() => expect(mocked.installGame).toHaveBeenCalledWith("1.21.11", "vanilla", null));
+  });
+
+  it("installs Fabric with the loader version chosen in the dialog", async () => {
+    catalog();
+    mocked.installGame.mockResolvedValue({ status: "installed", message: null, loader: "0.16.9" });
+    render(<App />);
+    goTo("Versions");
+    await expand(/Minecraft 1\.21/);
+    const row = screen.getByText("Minecraft 1.21.11").closest("li")!;
+    fireEvent.click(within(row).getByRole("button", { name: "Install" }));
+    const dialog = await screen.findByRole("dialog", { name: "Install Minecraft 1.21.11" });
+    const select = await within(dialog).findByRole("combobox");
+    fireEvent.change(select, { target: { value: "0.16.9" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Install Fabric" }));
+    await waitFor(() => expect(mocked.installGame).toHaveBeenCalledWith("1.21.11", "fabric", "0.16.9"));
   });
 });
 
@@ -1932,7 +2185,7 @@ describe("Account switching and removal", () => {
     render(<App />);
     await loaded();
     await screen.findAllByText("Steve");
-    const play = await screen.findByRole("button", { name: "Play" });
+    const play = await playButton();
     fireEvent.click(play);
     fireEvent.click(play);
     await waitFor(() => expect(mocked.launchGame).toHaveBeenCalledTimes(1));

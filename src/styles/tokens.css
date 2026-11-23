@@ -1,128 +1,236 @@
 /* ==========================================================================
-   Cirrus design tokens. Every colour, radius, blur and timing used by the new
+   Maple design tokens. Every colour, radius, blur and timing used by the
    interface lives here, once, for both appearances (Dark and Light).
+
+   The palette is neutral on purpose: near-black surfaces, white text and grey
+   support, with one brand colour - maple orange - used only where it means
+   something: the selected section, the primary action, progress, focus rings
+   and active controls. Orange is a signal, not a coat of paint.
    ========================================================================== */
 :root {
   color-scheme: dark;
 
-  /* surfaces (midnight navy) */
-  --bg: #080d18;
-  --bg-2: #0d1422;
-  --surface: rgba(13, 20, 34, 0.66);
-  --surface-solid: #0d1422;
-  --raised: rgba(24, 36, 58, 0.72);
-  --raised-solid: #131d2d;
-  --raised-2: rgba(34, 50, 78, 0.78);
-  --glass: rgba(12, 19, 33, 0.58);
-  --glass-strong: rgba(10, 16, 28, 0.84);
-  --glass-border: rgba(150, 178, 230, 0.16);
-  --glass-hi: rgba(255, 255, 255, 0.06);
-  --blur: 18px;
-  --border: rgba(146, 170, 214, 0.14);
-  --border-strong: rgba(146, 170, 214, 0.28);
+  /* surfaces (pure black and near-black) */
+  --bg: #050505;
+  --bg-2: #0a0a0a;
+  /* Panels are a wash over the page, not another black plate on top of it.
+     Only overlays (menus, dialogs, the account drawer) are solid. */
+  --surface: rgba(255, 255, 255, 0.025);
+  --surface-solid: #0a0a0a;
+  --raised: rgba(255, 255, 255, 0.04);
+  --raised-solid: #161616;
+  --raised-2: rgba(255, 255, 255, 0.075);
+  --glass: rgba(255, 255, 255, 0.025);
+  --glass-strong: rgba(6, 6, 6, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-hi: rgba(255, 255, 255, 0.05);
+  --blur: 16px;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.22);
 
-  /* text */
-  --text: #f2f5ff;
-  --text-soft: #c7d0e4;
-  --muted: #929db2;
+  /* text: white for what matters, grays for what supports it */
+  --text: #f5f5f5;
+  --text-soft: #c4c4c4;
+  --muted: #8a8a8a;
 
-  /* accents */
-  --accent: #368bff;
-  --accent-strong: #1f6fe8;
-  --accent-bright: #7bb4ff;
-  --accent-2: #42c8f5;
-  --violet: #8874ff;
-  --accent-rgb: 54 139 255;
+  /* the one brand colour: maple orange. Used for selection, primary actions,
+     progress and focus - never as a background wash. */
+  --brand: #e25303;
+  --accent: #e25303;
+  --accent-strong: #c94803;
+  --accent-bright: #ff8a4c;
+  --accent-2: #f08a4b;
+  --violet: #8f8f8f;
+  --accent-rgb: 226 83 3;
   --accent-soft: rgb(var(--accent-rgb) / 0.16);
   --on-accent: #ffffff;
-  --good: #3ddc97;
-  --warn: #f5b942;
-  --bad: #f2706d;
+  /* status only, never decoration */
+  --good: #4fbf8b;
+  --warn: #d3a24c;
+  --bad: #e06a6a;
 
   /* shape and depth */
   --radius: 12px;
   --radius-sm: 9px;
-  --radius-lg: 18px;
-  --shadow: 0 10px 30px rgba(2, 6, 16, 0.35);
-  --shadow-lg: 0 24px 70px rgba(2, 6, 16, 0.5);
-  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.45);
-  --tooltip: #04070f;
+  --radius-lg: 16px;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.46);
+  --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.62);
+  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.32);
+  --tooltip: #0b0b0b;
   --tooltip-text: #ffffff;
-  --scrim: rgba(3, 6, 14, 0.7);
+  --scrim: rgba(0, 0, 0, 0.74);
 
   /* type */
   --font: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-display: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-display: Inter, "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
 
   /* motion */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --fast: 140ms;
+  --fast: 130ms;
   --med: 220ms;
 
-  /* the picture behind the window */
-  --scene-veil: linear-gradient(180deg, rgba(8, 13, 24, 0.62) 0%, rgba(8, 13, 24, 0.42) 38%, rgba(8, 13, 24, 0.82) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(4, 8, 18, 0.7) 100%);
-  --scene-filter: saturate(1.05);
+  /* the picture behind the window: held back to near-monochrome so the mark
+     and the white type stay the loudest things on screen */
+  --scene-veil: linear-gradient(180deg, rgba(4, 4, 4, 0.6) 0%, rgba(4, 4, 4, 0.34) 42%, rgba(3, 3, 3, 0.92) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 36%, rgba(0, 0, 0, 0.8) 100%);
+  --scene-filter: grayscale(0.72) contrast(1.04) brightness(0.92);
 
   /* names the older stylesheet still uses */
-  --hero-scrim: linear-gradient(90deg, rgba(8, 13, 24, 0.85), rgba(8, 13, 24, 0.3));
+  --hero-scrim: linear-gradient(90deg, rgba(4, 4, 4, 0.86), rgba(4, 4, 4, 0.3));
   --dock-bg: var(--glass-strong);
   --dock-border: var(--glass-border);
-  --sky-top: #060a18;
-  --sky-mid: #0d1c47;
-  --sky-bottom: #1a3f88;
-  --sky-glow: #6aa5ff;
-  --sky-cloud: #b9deff;
+  --sky-top: #020202;
+  --sky-mid: #1c1c1c;
+  --sky-bottom: #333333;
+  --sky-glow: #e8e8e8;
+  --sky-cloud: #dcdcdc;
   --sky-cloud-far: 0.07;
   --sky-cloud-near: 0.13;
-  --sky-hills: #080c18;
+  --sky-hills: #060606;
   --sky-stars: 0.55;
-  --sky-sun: #dcebff;
+  --sky-sun: #ffffff;
 }
 
+/* Light appearance: the same two colours the other way round. White and pale
+   gray surfaces, near-black type, and a black primary action. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #e8eef9;
-  --bg-2: #f3f6fc;
-  --surface: rgba(255, 255, 255, 0.72);
+  --bg: #f1f1f1;
+  --bg-2: #fafafa;
+  --surface: rgba(255, 255, 255, 0.74);
   --surface-solid: #ffffff;
-  --raised: rgba(255, 255, 255, 0.82);
-  --raised-solid: #f4f7fd;
-  --raised-2: rgba(232, 238, 250, 0.9);
-  --glass: rgba(255, 255, 255, 0.62);
-  --glass-strong: rgba(255, 255, 255, 0.9);
-  --glass-border: rgba(40, 70, 130, 0.16);
-  --glass-hi: rgba(255, 255, 255, 0.8);
-  --border: rgba(40, 70, 130, 0.14);
-  --border-strong: rgba(40, 70, 130, 0.3);
-  --text: #0e1626;
-  --text-soft: #2a3550;
-  --muted: #5a6780;
-  --accent: #2470f0;
-  --accent-strong: #1558d4;
-  --accent-bright: #1b5ae0;
-  --accent-2: #0b9fd0;
-  --violet: #6a56e6;
-  --accent-rgb: 36 112 240;
-  --good: #12935f;
-  --warn: #b7791f;
-  --bad: #d64545;
-  --shadow: 0 10px 30px rgba(30, 50, 90, 0.14);
-  --shadow-lg: 0 24px 60px rgba(30, 50, 90, 0.22);
-  --tooltip: #0e1626;
-  --scrim: rgba(14, 22, 38, 0.42);
-  --scene-veil: linear-gradient(180deg, rgba(240, 245, 255, 0.55) 0%, rgba(240, 245, 255, 0.4) 40%, rgba(236, 242, 253, 0.86) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(210, 222, 245, 0.7) 100%);
-  --scene-filter: saturate(0.95) brightness(1.05);
-  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
-  --sky-top: #7fb4f5;
-  --sky-mid: #b5d7fb;
-  --sky-bottom: #e3f0ff;
+  --raised: rgba(255, 255, 255, 0.84);
+  --raised-solid: #f4f4f4;
+  --raised-2: rgba(228, 228, 228, 0.92);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(12, 12, 12, 0.14);
+  --glass-hi: rgba(255, 255, 255, 0.85);
+  --border: rgba(12, 12, 12, 0.12);
+  --border-strong: rgba(12, 12, 12, 0.28);
+  --text: #101010;
+  --text-soft: #2e2e2e;
+  --muted: #606060;
+  --brand: #c94803;
+  --accent: #c94803;
+  --accent-strong: #a83a02;
+  --accent-bright: #e25303;
+  --accent-2: #e25303;
+  --violet: #6a6a6a;
+  --accent-rgb: 201 72 3;
+  --accent-soft: rgb(var(--accent-rgb) / 0.12);
+  --on-accent: #ffffff;
+  --good: #10855a;
+  --warn: #94621b;
+  --bad: #bf3b3b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.18);
+  --tooltip: #101010;
+  --tooltip-text: #ffffff;
+  --scrim: rgba(10, 10, 10, 0.42);
+  --scene-veil: linear-gradient(180deg, rgba(246, 246, 246, 0.58) 0%, rgba(246, 246, 246, 0.4) 40%, rgba(242, 242, 242, 0.88) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(214, 214, 214, 0.72));
+  --scene-filter: grayscale(0.72) contrast(1.02) brightness(1.06);
+  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.2));
+  --sky-top: #c9c9c9;
+  --sky-mid: #e2e2e2;
+  --sky-bottom: #f6f6f6;
   --sky-glow: #ffffff;
   --sky-cloud: #ffffff;
   --sky-cloud-far: 0.55;
   --sky-cloud-near: 0.9;
-  --sky-hills: #8fb3e3;
+  --sky-hills: #a3a3a3;
   --sky-stars: 0;
   --sky-sun: #ffffff;
+}
+
+/* Offline mode: a lighter graphite-and-paper take on the monochrome system.
+   It stays clearly its own mode (desaturated, squared, hairline borders) but
+   keeps readable surfaces and text: no pure-black overlay across the window,
+   and no full-strength veil over the artwork. It applies over both appearances. */
+:root[data-play-mode="offline"] {
+  color-scheme: dark;
+  --bg: #14161a;
+  --bg-2: #191c21;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-solid: #1b1e24;
+  --raised: rgba(255, 255, 255, 0.08);
+  --raised-solid: #23272e;
+  --raised-2: rgba(255, 255, 255, 0.12);
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-strong: rgba(24, 27, 32, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-hi: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.34);
+  --text: #f3f5f8;
+  --text-soft: #d3d7dd;
+  --muted: #a2a9b3;
+  --accent: #ffffff;
+  --accent-strong: #e6e8eb;
+  --accent-2: #c2c7ce;
+  --accent-rgb: 255 255 255;
+  --accent-soft: rgb(255 255 255 / 0.12);
+  --on-accent: #111317;
+  --radius: 6px;
+  --radius-sm: 5px;
+  --radius-lg: 8px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.55);
+  --scene-veil: linear-gradient(180deg, rgba(20, 22, 26, 0.34) 0%, rgba(20, 22, 26, 0.6) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(12, 14, 17, 0.55) 100%);
+  --scene-filter: grayscale(1) contrast(1.02) brightness(1);
+  --hero-scrim: linear-gradient(90deg, rgba(20, 22, 26, 0.86), rgba(20, 22, 26, 0.5));
+  --dock-bg: rgba(24, 27, 32, 0.94);
+  --dock-border: rgba(255, 255, 255, 0.18);
+  --tooltip: #f3f5f8;
+  --tooltip-text: #14161a;
+  --scrim: rgba(10, 12, 15, 0.7);
+  --sky-filter: grayscale(1);
+}
+
+/* Offline in the light appearance is paper and ink: white surfaces, black
+   hairlines, no colour. */
+:root[data-theme="light"][data-play-mode="offline"] {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --bg-2: #fbfbfc;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-solid: #ffffff;
+  --raised: rgba(250, 250, 251, 0.95);
+  --raised-solid: #ffffff;
+  --raised-2: #eceef1;
+  --glass: rgba(255, 255, 255, 0.86);
+  --glass-strong: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(16, 18, 22, 0.2);
+  --border: rgba(16, 18, 22, 0.18);
+  --border-strong: rgba(16, 18, 22, 0.4);
+  --text: #101318;
+  --text-soft: #2b3038;
+  --muted: #5c636d;
+  --accent: #101318;
+  --accent-strong: #2a2f37;
+  --accent-2: #5c636d;
+  --accent-rgb: 16 19 24;
+  --accent-soft: rgb(16 19 24 / 0.1);
+  --on-accent: #ffffff;
+  --scene-veil: linear-gradient(180deg, rgba(250, 250, 251, 0.7) 0%, rgba(244, 245, 247, 0.86) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(220, 222, 226, 0.6));
+  --scene-filter: grayscale(1) contrast(1) brightness(1.08);
+  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.55));
+  --dock-bg: rgba(255, 255, 255, 0.96);
+  --dock-border: rgba(16, 18, 22, 0.18);
+  --tooltip: #101318;
+  --tooltip-text: #ffffff;
+  --scrim: rgba(20, 22, 26, 0.45);
+}
+
+/* Mode changes are a calm fade rather than a flash between palettes. */
+:root {
+  transition: background-color var(--med) var(--ease), color var(--med) var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
 }

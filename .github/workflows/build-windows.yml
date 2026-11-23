@@ -2,7 +2,9 @@ name: Build Cirrus Client (Windows)
 
 on:
   push:
-    branches: [main]
+    # main publishes the launcher; feat/* branches build the same exe so it can be
+    # downloaded from the run without merging or opening a pull request first.
+    branches: [main, "feat/**"]
   pull_request:
   workflow_dispatch:
 

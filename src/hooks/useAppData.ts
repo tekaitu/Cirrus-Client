@@ -1,5 +1,6 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
-import type { AppInfo, Profile, SettingsState, SystemInfo } from "../api/types";
+import type { AppInfo, InstanceView, SettingsState, SystemInfo } from "../api/types";
 import { analyzeJava, toJavaView, type JavaView } from "../core/java";
 import { useAuth, type Account } from "./useAuth";
 import { useGame, type Game } from "./useGame";
@@ -16,8 +17,9 @@ export interface AppData {
   account: Account;
   game: Game;
   selection: Selection;
-  profiles: ResourceState<Profile[]>;
-  reloadProfiles: () => void;
+  /** Every installed game with its own settings; what the Library lists. */
+  instances: ResourceState<InstanceView[]>;
+  reloadInstances: () => void;
   reloadAll: () => void;
   reloadSettings: () => void;
   reloadJava: () => void;
@@ -46,17 +48,34 @@ export function useAppData(): AppData {
 
   const account = useAuth(s.status !== "loading");
 
-  const profiles = useResource<Profile[]>(() => api.listProfiles());
-  const selection = useSelection(profiles.state.status === "ready" ? profiles.state.data : null);
-  const game = useGame(selection.version, selection.loader, selection.profile?.id ?? null);
+  // The instance list is the source of truth for what is installed. It is fetched
+  // again after an install finishes, so a new game appears without a restart.
+  const [instancesTick, setInstancesTick] = useState(0);
+  const instances = useResource<InstanceView[]>(() => api.listInstanceViews(), String(instancesTick));
+  const selection = useSelection(instances.state.status === "ready" ? instances.state.data : null);
+  const game = useGame(selection.version, selection.loader, selection.instance?.id ?? null);
+
+  const reloadInstances = useCallback(() => setInstancesTick((n) => n + 1), []);
+  const reloadRef = useRef(reloadInstances);
+  reloadRef.current = reloadInstances;
+
+  // One extra load when a download settles, so the Library shows the new instance.
+  const [lastPhase, setLastPhase] = useState(game.installer.phase);
+  useEffect(() => {
+    if (game.installer.phase !== lastPhase) {
+      setLastPhase(game.installer.phase);
+      if (lastPhase === "running" || game.installer.phase === "idle") reloadRef.current();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.installer.phase]);
 
   return {
     installer,
     account,
     game,
     selection,
-    profiles: profiles.state,
-    reloadProfiles: profiles.reload,
+    instances: instances.state,
+    reloadInstances,
     app: app.state,
     system: system.state,
     settings: settings.state,
@@ -66,6 +85,7 @@ export function useAppData(): AppData {
       system.reload();
       settings.reload();
       java.reload();
+      reloadInstances();
     },
     reloadSettings: settings.reload,
     reloadJava: java.reload,

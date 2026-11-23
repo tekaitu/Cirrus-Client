@@ -1,138 +1,335 @@
+import { useEffect, useState } from "react";
 import { PlayPanel } from "../components/PlayPanel";
 import { Button } from "../components/Button";
+import { InstanceCard } from "../components/InstanceCard";
 import { SkinHead } from "../components/SkinHead";
 import { usePlayerAppearance } from "../hooks/useAppearance";
 import { formatAgo, readRecent } from "../core/recent";
-import { VersionCard } from "../components/VersionCard";
-import { loaderLabel, loaderOf, useInstances } from "../hooks/useInstances";
 import type { PageId } from "../components/Navigation";
-import { GridIcon } from "../components/Icons";
+import { LibraryIcon, NewsIcon } from "../components/Icons";
+import { LogoMark } from "../components/Logo";
 import type { AppData } from "../hooks/useAppData";
+import { usePlayAs } from "../hooks/usePlayAs";
+import { recentlyPlayed } from "../core/instances";
+import { Badge } from "../components/ui";
+import type { InstanceView } from "../api/types";
 
 /**
- * Who is playing and what state the game is in. The head comes from the real
- * skin cache; the model and cape only appear when the account's appearance was
- * actually fetched, so nothing here is invented.
+ * Who is playing. The head comes from the real skin cache; the model and cape
+ * only appear when the account's appearance was actually fetched. An offline
+ * name is shown as exactly that, with no borrowed skin.
  */
-function Identity({
-  data,
-  onNavigate,
-  onOpenAccount,
-}: {
-  data: AppData;
-  onNavigate: (page: PageId) => void;
-  onOpenAccount: () => void;
-}) {
+function Identity({ data, onOpenAccount }: { data: AppData; onOpenAccount: () => void }) {
   const account = data.account.state;
-  const player = account.phase === "signedIn" ? account.profile : null;
+  const playAs = usePlayAs();
+  const offlineMode = playAs.mode === "offline";
+  const offline = offlineMode ? playAs.name.trim() : "";
+  const player = offlineMode ? null : account.phase === "signedIn" ? account.profile : null;
   const appearance = usePlayerAppearance(player?.id ?? null);
-  const install =
-    data.game.installer.phase === "running"
-      ? "Downloading game files"
-      : data.game.status === null
-        ? "Checking game files…"
-        : data.game.status.installed
-          ? "Game files installed"
-          : "Not installed yet";
   const facts = player
-    ? [
-        "Microsoft connected",
-        player.ownsMinecraft ? "Java Edition owned" : null,
-        appearance.appearance ? `${appearance.appearance.model === "slim" ? "Slim" : "Classic"} model` : null,
-        appearance.appearance?.cape ? "Cape equipped" : null,
-        install,
-      ].filter(Boolean).join(" · ")
-    : `Not signed in · offline play is available · ${install}`;
+    ? ["Microsoft connected", appearance.appearance ? `${appearance.appearance.model === "slim" ? "Slim" : "Classic"} model` : null]
+        .filter(Boolean)
+        .join(" · ")
+    : offlineMode
+      ? "Unverified offline identity · singleplayer and offline servers"
+      : "Not signed in";
 
   return (
-    <div className="home-identity" aria-label="Active account and game status">
-      <SkinHead uuid={player?.id ?? null} name={player?.name ?? null} size={38} />
+    <div className="home-identity" aria-label="Active account">
+      <SkinHead uuid={player?.id ?? null} name={player?.name ?? offline ?? null} size={34} />
       <div className="home-id-text">
         <span className="home-id-name">
-          {player ? player.name : "Not signed in"}
+          {player ? player.name : offline || (offlineMode ? "No offline name" : "Not signed in")}
           {player && <small>Minecraft: Java Edition</small>}
+          {!player && offline && <small>Offline</small>}
         </span>
         <span className="home-id-meta">{facts}</span>
       </div>
-      <div className="home-id-actions">
-        {player ? (
-          <Button size="sm" variant="secondary" onClick={() => onNavigate("accounts")}>
-            Manage account
-          </Button>
-        ) : (
-          <Button size="sm" variant="primary" onClick={onOpenAccount}>
+      {!player && !offlineMode && (
+        <div className="home-id-actions">
+          <Button size="sm" variant="secondary" onClick={onOpenAccount}>
             Sign in
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/** The big title, the Play button and nothing else: what you are about to play and a way to start it. */
+/**
+ * The branded hero: the headline, what it will launch, then the one Play button
+ * in the middle of the screen. Every other action is a quiet link underneath it.
+ */
 function Hero({ data, onNavigate, onOpenAccount }: { data: AppData; onNavigate: (page: PageId) => void; onOpenAccount: () => void }) {
   const { selection } = data;
-  const recent = readRecent();
+  const playAs = usePlayAs();
+  const instance = selection.instance;
+  const running = data.game.run.phase === "running" || data.game.run.phase === "starting";
+  // When nobody is signed in the Play button already offers sign-in; a second
+  // account chip saying the same thing would just repeat it.
+  const showIdentity = playAs.mode === "offline" || data.account.state.phase === "signedIn";
+  const loader = instance ? instance.loader : selection.loader;
+  const versionTitle = instance
+    ? `${instance.minecraft} ${loader === "fabric" ? "Fabric" : "Vanilla"}`
+    : selection.version
+      ? `${selection.version} ${selection.loader === "fabric" ? "Fabric" : "Vanilla"}`
+      : "Minecraft: Java Edition";
+
   return (
     <section className="home-hero" aria-labelledby="hero-title">
-      <Identity data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
+      <div className="home-lockup" aria-hidden="true">
+        <LogoMark size={46} />
+        <span className="home-lockup-name">
+          Maple <em>Client</em>
+        </span>
+      </div>
       <h1 id="hero-title" className="home-title">
-        {selection.version} {loaderLabel(selection.loader)}
+        Your world, your way.
       </h1>
-      <p className="home-sub">{selection.profile ? selection.profile.name : "Minecraft Java Edition"}</p>
-      <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
-      {recent && (
-        <p className="home-last">
-          Last played {recent.version} {loaderLabel(recent.loader)} · {formatAgo(recent.at)}
-        </p>
+      <p className="home-version" aria-label="Selected version">
+        {versionTitle}
+        {instance ? <span className="home-version-name">{instance.name}</span> : null}
+      </p>
+      <p className="home-sub">
+        {instance ? (
+          <>
+            Minecraft {instance.minecraft}
+            {instance.loader === "fabric" ? ` · Fabric ${instance.loaderVersion ?? ""}`.trimEnd() : " · Vanilla"}
+            {instance.lastPlayed > 0 ? ` · ${lastAgo(instance.lastPlayed)}` : ""}
+          </>
+        ) : selection.version ? (
+          <>
+            Minecraft {selection.version} · {selection.loader === "fabric" ? "Fabric" : "Vanilla"} · no instance selected
+          </>
+        ) : (
+          "Pick a version and start your first world."
+        )}
+        {running && <Badge tone="good">Minecraft is running</Badge>}
+      </p>
+
+      <div className="home-hero-play">
+        <PlayPanel data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} variant="quick" />
+      </div>
+
+      <div className="home-hero-links">
+        <button type="button" className="link-inline" onClick={() => onNavigate("versions")}>
+          {instance ? "Install another version" : "Choose a version"}
+        </button>
+        <span className="dot-sep" aria-hidden="true">
+          ·
+        </span>
+        <button type="button" className="link-inline" onClick={() => onNavigate("library")}>
+          {instance ? "Manage instances" : "Open the Library"}
+        </button>
+      </div>
+
+      {showIdentity && <Identity data={data} onOpenAccount={onOpenAccount} />}
+    </section>
+  );
+}
+
+const lastAgo = (at: number) => formatAgo(at);
+
+/** The selected instance and the ones played recently — the quick way back in. */
+function QuickJoin({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
+  const instance = data.selection.instance;
+  const recent = recentlyPlayed(data.instances.status === "ready" ? data.instances.data : [], readRecent());
+  return (
+    <section className="quick-join" aria-label="Quick join">
+      <header className="quick-head">
+        <div>
+          <p className="eyebrow">Quick join</p>
+          <h2 id="quick-title">{instance ? instance.name : "Your next world"}</h2>
+          <p className="muted small">
+            {instance
+              ? `Minecraft ${instance.minecraft} · ${instance.loader === "fabric" ? "Fabric" : "Vanilla"} · ${
+                  instance.modCount > 0 ? `${instance.modCount} ${instance.modCount === 1 ? "mod" : "mods"}` : "no mods"
+                }`
+              : "Everything starts from here. Pick an instance in the Library or install a version."}
+          </p>
+        </div>
+        <button type="button" className="link-inline" onClick={() => onNavigate(instance ? "library" : "versions")}>
+          {instance ? "Change" : "Get started"}
+        </button>
+      </header>
+
+      {recent.length > 0 ? (
+        <div className="quick-recents">
+          <span className="quick-recents-label">Jump back in</span>
+          <div className="quick-recents-row">
+            {recent.slice(0, 4).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`quick-recent ${instance?.id === item.id ? "is-on" : ""}`}
+                aria-pressed={instance?.id === item.id}
+                onClick={() => data.selection.selectInstance(item)}
+              >
+                <strong>{item.name}</strong>
+                <small>
+                  {item.minecraft} · {item.loader === "fabric" ? "Fabric" : "Vanilla"}
+                </small>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="quick-empty">
+          <p className="muted small">Played instances show up here, one click away.</p>
+          <Button variant="secondary" size="sm" onClick={() => onNavigate("versions")}>
+            Install a version
+          </Button>
+        </div>
       )}
     </section>
   );
 }
 
-/** Installed versions as cards along the bottom. Picking one makes it the version to play. */
-function VersionRow({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
-  const { selection } = data;
-  const list = useInstances(data);
-  const installed = list.state.status === "ready" ? list.state.data : [];
-  const hasCurrent = installed.some((i) => i.minecraft === selection.version && loaderOf(i) === selection.loader);
+/** Instances played recently, newest first, as the older image cards. */
+function RecentlyPlayed({
+  data,
+  onNavigate,
+}: {
+  data: AppData;
+  onNavigate: (page: PageId) => void;
+}) {
+  const playAs = usePlayAs();
+  const instances = data.instances.status === "ready" ? data.instances.data : [];
+  const recent = recentlyPlayed(instances, readRecent());
+  const { selection, game } = data;
+  const java = data.java.status === "ready" ? data.java.data.selected : null;
+  const [pending, setPending] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const running = game.run.phase === "running" || game.run.phase === "starting";
+
+  // The card selects first; the launch runs once the selected instance's status is known.
+  useEffect(() => {
+    if (!pending) return;
+    if (selection.instance?.id !== pending) return;
+    if (!game.status) return;
+    setPending(null);
+    if (!java || !game.status.installed) {
+      setActionError(!java ? "Java is needed before Minecraft can start. Set it up in Settings." : "The game files are not ready yet.");
+      return;
+    }
+    game.play(java.path, playAs.mode, playAs.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, selection.instance?.id, game.status, java, playAs.mode, playAs.name]);
+
+  const launch = (instance: InstanceView) => {
+    setActionError(null);
+    if (running) {
+      setActionError("Minecraft is already starting or running.");
+      return;
+    }
+    selection.selectInstance(instance);
+    setPending(instance.id);
+  };
+
+  const openMods = (instance: InstanceView) => {
+    selection.selectInstance(instance);
+    onNavigate("mods");
+  };
+
   return (
-    <section className="home-versions" aria-label="Your versions">
-      <ul className="vrow">
-        {installed.map((i) => {
-          const l = loaderOf(i);
-          return (
-            <li key={`${i.minecraft}-${l}`}>
-              <VersionCard
-                version={i.minecraft}
-                loader={loaderLabel(l)}
-                selected={selection.version === i.minecraft && selection.loader === l}
-                onSelect={() => {
-                  selection.setVersion(i.minecraft);
-                  selection.setLoader(l);
-                }}
-              />
-            </li>
-          );
-        })}
-        {!hasCurrent && (
-          <li>
-            <VersionCard
-              version={selection.version}
-              loader={loaderLabel(selection.loader)}
-              line="Not installed yet"
-              selected
-              onSelect={() => undefined}
-              selectLabel={`${selection.version} ${loaderLabel(selection.loader)} (selected, not installed)`}
+    <section id="recent" className="home-section recently" aria-labelledby="recent-title">
+      <header className="home-section-head">
+        <div>
+          <h2 id="recent-title">Recently played</h2>
+          <p className="muted small">Jump back into the instance you played last.</p>
+        </div>
+        <button type="button" className="link-inline" onClick={() => onNavigate("library")}>
+          View library
+        </button>
+      </header>
+
+      {actionError && <p className="recent-error small">{actionError}</p>}
+
+      {recent.length === 0 ? (
+        <div className="recent-empty">
+          <LibraryIcon />
+          <div>
+            <strong>Nothing played yet</strong>
+            <p className="muted small">
+              After your first launch the instance you used appears here, so getting back into it is one click.
+            </p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => onNavigate("versions")}>
+            Install a version
+          </Button>
+        </div>
+      ) : (
+        <div className="instance-grid">
+          {recent.slice(0, 4).map((instance) => (
+            <InstanceCard
+              key={instance.id}
+              instance={instance}
+              selected={selection.instance?.id === instance.id}
+              onSelect={() => selection.selectInstance(instance)}
+              onLaunch={() => launch(instance)}
+              onMods={() => openMods(instance)}
+              launchDisabled={running}
+              launchTitle={running ? "Minecraft is already running." : undefined}
             />
-          </li>
-        )}
-        <li className="vrow-more">
-          <button type="button" className="vc-more" aria-label="All versions" data-tip="All versions" onClick={() => onNavigate("versions")}>
-            <GridIcon />
-          </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Launcher news, written by the project itself — no invented third-party feed. */
+function News({ onNavigate }: { onNavigate: (page: PageId) => void }) {
+  return (
+    <section id="news" className="home-section news" aria-labelledby="news-title">
+      <header className="home-section-head">
+        <div>
+          <h2 id="news-title">
+            <NewsIcon /> News
+          </h2>
+          <p className="muted small">What changed in this build.</p>
+        </div>
+      </header>
+      <ul className="news-list">
+        <li className="news-item">
+          <span className="news-tag">New name</span>
+          <div>
+            <strong>Cirrus Client is now Maple Client</strong>
+            <p className="muted small">
+              The launcher has a new name, a maple-leaf mark and one maple-orange accent. Accounts, instances, mods and
+              settings carry over unchanged.
+            </p>
+          </div>
+        </li>
+        <li className="news-item">
+          <span className="news-tag">Instances</span>
+          <div>
+            <strong>Bigger cards, clearer launches</strong>
+            <p className="muted small">
+              Instance cards show the artwork, loader, mod count and a full-size Launch button, and Create Instance is
+              now its own two-step flow.
+            </p>
+          </div>
+        </li>
+        <li className="news-item">
+          <span className="news-tag">Themes</span>
+          <div>
+            <strong>Classic and Colorful, both in orange</strong>
+            <p className="muted small">
+              Pick a look on first launch. Classic stays neutral, Colorful brings the Minecraft key art forward, and
+              Settings switches between them at any time.
+            </p>
+          </div>
         </li>
       </ul>
+      <div className="news-links">
+        <button type="button" className="link-inline" onClick={() => onNavigate("about")}>
+          About Maple Client
+        </button>
+        <button type="button" className="link-inline" onClick={() => onNavigate("settings")}>
+          Check for launcher updates
+        </button>
+      </div>
     </section>
   );
 }
@@ -148,9 +345,11 @@ export function HomePage({
 }) {
   return (
     <div className="home">
-      <div className="home-screen">
-        <Hero data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
-        <VersionRow data={data} onNavigate={onNavigate} />
+      <Hero data={data} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
+      <RecentlyPlayed data={data} onNavigate={onNavigate} />
+      <div className="home-lower">
+        <QuickJoin data={data} onNavigate={onNavigate} />
+        <News onNavigate={onNavigate} />
       </div>
     </div>
   );

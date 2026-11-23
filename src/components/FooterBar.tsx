@@ -11,7 +11,7 @@ export function FooterBar({ data, onNavigate }: { data: AppData; onNavigate: (pa
   return (
     <footer className="footbar">
       <div className="foot-left">
-        <span className="pill">{version ? `Cirrus Client ${version}` : "Cirrus Client"}</span>
+        <span className="pill">{version ? `Maple Client ${version}` : "Maple Client"}</span>
         <button type="button" className="pill pill-button" onClick={() => onNavigate("about")}>
           About
         </button>
@@ -26,7 +26,7 @@ export function FooterBar({ data, onNavigate }: { data: AppData; onNavigate: (pa
         <button
           type="button"
           className="pill pill-button pill-community"
-          title="Join the Cirrus Client community on Discord"
+          title="Join the Maple Client community on Discord"
           onClick={() => void api.openCommunity().catch(() => {})}
         >
           <BrandIcon name="discord" />

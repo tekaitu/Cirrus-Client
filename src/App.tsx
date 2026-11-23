@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { AccountPanel } from "./components/AccountPanel";
+import { AccountDrawer } from "./components/AccountDrawer";
+import { LogoMark } from "./components/Logo";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { SignInDialog } from "./components/SignInDialog";
 import { GameDialog } from "./components/GameDialog";
 import { FooterBar } from "./components/FooterBar";
 import { AppBackground, type BackdropId } from "./components/Scene";
-import { CloseIcon } from "./components/Icons";
-import { TopNav, type PageId } from "./components/Navigation";
+import { Header, Sidebar, type PageId } from "./components/Navigation";
+import { ThemeChooser } from "./components/ThemeChooser";
+import { hasThemeChoice } from "./core/theme";
 import { LICENSE_VERSION } from "./content/license";
 import { api } from "./api/client";
 import { useAppData } from "./hooks/useAppData";
@@ -18,6 +20,8 @@ import { ModsPage } from "./pages/Mods";
 import { SkinsPage } from "./pages/Skins";
 import { ServersPage } from "./pages/Servers";
 import { VersionsPage } from "./pages/Versions";
+import { LibraryPage } from "./pages/Library";
+import { UpdateNotice } from "./components/UpdateNotice";
 import { ModpacksPage } from "./pages/Modpacks";
 import { SettingsPage } from "./pages/Settings";
 import { pageForShortcut } from "./core/shortcuts";
@@ -27,11 +31,13 @@ import { notify } from "./core/notifications";
 import { Toasts } from "./components/Toasts";
 import { REQUIRED_JAVA_MAJOR } from "./core/java";
 import { writeRecent } from "./core/recent";
+import { usePlayAs } from "./hooks/usePlayAs";
 
 /** Which picture sits behind each page. */
 const BACKDROPS: Record<PageId, BackdropId> = {
   home: "home",
-  versions: "library",
+  versions: "browse",
+  library: "library",
   mods: "library",
   modpacks: "library",
   skins: "library",
@@ -45,8 +51,11 @@ const BACKDROPS: Record<PageId, BackdropId> = {
 
 export default function App() {
   const data = useAppData();
+  const playAs = usePlayAs();
   const [page, setPage] = useState<PageId>("home");
   const [section, setSection] = useState<string | undefined>(undefined);
+  // First launch asks for a look; once answered (or saved by an older build) it never asks again.
+  const [themeChosen, setThemeChosen] = useState(() => hasThemeChoice());
   const [accountOpen, setAccountOpen] = useState(false);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [accepted, setAccepted] = useState(() => {
@@ -70,20 +79,56 @@ export default function App() {
     document.documentElement.dataset.reduceMotion = reduceMotion ? "true" : "false";
   }, [reduceMotion]);
 
+  // The startup screen: the logo on black until settings are in, plus a short beat so it never flashes.
+  const booted = data.settings.status !== "loading";
+  const [booting, setBooting] = useState(true);
   useEffect(() => {
-    if (!accountOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAccountOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [accountOpen]);
+    if (!booted) return;
+    const timer = window.setTimeout(() => setBooting(false), 700);
+    return () => window.clearTimeout(timer);
+  }, [booted]);
 
   const navigate = (next: PageId, nextSection?: string) => {
     setPage(next);
     setSection(nextSection);
     setAccountOpen(false);
   };
-  // The Accounts page already shows the account, so the account button does not also open a menu there.
+
+  // Sidebar anchors (Home's news) scroll the content once the page is mounted.
+  useEffect(() => {
+    if (page !== "home" || section !== "news") return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("news")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [page, section]);
+  const openAccount = () => setAccountOpen(true);
+  // The Accounts page already shows the account, so the account button does not also open the panel there.
   const toggleAccount = () => (page === "accounts" ? undefined : setAccountOpen((v) => !v));
+
+  const accountState = data.account.state;
+  const microsoftName = accountState.phase === "signedIn" ? accountState.profile : null;
+  const offlineMode = playAs.mode === "offline";
+  const offlineName = offlineMode ? playAs.name.trim() : "";
+  // The header shows who the game will start as: the offline identity while that mode is on,
+  // even before a name is chosen, and never the Microsoft profile behind its back.
+  const identity = offlineMode
+    ? { name: offlineName || "Choose a name", id: null, offline: true }
+    : microsoftName
+      ? { name: microsoftName.name, id: microsoftName.id }
+      : null;
+
+  // The network mode is a property of the whole window: Offline gets its own ink-and-paper surface.
+  useEffect(() => {
+    document.documentElement.dataset.playMode = playAs.mode;
+  }, [playAs.mode]);
+
+  // Signing in means playing online from now on; choosing a name in the panel switches it back.
+  const accountPhase = data.account.state.phase;
+  useEffect(() => {
+    if (accountPhase === "signedIn") playAs.useMicrosoft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountPhase]);
 
   // Alt + 1..9 jumps between pages (listed under Settings > Keybinds).
   useEffect(() => {
@@ -100,7 +145,6 @@ export default function App() {
   }, []);
 
   // Sign-in results and an expired login get a notification of their own.
-  const accountPhase = data.account.state.phase;
   const prevAccount = useRef(accountPhase);
   useEffect(() => {
     const was = prevAccount.current;
@@ -145,7 +189,7 @@ export default function App() {
       writeRecent({
         version: data.selection.version,
         loader: data.selection.loader,
-        profile: data.selection.profile?.name ?? null,
+        profile: null,
         at: Date.now(),
       });
     }
@@ -186,23 +230,23 @@ export default function App() {
     <div className="layout">
       <AppBackground id={BACKDROPS[page]} />
       <div className="workspace">
-        <TopNav
-          page={page}
-          onNavigate={navigate}
+        <Sidebar page={page} section={section} onNavigate={navigate} />
+        <div className="workspace-col">
+        <Header
           onAccount={toggleAccount}
+          onOpenAccount={openAccount}
           accountOpen={accountOpen}
-          player={data.account.state.phase === "signedIn" ? data.account.state.profile : null}
+          player={identity}
         />
         <main className="content">
           <div key={page} className="page-enter">
-          {page === "home" && (
-            <HomePage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />
-          )}
-          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} onOpenAccount={() => navigate("accounts")} />}
+          {page === "home" && <HomePage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
+          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} />}
+          {page === "library" && <LibraryPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
           {page === "browse" && <ModsPage data={data} mode="browse" onNavigate={navigate} />}
           {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
-          {page === "skins" && <SkinsPage data={data} />}
+          {page === "skins" && <SkinsPage data={data} onNavigate={navigate} />}
           {page === "servers" && <ServersPage />}
           {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} />}
           {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} discord={{ enabled: discordOn, onToggle: toggleDiscord }} />}
@@ -210,21 +254,29 @@ export default function App() {
           {page === "diagnostics" && <DiagnosticsPage data={data} />}
           </div>
         </main>
+        <UpdateNotice />
         <FooterBar data={data} onNavigate={navigate} />
+        </div>
       </div>
       {!accepted && (
         <LicenseDialog mode="gate" onAccept={accept} onDecline={() => void api.quitApp().catch(() => {})} />
       )}
+      {accepted && !themeChosen && <ThemeChooser onChosen={() => setThemeChosen(true)} />}
       {accepted && <SignInDialog account={data.account} />}
-      {accepted && <GameDialog data={data} />}
+      {accepted && <GameDialog data={data} onNavigate={navigate} />}
       {accepted && licenseOpen && <LicenseDialog mode="view" onClose={() => setLicenseOpen(false)} />}
       <Toasts />
-      {accountOpen && (
-        <div className="popover" role="dialog" aria-label="Account">
-          <button type="button" className="popover-close" aria-label="Close account menu" onClick={() => setAccountOpen(false)}>
-            <CloseIcon />
-          </button>
-          <AccountPanel account={data.account} onManage={() => navigate("accounts")} />
+      <AccountDrawer
+        open={accountOpen}
+        account={data.account}
+        onClose={() => setAccountOpen(false)}
+        onManage={() => navigate("accounts")}
+      />
+      {booting && (
+        <div className="boot" role="status" aria-live="polite" aria-label="Loading Maple Client">
+          <LogoMark size={76} />
+          <span className="boot-spinner" aria-hidden="true" />
+          <p className="boot-text">Starting Maple Client…</p>
         </div>
       )}
     </div>

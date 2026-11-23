@@ -5,7 +5,8 @@ import { IDLE, stateFromResult, type InstallerState } from "../core/installer";
 
 export interface JavaInstaller {
   state: InstallerState;
-  start: () => void;
+  /** Installs a runtime of `major` (8, 17 or 21); 21 when left out. */
+  start: (major?: number) => void;
   cancel: () => void;
   dismiss: () => void;
 }
@@ -30,7 +31,7 @@ export function useJavaInstaller({ onSettings, onNoSettingsChange }: Options): J
     };
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback((major: number = 21) => {
     if (running.current) return;
     running.current = true;
     setState({ phase: "running", progress: null, cancelling: false });
@@ -42,7 +43,7 @@ export function useJavaInstaller({ onSettings, onNoSettingsChange }: Options): J
           if (!mounted.current) return;
           setState((prev) => (prev.phase === "running" ? { ...prev, progress } : prev));
         });
-        const result = await api.installJava();
+        const result = await api.installJava(major);
         if (result.status === "installed" || result.status === "alreadyInstalled") {
           if (result.settings) callbacks.current.onSettings(result.settings);
           else callbacks.current.onNoSettingsChange();

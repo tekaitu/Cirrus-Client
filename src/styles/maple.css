@@ -1,0 +1,290 @@
+/* ==========================================================================
+   Maple Client identity and the widgets this release adds.
+
+   Loaded after the layout and button layers, so these rules only describe new
+   things: the brand lockup, the two-step Create Instance dialog, header action
+   groups, the Discord status row, and the one animation in the navigation
+   (the notification bell when there is something unread).
+   ========================================================================== */
+
+/* ------------------------------------------------------------ brand */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+.wordmark-mark {
+  display: inline-flex;
+  color: var(--brand);
+}
+.wordmark-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.wordmark-text em {
+  margin-left: 0.4em;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+.cloud-mark {
+  display: inline-flex;
+  color: var(--brand);
+}
+.boot .logo-mark { color: var(--brand); }
+.about-hero .about-mark {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 24px;
+  background: rgb(var(--accent-rgb) / 0.12);
+  border: 1px solid rgb(var(--accent-rgb) / 0.24);
+}
+
+/* ------------------------------------------------------------ header actions */
+.page-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------ create instance */
+.create-instance {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 100%);
+  max-height: min(820px, calc(100vh - 48px));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(30px) saturate(140%);
+  animation: pop-center 0.24s var(--ease) both;
+}
+.create-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.create-head h2 { margin: 0; font-size: 1.28rem; letter-spacing: -0.015em; }
+.create-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px 20px;
+  overflow-y: auto;
+}
+.create-label { display: block; font-size: 0.9rem; font-weight: 700; }
+.create-search { display: flex; flex-direction: column; gap: 8px; }
+.create-search .search-box { width: 100%; }
+.create-search .search-box input { height: 44px; font-size: 0.92rem; }
+.create-search .search-box:focus-within { border-color: var(--brand); box-shadow: var(--focus); }
+.create-or {
+  margin: -2px 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.create-types { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.create-type {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.create-type:hover:not(.is-unavailable),
+.create-type:focus-visible:not(.is-unavailable) {
+  border-color: rgb(var(--accent-rgb) / 0.55);
+  background: var(--raised);
+  outline: none;
+}
+.create-type.is-unavailable { opacity: 0.6; cursor: not-allowed; }
+.create-type-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: rgb(var(--accent-rgb) / 0.13);
+  color: var(--brand);
+}
+.create-type-icon svg { width: 20px; height: 20px; }
+.create-type-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.create-type-text strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+.create-type-text .small { line-height: 1.4; }
+.create-why { color: var(--muted); opacity: 0.9; line-height: 1.45; margin-top: 2px; }
+
+/* The dialog's fields are stacked labels, not inline runs: the label, the
+   control and the note each take their own line. */
+.create-instance .field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+}
+.create-instance .field > span {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--text-soft);
+}
+.create-instance .field > small { line-height: 1.45; }
+.create-instance .seg {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.22);
+}
+.create-instance .seg > button {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.create-instance .seg > button.seg-on {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 0.5);
+  color: var(--text);
+}
+
+.create-image-row { display: flex; align-items: center; gap: 16px; }
+.create-image {
+  position: relative;
+  flex: none;
+  width: 132px;
+  height: 132px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--raised-solid);
+}
+.create-image img,
+.create-image .create-image-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.12);
+}
+.create-image.has-photo img { transform: none; }
+.create-image-actions { display: flex; flex-direction: column; gap: 6px; }
+.create-icons { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.create-icon-name { margin-left: 4px; }
+.create-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; line-height: 1.45; }
+.create-note svg { flex: none; width: 15px; height: 15px; margin-top: 1px; color: var(--brand); }
+.create-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------ discord */
+.discord-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.discord-status > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.discord-status .dot { width: 10px; height: 10px; background: var(--muted); }
+.discord-status .dot-on { background: var(--good); }
+
+/* ------------------------------------------------------------ the one animation
+   The notification bell is the only icon that moves, and only while there is
+   something unread. Navigation icons never animate, hover or not. */
+@keyframes maple-bell-ring {
+  0%, 100% { transform: rotate(0deg); }
+  18% { transform: rotate(-12deg); }
+  36% { transform: rotate(9deg); }
+  54% { transform: rotate(-6deg); }
+  72% { transform: rotate(3deg); }
+}
+#root .bell .hdr-tool:has(.bell-dot) svg {
+  transform-origin: 50% 18%;
+  animation: maple-bell-ring 1.6s var(--ease) 1;
+}
+#root .side-item,
+#root .side-item svg,
+#root .side-icon {
+  animation: none;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #root .bell .hdr-tool:has(.bell-dot) svg { animation: none; }
+}
+:root[data-reduce-motion="true"] #root .bell .hdr-tool:has(.bell-dot) svg { animation: none; }
+
+/* ------------------------------------------------------------ danger
+   Destructive actions are red in every theme, with a white glyph so the trash
+   icon stays readable on the red surface. */
+#root .ui-btn-danger,
+#root .btn-danger {
+  background: #c0322f;
+  color: #ffffff;
+  border-color: transparent;
+}
+#root .ui-btn-danger svg,
+#root .btn-danger svg { color: #ffffff; opacity: 1; }
+#root .ui-btn-danger:hover:not(:disabled),
+#root .btn-danger:hover:not(:disabled) { background: #d13c39; }
+#root .ui-btn-danger:active:not(:disabled),
+#root .btn-danger:active:not(:disabled) { background: #a82825; }
+#root .ui-btn-danger:focus-visible,
+#root .btn-danger:focus-visible { outline-color: #ff8f8f; }
+
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 720px) {
+  .create-image-row { flex-direction: column; align-items: flex-start; }
+  .create-image { width: 100%; height: 150px; }
+  .create-foot { justify-content: stretch; }
+  .create-foot .ui-btn { flex: 1 1 auto; }
+  .page-head-actions { justify-content: flex-start; }
+}

@@ -43,7 +43,7 @@ export function SignInDialog({ account }: { account: Account }) {
             </div>
             <p className="muted small">
               Open the Microsoft page on any device and enter the code above. It works for about{" "}
-              {minutesLeft(state.code.expiresIn)} minutes. Cirrus Client never sees your password.
+              {minutesLeft(state.code.expiresIn)} minutes. Maple Client never sees your password.
             </p>
             {isMicrosoftLink(state.code.verificationUri) && (
               <button type="button" className="btn btn-block" onClick={() => account.openLink(state.code.verificationUri)}>

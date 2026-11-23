@@ -451,12 +451,90 @@ export function BellIcon() {
   );
 }
 
+export function ChevronDownIcon() {
+  return (
+    <svg {...common}>
+      <path d="m6 9.5 6 6 6-6" />
+    </svg>
+  );
+}
+
 export function ServerIcon() {
   return (
     <svg {...common}>
       <rect x="3.5" y="4" width="17" height="6.5" rx="1.8" />
       <rect x="3.5" y="13.5" width="17" height="6.5" rx="1.8" />
       <path d="M7.5 7.25h.01M7.5 16.75h.01" />
+    </svg>
+  );
+}
+
+/** A small grass block, used for Vanilla installs. */
+export function GrassBlockIcon() {
+  return (
+    <svg {...common} className="ico ico-grass">
+      <path d="M12 3.2 20 7.6v8.8L12 20.8 4 16.4V7.6l8-4.4Z" />
+      <path d="M4 8.2 12 12l8-3.8M12 12v8.8" />
+      <path d="M7.2 6.6 15 10.2" />
+    </svg>
+  );
+}
+
+/** A woven loader mark, so Fabric never wears Minecraft's block. */
+export function FabricIcon() {
+  return (
+    <svg {...common} className="ico ico-fabric">
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <path d="M8 16V8h7M8 12h5" />
+      <path d="M15.5 5.5 18 8" />
+    </svg>
+  );
+}
+
+/** A magnifier over a block: OptiFine is about looking closer, not another Minecraft install. */
+export function OptifineIcon() {
+  return (
+    <svg {...common} className="ico ico-optifine">
+      <circle cx="11" cy="11" r="6" />
+      <path d="m15.6 15.6 4 4" />
+      <path d="M8.6 11.4 10.6 9l2 2.6" />
+    </svg>
+  );
+}
+
+export function WrenchIcon() {
+  return (
+    <svg {...common}>
+      <path d="M14.7 6.3a3.8 3.8 0 0 1 4.8 4.8l-8.6 8.6-4.8-4.8 8.6-8.6Z" />
+      <path d="m6 18 1.5 1.5" />
+    </svg>
+  );
+}
+
+export function CopyStackIcon() {
+  return (
+    <svg {...common}>
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" />
+    </svg>
+  );
+}
+
+export function UpdateIcon() {
+  return (
+    <svg {...common}>
+      <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+      <path d="M20 4v4.5h-4.5" />
+    </svg>
+  );
+}
+
+export function NewsIcon() {
+  return (
+    <svg {...common}>
+      <path d="M4 5h12v14H5.5A1.5 1.5 0 0 1 4 17.5V5Z" />
+      <path d="M16 9h3a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2" />
+      <path d="M7 8.5h6M7 12h6M7 15.5h4" />
     </svg>
   );
 }

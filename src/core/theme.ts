@@ -1,21 +1,59 @@
-/** Look and feel: two appearances, Dark and Light. The choice is applied at once and remembered on this PC. */
+/**
+ * The launcher's looks.
+ *
+ * Classic is the older launcher identity: a vertical navigation rail, neutral
+ * near-black surfaces and full-bleed Minecraft cards, with maple orange used
+ * only for the selected section and the primary action.
+ *
+ * Colorful keeps the bright Minecraft key art behind the whole window, with
+ * translucent dark panels for readability and the same orange accent.
+ *
+ * Light is still offered in Settings for anyone who chose it before; the
+ * first-launch chooser asks between the two themes this release introduces.
+ */
 
 export interface ThemeInfo {
-  id: "dark" | "light";
+  id: "classic" | "colorful" | "light";
   label: string;
   blurb: string;
   /** Preview colours: page, card, raised card. */
   swatch: [string, string, string];
+  /** Accent used for the preview's button. */
+  accent: string;
 }
 
+export const BRAND_ORANGE = "#e25303";
+
 export const THEMES: readonly ThemeInfo[] = [
-  { id: "dark", label: "Dark", blurb: "Near-black with Cirrus blue", swatch: ["#0d0e11", "#16181d", "#20232a"] },
-  { id: "light", label: "Light", blurb: "Bright and clean", swatch: ["#eef1f6", "#ffffff", "#e4e8f0"] },
+  {
+    id: "classic",
+    label: "Classic",
+    blurb: "Deep neutral surfaces, full-bleed instance art and one maple-orange accent",
+    swatch: ["#080706", "#141110", "#221d1a"],
+    accent: "#e25303",
+  },
+  {
+    id: "colorful",
+    label: "Colorful",
+    blurb: "The bright Minecraft key art fills the window, with translucent panels and maple orange",
+    swatch: ["#0b1524", "#16233a", "#22344f"],
+    accent: "#e25303",
+  },
+  {
+    id: "light",
+    label: "Light",
+    blurb: "Bright and clean",
+    swatch: ["#eef1f6", "#ffffff", "#e4e8f0"],
+    accent: "#c94803",
+  },
 ];
+
+/** The two themes the first-launch screen offers, in order. */
+export const WELCOME_THEMES = THEMES.filter((t) => t.id !== "light");
 
 export type ThemeId = ThemeInfo["id"];
 
-export const DEFAULT_THEME: ThemeId = "dark";
+export const DEFAULT_THEME: ThemeId = "classic";
 
 const THEME_KEY = "unlimited.theme";
 
@@ -34,16 +72,33 @@ function write(key: string, value: string) {
   }
 }
 
-/** Anything saved by an older build (Ocean, Forest, …) becomes Dark. */
+type ThemeListener = () => void;
+const listeners = new Set<ThemeListener>();
+
+/** Notified whenever the look changes, so views that depend on it can redraw. */
+export function subscribeTheme(listener: ThemeListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/** Anything an older build saved (Dark, Ocean, Forest, …) becomes Classic. */
 export function getTheme(): ThemeId {
-  return read(THEME_KEY) === "light" ? "light" : DEFAULT_THEME;
+  const saved = read(THEME_KEY);
+  if (saved === "light" || saved === "colorful") return saved;
+  return DEFAULT_THEME;
+}
+
+/** False until the player has chosen or an older build has saved a look. */
+export function hasThemeChoice(): boolean {
+  return read(THEME_KEY) !== null;
 }
 
 function apply(theme: ThemeId) {
   const root = document.documentElement;
   root.dataset.theme = theme;
   delete root.dataset.accent;
-  root.style.colorScheme = theme;
+  root.style.colorScheme = theme === "light" ? "light" : "dark";
+  listeners.forEach((listener) => listener());
 }
 
 export function setTheme(id: ThemeId) {

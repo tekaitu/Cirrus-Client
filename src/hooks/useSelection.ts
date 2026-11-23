@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { Profile } from "../api/types";
+import type { InstanceView } from "../api/types";
 import { FALLBACK_VERSION, type LoaderId } from "../core/game";
 
 export interface Selection {
+  /** The Minecraft version to install or play when no instance is chosen. */
   version: string;
   loader: LoaderId;
   versions: string[];
-  /** The named profile being played, if any. Choosing a version or loader by hand clears it. */
-  profile: Profile | null;
+  /** The installed instance the Play button uses, when one is chosen. */
+  instance: InstanceView | null;
   setVersion: (v: string) => void;
   setLoader: (l: LoaderId) => void;
-  selectProfile: (p: Profile | null) => void;
+  selectInstance: (i: InstanceView | null) => void;
 }
 
 function read(key: string): string | null {
@@ -29,12 +30,16 @@ function write(key: string, value: string) {
   }
 }
 
-/** Which Minecraft version and loader the person wants. Remembered between runs. */
-export function useSelection(profiles: Profile[] | null = null): Selection {
+/**
+ * Which instance the launcher is working with. The choice survives restarts; a
+ * saved instance that no longer exists is ignored, and a version/loader picked
+ * by hand clears it so the two can never disagree.
+ */
+export function useSelection(instances: InstanceView[] | null = null): Selection {
   const [versions, setVersions] = useState<string[]>([FALLBACK_VERSION]);
   const [version, setVersionState] = useState(() => read("unlimited.version") ?? FALLBACK_VERSION);
   const [loader, setLoaderState] = useState<LoaderId>(() => (read("unlimited.loader") === "vanilla" ? "vanilla" : "fabric"));
-  const [profileId, setProfileId] = useState<string | null>(() => read("unlimited.profile"));
+  const [instanceId, setInstanceId] = useState<string | null>(() => read("unlimited.instance") || null);
 
   useEffect(() => {
     let alive = true;
@@ -53,43 +58,53 @@ export function useSelection(profiles: Profile[] | null = null): Selection {
     };
   }, []);
 
-  const rememberProfile = useCallback((id: string | null) => {
-    setProfileId(id);
-    write("unlimited.profile", id ?? "");
+  const rememberInstance = useCallback((id: string | null) => {
+    setInstanceId(id);
+    write("unlimited.instance", id ?? "");
   }, []);
+
   const setVersion = useCallback(
     (v: string) => {
       setVersionState(v);
       write("unlimited.version", v);
-      rememberProfile(null);
+      rememberInstance(null);
     },
-    [rememberProfile],
+    [rememberInstance],
   );
   const setLoader = useCallback(
     (l: LoaderId) => {
       setLoaderState(l);
       write("unlimited.loader", l);
-      rememberProfile(null);
+      rememberInstance(null);
     },
-    [rememberProfile],
+    [rememberInstance],
   );
-  const selectProfile = useCallback(
-    (p: Profile | null) => {
-      if (p) {
-        setVersionState(p.minecraft);
-        write("unlimited.version", p.minecraft);
-        const l: LoaderId = p.fabric ? "fabric" : "vanilla";
-        setLoaderState(l);
-        write("unlimited.loader", l);
+  const selectInstance = useCallback(
+    (i: InstanceView | null) => {
+      if (i) {
+        setVersionState(i.minecraft);
+        write("unlimited.version", i.minecraft);
+        setLoaderState(i.loader);
+        write("unlimited.loader", i.loader);
       }
-      rememberProfile(p ? p.id : null);
+      rememberInstance(i ? i.id : null);
     },
-    [rememberProfile],
+    [rememberInstance],
   );
 
-  // A saved profile only counts while it still exists and still matches the chosen game.
-  const profile =
-    (profiles ?? []).find((p) => p.id === profileId && p.minecraft === version && p.fabric === (loader === "fabric")) ?? null;
+  const instance = (instances ?? []).find((i) => i.id === instanceId) ?? null;
 
-  return { version, loader, versions, profile, setVersion, setLoader, selectProfile };
+  // A saved instance that is gone (or renamed by a loader change) must not leave
+  // the launcher pointing at something that is not there. Matching the saved
+  // version and loader keeps the card selected across a loader switch.
+  useEffect(() => {
+    if (!instances || instances.length === 0 || instance) return;
+    if (!instanceId) return;
+    const match = instances.find((i) => i.minecraft === version && i.loader === loader);
+    if (match) rememberInstance(match.id);
+    else rememberInstance(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instances, instance, instanceId]);
+
+  return { version, loader, versions, instance, setVersion, setLoader, selectInstance };
 }
