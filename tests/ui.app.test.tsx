@@ -16,6 +16,8 @@ vi.mock("../src/api/client", () => ({
     getAppInfo: vi.fn(),
     gameStatus: vi.fn(),
     listInstances: vi.fn(),
+  installOptifine: vi.fn(),
+  removeOptifine: vi.fn(),
     listInstanceViews: vi.fn(),
     saveInstance: vi.fn(),
     cloneInstance: vi.fn(),
@@ -86,15 +88,10 @@ vi.mock("../src/api/client", () => ({
 
 const mocked = vi.mocked(api);
 
-/** Opens the version catalogue from the library (its Add Version button). */
-function openAddVersion() {
-  fireEvent.click(screen.getByRole("button", { name: /^Add version$/i }));
-}
-
-/** Navigation labels as the sidebar shows them. */
+/** Navigation labels as the sidebar shows them. Versions holds the instances too. */
 const GO_TO: Record<string, string> = {
   Home: "Play",
-  Library: "Instances",
+  Library: "Versions",
   Browse: "Mods",
   Character: "Skins",
 };
@@ -187,6 +184,7 @@ const instanceView = (extra: Partial<InstanceView> = {}): InstanceView => ({
   modCount: 0,
   javaMajor: 21,
   clonedFrom: null,
+  optifine: null,
   ...extra,
 });
 
@@ -336,10 +334,12 @@ describe("Home", () => {
   it("has a vertical sidebar with labelled sections, a bell and the account", async () => {
     render(<App />);
     const main = screen.getByRole("navigation", { name: "Main" });
-    for (const name of ["Play", "Instances", "Versions", "Mods", "Modpacks", "Servers", "Skins"]) {
+    for (const name of ["Play", "Versions", "Mods", "Servers", "Skins"]) {
       expect(main.contains(screen.getByRole("button", { name }))).toBe(true);
     }
-    for (const name of ["Accounts", "About", "Diagnostics", "Re-scan Java", "Discord Presence"]) {
+    // Instances and modpacks are sections inside Versions and Mods now, not
+    // destinations of their own.
+    for (const name of ["Instances", "Modpacks", "Accounts", "About", "Diagnostics", "Re-scan Java", "Discord Presence"]) {
       expect(main.contains(screen.queryByRole("button", { name }))).toBe(false);
     }
     expect(within(main).getByRole("button", { name: "Play" }).getAttribute("aria-current")).toBe("page");
@@ -1361,34 +1361,36 @@ describe("License", () => {
 });
 
 describe("Modpacks", () => {
-  it("lists instances as setups and sends one to its mods", async () => {
+  it("lists instances as modpacks and adds mods to the chosen one", async () => {
     mocked.listInstanceViews.mockResolvedValue([
       instanceView({ id: "a", name: "PvP", modCount: 3 }),
       instanceView({ id: "b", name: "Building", minecraft: "1.20.6", loader: "vanilla", loaderVersion: null }),
     ]);
     render(<App />);
     await settled();
-    goTo("Modpacks");
-    expect(await screen.findByRole("heading", { level: 1, name: "Modpacks" })).toBeTruthy();
-    const pvp = (await screen.findByText("PvP")).closest("li")!;
-    expect(pvp.textContent).toContain("Minecraft 1.21.11 · 3 mods");
-    fireEvent.click(within(pvp).getByRole("button", { name: "Mods" }));
+    goTo("Mods");
     expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
+    const list = await screen.findByRole("list", { name: "Modpacks" });
+    const pvp = within(list).getByRole("button", { name: /PvP/ });
+    expect(pvp.textContent).toContain("1.21.11 · Fabric · 3 mods");
+    expect(within(list).getByRole("button", { name: /Building/ })).toBeTruthy();
+    fireEvent.click(pvp);
+    expect(pvp.getAttribute("aria-pressed")).toBe("true");
     expect(window.localStorage.getItem("unlimited.instance")).toBe("a");
   });
 
-  it("can show only the setups that have mods", async () => {
+  it("aims the mod manager at the modpack that was picked", async () => {
     mocked.listInstanceViews.mockResolvedValue([
       instanceView({ id: "a", name: "PvP", modCount: 3 }),
       instanceView({ id: "b", name: "Building", minecraft: "1.20.6", loader: "vanilla", loaderVersion: null }),
     ]);
     render(<App />);
     await settled();
-    goTo("Modpacks");
-    await screen.findByText("PvP");
-    fireEvent.click(screen.getByRole("radio", { name: "With mods" }));
-    expect(screen.getByText("PvP")).toBeTruthy();
-    expect(screen.queryByText("Building")).toBeNull();
+    goTo("Mods");
+    const list = await screen.findByRole("list", { name: "Modpacks" });
+    fireEvent.click(within(list).getByRole("button", { name: /Building/ }));
+    // The mods below belong to the pack that was picked.
+    expect(await screen.findByText(/Installed in your “Building” instance/)).toBeTruthy();
   });
 });
 
@@ -1443,13 +1445,12 @@ describe("Themes", () => {
 });
 
 describe("Library", () => {
-  it("says when nothing is installed and points at the version list", async () => {
+  it("says when nothing is installed and points at the version grid", async () => {
     render(<App />);
     goTo("Library");
-    expect(await screen.findByRole("heading", { level: 1, name: "Instances" })).toBeTruthy();
-    expect(await screen.findByText("Your library is empty")).toBeTruthy();
-    openAddVersion();
     expect(await screen.findByRole("heading", { level: 1, name: "Versions" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 2, name: "Your instances" })).toBeTruthy();
+    expect(await screen.findByText(/Nothing is installed yet/)).toBeTruthy();
   });
 
   it("lists installed instances, selects one and opens its folder", async () => {
@@ -1464,7 +1465,7 @@ describe("Library", () => {
     await settled();
     goTo("Library");
     expect(await screen.findByRole("heading", { level: 2, name: "PvP" })).toBeTruthy();
-    expect(screen.getByText(/3 mods/)).toBeTruthy();
+    expect(screen.getAllByText(/3 mods/).length).toBeGreaterThan(0);
     expect(screen.getByText("Building")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open folder for Building" }));
     await waitFor(() => expect(mocked.openInstanceFolder).toHaveBeenCalledWith("b"));
@@ -2069,63 +2070,63 @@ describe("Versions", () => {
       { id: "1.21.1", kind: "release", released: "2024-08-08T10:00:00+00:00", supported: true, javaMajor: 21 },
       { id: "1.20.6", kind: "release", released: "2024-04-29T10:00:00+00:00", supported: true, javaMajor: 21 },
       { id: "1.12.2", kind: "release", released: "2017-09-18T10:00:00+00:00", supported: true, javaMajor: 8 },
+      { id: "1.8.9", kind: "release", released: "2015-12-09T10:00:00+00:00", supported: true, javaMajor: 8 },
       { id: "25w45a", kind: "snapshot", released: "2025-11-05T10:00:00+00:00", supported: false, javaMajor: 21 },
     ]);
   };
-  const expand = async (title: RegExp) => {
-    const head = await screen.findByRole("button", { name: title });
-    fireEvent.click(head);
-    return head;
-  };
-
   it("groups releases into families with their own artwork instead of one list", async () => {
     catalog();
     render(<App />);
     goTo("Versions");
     expect(await screen.findByRole("heading", { level: 1, name: "Versions" })).toBeTruthy();
-    expect(await screen.findByRole("button", { name: /Minecraft 1\.21/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Minecraft 1\.12/ })).toBeTruthy();
-    const art = Array.from(document.querySelectorAll("img.family-art")).map((img) => img.getAttribute("src"));
+    expect(await screen.findByRole("button", { name: "Minecraft 1.21" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Minecraft 1.12" })).toBeTruthy();
+    const art = Array.from(document.querySelectorAll("img.vx-card-art")).map((img) => img.getAttribute("src"));
+    expect(art.length).toBeGreaterThan(1);
     expect(new Set(art).size).toBeGreaterThan(1);
-    // Snapshots are counted but never offered as an install in this build.
-    expect(screen.getByText(/snapshots are listed by Mojang but cannot be installed/)).toBeTruthy();
+    // Snapshots sit behind the toggle and are never offered as an install here.
     expect(screen.queryByText("25w45a")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Snapshots" }));
+    expect(await screen.findByText("25w45a")).toBeTruthy();
+    expect(screen.getByText(/none installable here/)).toBeTruthy();
   });
 
-  it("expands a family into its individual releases, newest first", async () => {
+  it("puts a family's releases on its card and fills the panel when one is chosen", async () => {
     catalog();
     render(<App />);
     goTo("Versions");
-    await expand(/Minecraft 1\.21/);
-    expect(screen.getByText("Minecraft 1.21.11")).toBeTruthy();
-    expect(screen.getByText("Minecraft 1.21.1")).toBeTruthy();
-    const rows = screen.getAllByText(/^Minecraft 1\.21\./);
-    expect(rows[0]!.textContent).toContain("1.21.11");
-    fireEvent.change(screen.getByLabelText("Order versions"), { target: { value: "oldest" } });
-    const oldest = screen.getAllByText(/^Minecraft 1\.21\./);
-    expect(oldest[0]!.textContent).toContain("1.21.1");
+    expect(await screen.findByRole("button", { name: "1.21.11" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "1.21.1" })).toBeTruthy();
+    // Newest release of the family is the one the card itself chooses.
+    fireEvent.click(screen.getByRole("button", { name: "Minecraft 1.12" }));
+    expect(screen.getByLabelText("Minecraft 1.12.2").textContent).toContain("1.12.2");
+    fireEvent.click(screen.getByRole("button", { name: "1.21.1" }));
+    const panel = screen.getByLabelText("Minecraft 1.21.1");
+    expect(panel.textContent).toContain("1.21.1");
+    expect(panel.textContent).toContain("Vanilla");
   });
 
   it("searches across families and hides what does not match", async () => {
     catalog();
     render(<App />);
     goTo("Versions");
-    await screen.findByRole("button", { name: /Minecraft 1\.21/ });
-    fireEvent.change(screen.getByLabelText("Search Minecraft versions"), { target: { value: "1.12" } });
-    expect(await screen.findByRole("button", { name: /Minecraft 1\.12/ })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Minecraft 1\.21/ })).toBeNull();
-    expect(screen.getByText("Minecraft 1.12.2")).toBeTruthy();
+    await screen.findByRole("button", { name: "Minecraft 1.21" });
+    fireEvent.change(screen.getByLabelText("Search a version"), { target: { value: "1.12" } });
+    expect(await screen.findByRole("button", { name: "Minecraft 1.12" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Minecraft 1.21" })).toBeNull();
+    expect(screen.getByRole("button", { name: "1.12.2" })).toBeTruthy();
   });
 
-  it("marks versions that already have an instance in the Library", async () => {
+  it("shows an instance beside the release it was built from", async () => {
     catalog();
     mocked.listInstanceViews.mockResolvedValue([instanceView({ id: "a", minecraft: "1.21.11" })]);
     render(<App />);
     await settled();
     goTo("Versions");
-    await expand(/Minecraft 1\.21/);
-    expect(screen.getByText("In your Library")).toBeTruthy();
-    expect(screen.getByText("1 installed")).toBeTruthy();
+    await screen.findByRole("button", { name: "Minecraft 1.21" });
+    expect(document.querySelector(".vx-card-installed")?.textContent).toContain("1");
+    const panel = screen.getByLabelText("Minecraft 1.21.11");
+    expect(within(panel).getByRole("button", { name: /Fabric 1\.21\.11/ })).toBeTruthy();
   });
 
   it("offers Vanilla and Fabric with their own marks, and installs the chosen one", async () => {
@@ -2133,9 +2134,7 @@ describe("Versions", () => {
     mocked.installGame.mockResolvedValue({ status: "installed", message: null, loader: "0.17.0" });
     render(<App />);
     goTo("Versions");
-    await expand(/Minecraft 1\.21/);
-    const row = screen.getByText("Minecraft 1.21.11").closest("li")!;
-    fireEvent.click(within(row).getByRole("button", { name: "Install" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Install 1.21.11" }));
     const dialog = await screen.findByRole("dialog", { name: "Install Minecraft 1.21.11" });
     expect(within(dialog).getByRole("radio", { name: /^Fabric/ })).toBeTruthy();
     expect(within(dialog).getByRole("radio", { name: /^Vanilla/ })).toBeTruthy();
@@ -2148,14 +2147,50 @@ describe("Versions", () => {
     await waitFor(() => expect(mocked.installGame).toHaveBeenCalledWith("1.21.11", "vanilla", null));
   });
 
+  it("installs the OptiFine jar the person downloaded, and says when a jar is not OptiFine", async () => {
+    catalog();
+    const vanilla189 = instanceView({
+      id: "a",
+      minecraft: "1.8.9",
+      loader: "vanilla",
+      loaderVersion: null,
+      name: "Minecraft 1.8.9",
+    });
+    mocked.listInstanceViews.mockResolvedValue([vanilla189]);
+    mocked.installOptifine.mockResolvedValue({ ...vanilla189, optifine: "1.8.9_HD_U_M5" });
+    render(<App />);
+    await settled();
+    goTo("Versions");
+    fireEvent.click(await screen.findByRole("button", { name: "1.8.9" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Vanilla" }));
+
+    const input = screen.getByLabelText("OptiFine jar") as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(["jar"], "OptiFine_1.8.9_HD_U_M5.jar", { type: "application/java-archive" })] },
+    });
+    await waitFor(() => expect(mocked.installOptifine).toHaveBeenCalled());
+    const [id, fileName, data] = mocked.installOptifine.mock.calls[0]!;
+    expect(id).toBe("a");
+    expect(fileName).toBe("OptiFine_1.8.9_HD_U_M5.jar");
+    expect(data.length).toBeGreaterThan(0);
+    expect(await screen.findByText(/Play starts it through OptiFine/)).toBeTruthy();
+
+    // A jar the launcher does not recognise is reported, not installed.
+    mocked.installOptifine.mockRejectedValueOnce(
+      new Error("That jar has no optifine/OptiFineTweaker.class, so it is not an OptiFine build."),
+    );
+    fireEvent.change(input, {
+      target: { files: [new File(["jar"], "OptiFine_1.8.9_HD_U_M5.jar", { type: "application/java-archive" })] },
+    });
+    expect(await screen.findByText(/not an OptiFine build/)).toBeTruthy();
+  });
+
   it("installs Fabric with the loader version chosen in the dialog", async () => {
     catalog();
     mocked.installGame.mockResolvedValue({ status: "installed", message: null, loader: "0.16.9" });
     render(<App />);
     goTo("Versions");
-    await expand(/Minecraft 1\.21/);
-    const row = screen.getByText("Minecraft 1.21.11").closest("li")!;
-    fireEvent.click(within(row).getByRole("button", { name: "Install" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Install 1.21.11" }));
     const dialog = await screen.findByRole("dialog", { name: "Install Minecraft 1.21.11" });
     const select = await within(dialog).findByRole("combobox");
     fireEvent.change(select, { target: { value: "0.16.9" } });

@@ -20,9 +20,7 @@ import { ModsPage } from "./pages/Mods";
 import { SkinsPage } from "./pages/Skins";
 import { ServersPage } from "./pages/Servers";
 import { VersionsPage } from "./pages/Versions";
-import { LibraryPage } from "./pages/Library";
 import { UpdateNotice } from "./components/UpdateNotice";
-import { ModpacksPage } from "./pages/Modpacks";
 import { SettingsPage } from "./pages/Settings";
 import { pageForShortcut } from "./core/shortcuts";
 import { readDiscordEnabled, writeDiscordEnabled } from "./core/discord";
@@ -241,11 +239,13 @@ export default function App() {
         <main className="content">
           <div key={page} className="page-enter">
           {page === "home" && <HomePage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
-          {page === "versions" && <VersionsPage data={data} onNavigate={navigate} />}
-          {page === "library" && <LibraryPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
+          {/* Versions and the instances built from them are one section, two lists. */}
+          {(page === "versions" || page === "library") && (
+            <VersionsPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />
+          )}
           {page === "browse" && <ModsPage data={data} mode="browse" onNavigate={navigate} />}
-          {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
-          {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
+          {/* Modpacks and the mods inside them are one section, two lists. */}
+          {(page === "mods" || page === "modpacks") && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
           {page === "skins" && <SkinsPage data={data} onNavigate={navigate} />}
           {page === "servers" && <ServersPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
           {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} />}
