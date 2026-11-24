@@ -1,6 +1,12 @@
 package dev.cirrus.client.ui;
 
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.client.render.McCanvas;
+
+import dev.cirrus.client.render.McInput;
+import dev.cirrus.core.input.Keys;
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.anim.Anim;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -25,7 +31,7 @@ public abstract class CirrusScreen extends Screen {
     protected final boolean compact() { return width < 360 || height < 210; }
 
     /** Main navigation. Screens that return a tab get the shared Cirrus header (brand, tabs, player, close). */
-    public enum Tab { MODS, HUD, THEMES, HOME }
+    public enum Tab { MODS, HUD, HOME }
     protected Tab activeTab() { return null; }
     /** Content area below the header, filled in by buildHeader(). */
     protected int margin, contentX, contentY, contentW, contentBottom, headerBottom;
@@ -44,13 +50,13 @@ public abstract class CirrusScreen extends Screen {
         int closeSize = 22;
         int y = margin;
         int markSize = twoRows ? 28 : 18;
-        int brandW = twoRows ? CirrusUi.brandWidth(font, markSize) : (markSize * 640 + 236) / 473;
+        int brandW = twoRows ? CirrusUi.brandWidth(font, markSize) : dev.cirrus.core.theme.Brand.markWidth(markSize);
         int tabsY = twoRows ? y + markSize + 8 : y;
         // right cluster: close button, then (roomy only) the player chip
         addRenderableWidget(CirrusButton.icon(width - margin - closeSize, y + (twoRows ? (markSize - closeSize) / 2 : (rowH - closeSize) / 2), closeSize, CirrusUi.ICON_CLOSE, b -> closeAll()));
         // tabs
-        String[] labels = {"Mods", "HUD", "Themes", "Home"};
-        int[] icons = {CirrusUi.ICON_MODS, CirrusUi.ICON_HUD, CirrusUi.ICON_THEMES, CirrusUi.ICON_DASHBOARD};
+        String[] labels = {"Mods", "HUD", "Home"};
+        int[] icons = {CirrusUi.ICON_MODS, CirrusUi.ICON_HUD, CirrusUi.ICON_DASHBOARD};
         Tab[] tabs = Tab.values();
         int left = twoRows ? margin : margin + brandW + 10;
         int right = twoRows ? width - margin : width - margin - closeSize - 6;
@@ -78,7 +84,6 @@ public abstract class CirrusScreen extends Screen {
         minecraft.setScreen(switch (tab) {
             case MODS -> new dev.cirrus.client.CirrusMenuScreen(parent);
             case HUD -> new dev.cirrus.client.HudEditorScreen(this);
-            case THEMES -> new dev.cirrus.client.CirrusThemesScreen(parent);
             case HOME -> new dev.cirrus.client.CirrusDashboardScreen(parent);
         });
     }
@@ -104,7 +109,7 @@ public abstract class CirrusScreen extends Screen {
             int chipW = nameW + 34;
             int cx = width - margin - closeSize - 6 - chipW, cy = y + (headerMark - chipH) / 2;
             CirrusUi.card(g, cx, cy, chipW, chipH, 8, t.surface, t.border);
-            Gfx.fillRound(g, cx + 4, cy + 4, 14, 14, 4, t.accent);
+            Gfx.fillRound(g, cx + 4, cy + 4, 14, 14, 4, 0xFF2A2A2A);
             CirrusUi.centeredSmall(g, font, playerName.substring(0, 1).toUpperCase(java.util.Locale.ROOT), cx + 11, cy + 7, 0xFFFFFFFF);
             CirrusUi.text(g, font, playerName, cx + 24, cy + 6, t.text, false);
         }
@@ -112,22 +117,23 @@ public abstract class CirrusScreen extends Screen {
 
     /** The darkened game when in a world, the Cirrus artwork otherwise. */
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {
-        if (minecraft.level != null) {
-            g.fill(0, 0, width, height, Gfx.withAlpha(theme().shadow, 190));
-            g.fillGradient(0, 0, width, height / 2, Gfx.withAlpha(0xFF000000, 70), Gfx.withAlpha(0xFF000000, 0));
-        } else {
-            CirrusUi.backdrop(g, width, height, theme());
-        }
+        // Flat black: solid over the menu, a heavy black veil over the game when opened in a world.
+        if (minecraft.level != null) McCanvas.of(g).fill(0, 0, width, height, 0xE6000000);
+        else CirrusUi.backdrop(g, width, height, theme());
     }
 
     @Override public final void render(GuiGraphics g, int mx, int my, float delta) {
+        dev.cirrus.core.perf.PerfMeter.MENU.begin();
         CirrusTheme t = theme();
         if (activeTab() != null) drawHeader(g, t);
         drawSurfaces(g, mx, my, delta, t);
         super.render(g, mx, my, delta);
         drawOverlay(g, mx, my, delta, t);
         float open = Anim.easeOut((Anim.now() - openedAt) / 200f);
-        if (open < 1f) g.fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - open) * 120)));
+        if (open < 1f) McCanvas.of(g).fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - open) * 120)));
+        dev.cirrus.core.perf.PerfMeter.MENU.end();
+        dev.cirrus.core.perf.PerfOverlay.draw(dev.cirrus.client.render.McCanvas.of(g), height);
+        McInput.INSTANCE.endFrame();
     }
 
     /** Panels, cards and static text. Widgets are drawn after this. */
@@ -135,14 +141,55 @@ public abstract class CirrusScreen extends Screen {
     /** Anything that must sit above the widgets. */
     protected void drawOverlay(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) { }
 
+    // ---- input -----------------------------------------------------------------------------------------------------------
+    // Every event enters through these final methods, which report it to the Core input model ({@link McInput}) before the screen
+    // handles it. Screens override the protected on* hooks instead, so no handler can swallow an event before Core sees it.
+
+    @Override public final void mouseMoved(double x, double y) { McInput.INSTANCE.mouseMoved(x, y); super.mouseMoved(x, y); }
+
+    @Override public final boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        McInput.INSTANCE.mousePressed(event);
+        return onMouseClicked(event, doubleClick);
+    }
+
+    @Override public final boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        McInput.INSTANCE.mouseReleased(event);
+        return onMouseReleased(event);
+    }
+
+    @Override public final boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dx, double dy) {
+        McInput.INSTANCE.mouseMoved(event.x(), event.y());
+        return onMouseDragged(event, dx, dy);
+    }
+
+    @Override public final boolean mouseScrolled(double x, double y, double h, double v) {
+        McInput.INSTANCE.mouseScrolled(x, y, h, v);
+        return onMouseScrolled(x, y, h, v);
+    }
+
+    @Override public final boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        McInput.INSTANCE.keyPressed(event);
+        return onKeyPressed(event);
+    }
+
+    @Override public final boolean keyReleased(net.minecraft.client.input.KeyEvent event) {
+        McInput.INSTANCE.keyReleased(event);
+        return super.keyReleased(event);
+    }
+
+    protected boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) { return super.mouseClicked(event, doubleClick); }
+    protected boolean onMouseReleased(net.minecraft.client.input.MouseButtonEvent event) { return super.mouseReleased(event); }
+    protected boolean onMouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dx, double dy) { return super.mouseDragged(event, dx, dy); }
+    protected boolean onMouseScrolled(double x, double y, double h, double v) { return super.mouseScrolled(x, y, h, v); }
+
     /** Right Shift closes any Cirrus screen straight back to the game (or to the screen that opened the menu). */
-    @Override public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox box && box.isFocused())) {
+    protected boolean onKeyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (event.key() == Keys.RIGHT_SHIFT && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox box && box.isFocused())) {
             closeAll();
             return true;
         }
         return super.keyPressed(event);
     }
 
-    @Override public void onClose() { minecraft.setScreen(parent); }
+    @Override public void onClose() { McInput.INSTANCE.reset(); minecraft.setScreen(parent); }
 }

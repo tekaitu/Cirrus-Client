@@ -20,6 +20,14 @@ loom {
     }
 }
 
+// Cirrus Core: pure Java (no Minecraft, loader or graphics library) in its own source folder. It is compiled with the client so it
+// ships in the mod jar, and CoreBoundaryTest separately proves it compiles alone at Java 8 level with an empty classpath.
+sourceSets {
+    client {
+        java.srcDir 'src/core/java'
+    }
+}
+
 fabricApi {
     configureTests {
         createSourceSet = false

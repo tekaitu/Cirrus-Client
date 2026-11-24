@@ -1,5 +1,7 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.anim.Anim;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -48,30 +50,28 @@ public final class MenuButton extends Button {
         int fill, edge, text, icon;
         switch (kind) {
             case PRIMARY -> {
-                fill = Gfx.mix(Gfx.mix(t.accent, t.cyan, 0.22f + 0.4f * hover), 0xFF000000, press * 0.2f);
-                edge = Gfx.mix(t.cyan, 0xFFFFFFFF, 0.25f + 0.3f * hover);
+                fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
+                edge = Gfx.mix(t.accent, t.accentLight, hover);
                 text = 0xFFFFFFFF; icon = 0xFFFFFFFF;
             }
             case QUIT -> {
-                fill = Gfx.scaleAlpha(t.surface, 0.35f * hover);
-                edge = Gfx.scaleAlpha(t.border, 0.5f * hover);
-                text = Gfx.mix(t.muted, t.cyan, 0.45f + 0.55f * hover); icon = text;
+                fill = Gfx.scaleAlpha(0xFF1C1C1C, hover);
+                edge = Gfx.scaleAlpha(t.border, hover);
+                text = Gfx.mix(t.muted, 0xFFFFFFFF, hover); icon = text;
             }
             default -> {
-                int base = Gfx.mix(0xE60A0F1A, t.accent, 0.1f * hover);
-                fill = Gfx.mix(base, 0xFF000000, press * 0.25f);
-                edge = Gfx.mix(Gfx.scaleAlpha(t.border, 0.7f), t.cyan, hover * 0.85f);
-                text = Gfx.mix(t.text, 0xFFFFFFFF, hover * 0.5f); icon = Gfx.mix(t.muted, t.cyan, hover);
+                fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
+                edge = Gfx.mix(t.border, t.accentLight, hover);
+                text = 0xFFFFFFFF; icon = 0xFFFFFFFF;
             }
         }
         if (!active) { fill = Gfx.scaleAlpha(fill, 0.55f); edge = Gfx.scaleAlpha(edge, 0.55f); text = Gfx.scaleAlpha(text, 0.6f); icon = Gfx.scaleAlpha(icon, 0.6f); }
 
         if (kind != Kind.QUIT || hover > 0.01f) {
             Gfx.fillRound(g, x, y, w, h, radius, fill);
-            if (kind != Kind.QUIT && w > radius * 2) Gfx.hairline(g, x + radius, y + 1, w - radius * 2, Gfx.scaleAlpha(t.highlight, kind == Kind.PRIMARY ? 3f : 1.6f));
             Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
         }
-        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.cyan);
+        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.accentLight);
 
         Font font = mc.font;
         if (kind == Kind.SQUARE) {

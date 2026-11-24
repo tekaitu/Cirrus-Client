@@ -52,10 +52,11 @@ public final class CirrusAssetTextures {
         if (dynamic != null) return dynamic;
         String fallback = FALLBACKS.get(assetId);
         if (fallback != null) return Identifier.fromNamespaceAndPath(NS, fallback);
-        return Identifier.fromNamespaceAndPath(NS, "textures/gui/cirrus-mark.png");
+        return Identifier.fromNamespaceAndPath(NS, "textures/gui/maple-mark.png");
     }
 
-    public static Identifier mark() { return texture("cirrus-mark"); }
+    /** The bundled Maple leaf mark (always available; not part of the downloadable asset set). */
+    public static Identifier mark() { return Identifier.fromNamespaceAndPath(NS, "textures/gui/maple-mark.png"); }
 
     public static void drawBackdrop(GuiGraphics g, int width, int height) {
         drawCover(g,texture("main-menu-ambient"),width,height,2048,1152);
@@ -81,7 +82,7 @@ public final class CirrusAssetTextures {
     }
 
     public static void drawMark(GuiGraphics g,int x,int y,int width,int height,int color) {
-        Gfx.region(g,mark(),x,y,width,height,0,0,640,473,640,473,color);
+        Gfx.region(g,mark(),x,y,width,height,0,0,256,256,256,256,color);
     }
 
     private static final int ICONS_WIDTH=1024;
