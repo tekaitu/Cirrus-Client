@@ -62,7 +62,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         Minecraft mc = minecraft;
         if (skin == null) skin = mc.getSkinManager().createLookup(mc.getGameProfile(), false);
         playerName = mc.getUser().getName();
-        versionLine = "Cirrus " + modVersion("cirrus_fabric") + "  ·  Minecraft " + modVersion("minecraft");
+        versionLine = dev.cirrus.core.theme.Brand.SHORT + " " + modVersion("cirrus_fabric") + "  ·  Minecraft " + modVersion("minecraft");
         if (openedAt == 0) openedAt = System.currentTimeMillis();
 
         int nameWidth = CirrusUi.bodyWidth(font, playerName);

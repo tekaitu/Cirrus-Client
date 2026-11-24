@@ -152,9 +152,53 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.waitTicks(20);
             context.takeScreenshot(shot + "-with-profiles-1280x720-gui2");
         }
+        verifyArchitecture(context);
         measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
+    }
+
+    /** Phase 2 integration checks on the real 1.21.11 game: Core input events, ModContext and the Core HUD model. */
+    private static void verifyArchitecture(ClientGameTestContext context) {
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var cfg = ctx.config();
+            check("ModContext reports a GUI size", ctx.screenWidth() > 0 && ctx.screenHeight() > 0);
+            check("ModContext reports fps", ctx.fps() >= 0);
+            check("ModContext measures text", ctx.text().width("FPS: 000", dev.cirrus.core.text.TextStyle.BODY) > 0);
+            check("no world: not in world and no ping", !ctx.inWorld() && ctx.pingMillis() == -1);
+            var input = dev.cirrus.client.render.McInput.INSTANCE;
+            check("input polling: nothing held", !input.isKeyDown(Keys.SPACE) && !input.isMouseDown(dev.cirrus.core.input.MouseButtons.LEFT)
+                && !input.isMouseDown(dev.cirrus.core.input.MouseButtons.RIGHT) && !input.isMouseDown(dev.cirrus.core.input.MouseButtons.MIDDLE) && input.modifiers() == 0);
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            fps.setPosition(cfg, 100, 60, ctx.screenWidth(), ctx.screenHeight());
+            dev.cirrus.core.hud.HudLayout.remove(fps, cfg);
+            check("removed widget leaves the active list", !dev.cirrus.core.hud.HudLayout.isActive(fps, cfg)
+                && dev.cirrus.core.hud.HudLayout.removed(dev.cirrus.core.hud.HudElementRegistry.all(), cfg).contains(fps));
+            dev.cirrus.core.hud.HudLayout.restore(fps, cfg);
+            check("restored widget is back where it was", dev.cirrus.core.hud.HudLayout.isActive(fps, cfg)
+                && fps.x(cfg, ctx.screenWidth()) == 100 && fps.y(cfg, ctx.screenHeight()) == 60);
+            var drag = new dev.cirrus.core.hud.HudDrag();
+            drag.begin(fps, cfg, ctx.screenWidth(), ctx.screenHeight(), 105, 63);
+            drag.update(cfg, ctx.screenWidth(), ctx.screenHeight(), 205, 93);
+            drag.end();
+            check("dragging moves and persists the widget", fps.x(cfg, ctx.screenWidth()) == 200 && fps.y(cfg, ctx.screenHeight()) == 90);
+            dev.cirrus.core.hud.HudLayout.resetPosition(fps, cfg, ctx.screenWidth(), ctx.screenHeight());
+        });
+        // Real key events through a Cirrus screen must reach the Core input model.
+        final int[] pressed = {0};
+        final dev.cirrus.core.input.InputAdapter counter = new dev.cirrus.core.input.InputAdapter() {
+            @Override public void onKeyPressed(int key, int modifiers) { if (key == Keys.DOWN) pressed[0]++; }
+        };
+        context.runOnClient(mc -> dev.cirrus.client.render.McInput.INSTANCE.events().addListener(counter));
+        context.setScreen(() -> new CirrusMenuScreen(null));
+        context.waitTicks(10);
+        context.getInput().pressKey(Keys.DOWN);
+        context.waitTicks(5);
+        context.runOnClient(mc -> {
+            dev.cirrus.client.render.McInput.INSTANCE.events().removeListener(counter);
+            check("a real key press reaches the Core input listeners", pressed[0] >= 1);
+        });
     }
 
     /**
