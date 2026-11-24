@@ -2,227 +2,227 @@
    Maple design tokens. Every colour, radius, blur and timing used by the
    interface lives here, once, for both appearances (Dark and Light).
 
-   The palette is neutral on purpose: near-black surfaces, white text and grey
-   support, with one brand colour - maple orange - used only where it means
-   something: the selected section, the primary action, progress, focus rings
-   and active controls. Orange is a signal, not a coat of paint.
+   The palette is a warm ember system: near-black warm neutrals, cream type,
+   and an orange -> amber -> red accent used for selection, primary actions,
+   progress and focus. Surfaces are washes of light over the page colour, and
+   their edges are drawn by an overlay (see ember.css), never a painted border.
    ========================================================================== */
 :root {
   color-scheme: dark;
 
-  /* surfaces (pure black and near-black) */
-  --bg: #050505;
-  --bg-2: #0a0a0a;
-  /* Panels are a wash over the page, not another black plate on top of it.
+  /* surfaces - warm near-black, never neutral grey */
+  --bg: #0b0908;
+  --bg-2: #121010;
+  /* Panels are a wash over the page, not another plate on top of it.
      Only overlays (menus, dialogs, the account drawer) are solid. */
-  --surface: rgba(255, 255, 255, 0.025);
-  --surface-solid: #0a0a0a;
-  --raised: rgba(255, 255, 255, 0.04);
-  --raised-solid: #161616;
+  --surface: rgba(255, 255, 255, 0.028);
+  --surface-solid: #121010;
+  --raised: rgba(255, 255, 255, 0.045);
+  --raised-solid: #191514;
   --raised-2: rgba(255, 255, 255, 0.075);
-  --glass: rgba(255, 255, 255, 0.025);
-  --glass-strong: rgba(6, 6, 6, 0.9);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-strong: rgba(15, 12, 11, 0.93);
+  --glass-border: rgba(255, 236, 224, 0.08);
   --glass-hi: rgba(255, 255, 255, 0.05);
-  --blur: 16px;
-  --border: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.22);
+  --blur: 18px;
 
-  /* text: white for what matters, grays for what supports it */
-  --text: #f5f5f5;
-  --text-soft: #c4c4c4;
-  --muted: #8a8a8a;
+  /* hairlines are warm cream, not white */
+  --border: rgba(255, 236, 224, 0.08);
+  --border-strong: rgba(255, 236, 224, 0.14);
 
-  /* the one brand colour: maple orange. Used for selection, primary actions,
-     progress and focus - never as a background wash. */
-  --brand: #e25303;
-  --accent: #e25303;
-  --accent-strong: #c94803;
-  --accent-bright: #ff8a4c;
-  --accent-2: #f08a4b;
-  --violet: #8f8f8f;
-  --accent-rgb: 226 83 3;
-  --accent-soft: rgb(var(--accent-rgb) / 0.16);
-  --on-accent: #ffffff;
+  /* text: cream for what matters, warm greys for what supports it */
+  --text: #f3ede8;
+  --text-soft: #d9cfc7;
+  --muted: #a89e97;
+  --faint: #746a64;
+
+  /* the ember accent: orange, amber and red */
+  --brand: #ff7a45;
+  --accent: #ff7a45;
+  --accent-strong: #ff5f28;
+  --accent-bright: #ffa276;
+  --accent-2: #ffb547;
+  --accent-3: #ff4d6d;
+  --violet: #c9a3a3;
+  --accent-rgb: 255 122 69;
+  --accent-soft: rgb(var(--accent-rgb) / 0.14);
+  --on-accent: #1b0f09;
   /* status only, never decoration */
-  --good: #4fbf8b;
-  --warn: #d3a24c;
-  --bad: #e06a6a;
+  --good: #63d6a0;
+  --warn: #ffb547;
+  --bad: #ff5f78;
 
-  /* shape and depth */
-  --radius: 12px;
-  --radius-sm: 9px;
-  --radius-lg: 16px;
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.46);
-  --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.62);
-  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.32);
-  --tooltip: #0b0b0b;
-  --tooltip-text: #ffffff;
-  --scrim: rgba(0, 0, 0, 0.74);
+  /* shape and depth: control 14/16, card 24/18, window 20 */
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-lg: 24px;
+  --radius-control: 14px;
+  --radius-control-lg: 16px;
+  --radius-card: 24px;
+  --radius-card-sm: 18px;
+  --radius-window: 20px;
+  --shadow: 0 14px 40px -18px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.7);
+  --focus: 0 0 0 3px rgb(var(--accent-rgb) / 0.28);
+  --tooltip: #1a1513;
+  --tooltip-text: #f3ede8;
+  --scrim: rgba(6, 4, 3, 0.72);
 
-  /* type */
-  --font: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-display: Inter, "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  /* type: a geometric grotesque, tight tracking, tabular numerals */
+  --font: "Google Sans", "Google Sans Text", "Product Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Google Sans", "Google Sans Display", "Product Sans", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
 
   /* motion */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --fast: 130ms;
+  --fast: 150ms;
   --med: 220ms;
 
-  /* the picture behind the window: held back to near-monochrome so the mark
-     and the white type stay the loudest things on screen */
-  --scene-veil: linear-gradient(180deg, rgba(4, 4, 4, 0.6) 0%, rgba(4, 4, 4, 0.34) 42%, rgba(3, 3, 3, 0.92) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 36%, rgba(0, 0, 0, 0.8) 100%);
-  --scene-filter: grayscale(0.72) contrast(1.04) brightness(0.92);
+  /* the picture behind the window: warmed and held back so type stays loud */
+  --scene-veil: linear-gradient(180deg, rgba(10, 8, 7, 0.62) 0%, rgba(10, 8, 7, 0.36) 42%, rgba(9, 7, 6, 0.92) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 36%, rgba(8, 6, 5, 0.8) 100%);
+  --scene-filter: saturate(0.9) sepia(0.12) contrast(1.03) brightness(0.94);
 
   /* names the older stylesheet still uses */
-  --hero-scrim: linear-gradient(90deg, rgba(4, 4, 4, 0.86), rgba(4, 4, 4, 0.3));
+  --hero-scrim: linear-gradient(90deg, rgba(12, 9, 7, 0.86), rgba(12, 9, 7, 0.3));
   --dock-bg: var(--glass-strong);
   --dock-border: var(--glass-border);
-  --sky-top: #020202;
-  --sky-mid: #1c1c1c;
-  --sky-bottom: #333333;
-  --sky-glow: #e8e8e8;
-  --sky-cloud: #dcdcdc;
+  --sky-top: #0b0908;
+  --sky-mid: #2a211c;
+  --sky-bottom: #3a2a20;
+  --sky-glow: #ffb577;
+  --sky-cloud: #f0d9cc;
   --sky-cloud-far: 0.07;
   --sky-cloud-near: 0.13;
-  --sky-hills: #060606;
+  --sky-hills: #0b0807;
   --sky-stars: 0.55;
-  --sky-sun: #ffffff;
+  --sky-sun: #ffd9bf;
 }
 
-/* Light appearance: the same two colours the other way round. White and pale
-   gray surfaces, near-black type, and a black primary action. */
+/* Light appearance: warm paper and ink. The same warm neutrals the other way
+   round, with a deeper orange so it still passes contrast on white. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f1f1f1;
-  --bg-2: #fafafa;
-  --surface: rgba(255, 255, 255, 0.74);
-  --surface-solid: #ffffff;
-  --raised: rgba(255, 255, 255, 0.84);
-  --raised-solid: #f4f4f4;
-  --raised-2: rgba(228, 228, 228, 0.92);
-  --glass: rgba(255, 255, 255, 0.66);
-  --glass-strong: rgba(255, 255, 255, 0.92);
-  --glass-border: rgba(12, 12, 12, 0.14);
+  --bg: #f4ede7;
+  --bg-2: #fbf7f3;
+  --surface: rgba(255, 255, 255, 0.66);
+  --surface-solid: #fffaf6;
+  --raised: rgba(255, 255, 255, 0.82);
+  --raised-solid: #fff6ef;
+  --raised-2: rgba(255, 240, 228, 0.94);
+  --glass: rgba(255, 252, 249, 0.6);
+  --glass-strong: rgba(255, 252, 249, 0.94);
+  --glass-border: rgba(66, 34, 18, 0.12);
   --glass-hi: rgba(255, 255, 255, 0.85);
-  --border: rgba(12, 12, 12, 0.12);
-  --border-strong: rgba(12, 12, 12, 0.28);
-  --text: #101010;
-  --text-soft: #2e2e2e;
-  --muted: #606060;
-  --brand: #c94803;
-  --accent: #c94803;
-  --accent-strong: #a83a02;
+  --border: rgba(66, 34, 18, 0.11);
+  --border-strong: rgba(66, 34, 18, 0.24);
+  --text: #1d1410;
+  --text-soft: #3d2c24;
+  --muted: #6f6058;
+  --faint: #93837a;
+  --brand: #d24d0f;
+  --accent: #d24d0f;
+  --accent-strong: #b73f0a;
   --accent-bright: #e25303;
-  --accent-2: #e25303;
-  --violet: #6a6a6a;
-  --accent-rgb: 201 72 3;
+  --accent-2: #b96a12;
+  --accent-3: #c22a45;
+  --violet: #8a6a6a;
+  --accent-rgb: 210 77 15;
   --accent-soft: rgb(var(--accent-rgb) / 0.12);
   --on-accent: #ffffff;
   --good: #10855a;
   --warn: #94621b;
   --bad: #bf3b3b;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.18);
-  --tooltip: #101010;
-  --tooltip-text: #ffffff;
-  --scrim: rgba(10, 10, 10, 0.42);
-  --scene-veil: linear-gradient(180deg, rgba(246, 246, 246, 0.58) 0%, rgba(246, 246, 246, 0.4) 40%, rgba(242, 242, 242, 0.88) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(214, 214, 214, 0.72));
-  --scene-filter: grayscale(0.72) contrast(1.02) brightness(1.06);
-  --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.2));
-  --sky-top: #c9c9c9;
-  --sky-mid: #e2e2e2;
-  --sky-bottom: #f6f6f6;
+  --shadow: 0 12px 34px rgba(74, 42, 24, 0.14);
+  --shadow-lg: 0 28px 70px rgba(74, 42, 24, 0.2);
+  --tooltip: #1d1410;
+  --tooltip-text: #fffaf6;
+  --scrim: rgba(30, 18, 12, 0.4);
+  --scene-veil: linear-gradient(180deg, rgba(250, 245, 240, 0.6) 0%, rgba(250, 245, 240, 0.42) 40%, rgba(246, 240, 234, 0.9) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(222, 208, 197, 0.72));
+  --scene-filter: saturate(0.92) sepia(0.06) contrast(1.02) brightness(1.06);
+  --hero-scrim: linear-gradient(90deg, rgba(255, 250, 246, 0.84), rgba(255, 250, 246, 0.24));
+  --sky-top: #e9d6c8;
+  --sky-mid: #f2e2d6;
+  --sky-bottom: #fbf3ec;
   --sky-glow: #ffffff;
   --sky-cloud: #ffffff;
   --sky-cloud-far: 0.55;
   --sky-cloud-near: 0.9;
-  --sky-hills: #a3a3a3;
+  --sky-hills: #b8a094;
   --sky-stars: 0;
   --sky-sun: #ffffff;
 }
 
-/* Offline mode: a lighter graphite-and-paper take on the monochrome system.
-   It stays clearly its own mode (desaturated, squared, hairline borders) but
-   keeps readable surfaces and text: no pure-black overlay across the window,
-   and no full-strength veil over the artwork. It applies over both appearances. */
+/* Offline mode keeps its own quieter, desaturated take on the system. */
 :root[data-play-mode="offline"] {
   color-scheme: dark;
-  --bg: #14161a;
-  --bg-2: #191c21;
-  --surface: rgba(255, 255, 255, 0.05);
-  --surface-solid: #1b1e24;
-  --raised: rgba(255, 255, 255, 0.08);
-  --raised-solid: #23272e;
-  --raised-2: rgba(255, 255, 255, 0.12);
-  --glass: rgba(255, 255, 255, 0.05);
-  --glass-strong: rgba(24, 27, 32, 0.92);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-hi: rgba(255, 255, 255, 0.08);
-  --border: rgba(255, 255, 255, 0.16);
-  --border-strong: rgba(255, 255, 255, 0.34);
-  --text: #f3f5f8;
-  --text-soft: #d3d7dd;
-  --muted: #a2a9b3;
-  --accent: #ffffff;
-  --accent-strong: #e6e8eb;
-  --accent-2: #c2c7ce;
-  --accent-rgb: 255 255 255;
-  --accent-soft: rgb(255 255 255 / 0.12);
-  --on-accent: #111317;
-  --radius: 6px;
-  --radius-sm: 5px;
-  --radius-lg: 8px;
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.55);
-  --scene-veil: linear-gradient(180deg, rgba(20, 22, 26, 0.34) 0%, rgba(20, 22, 26, 0.6) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(12, 14, 17, 0.55) 100%);
-  --scene-filter: grayscale(1) contrast(1.02) brightness(1);
-  --hero-scrim: linear-gradient(90deg, rgba(20, 22, 26, 0.86), rgba(20, 22, 26, 0.5));
-  --dock-bg: rgba(24, 27, 32, 0.94);
-  --dock-border: rgba(255, 255, 255, 0.18);
-  --tooltip: #f3f5f8;
-  --tooltip-text: #14161a;
-  --scrim: rgba(10, 12, 15, 0.7);
+  --bg: #14120f;
+  --bg-2: #191612;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-solid: #1b1815;
+  --raised: rgba(255, 255, 255, 0.07);
+  --raised-solid: #23201c;
+  --raised-2: rgba(255, 255, 255, 0.11);
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-strong: rgba(24, 21, 18, 0.93);
+  --glass-border: rgba(255, 236, 224, 0.16);
+  --glass-hi: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 236, 224, 0.14);
+  --border-strong: rgba(255, 236, 224, 0.3);
+  --text: #f3eee9;
+  --text-soft: #d6cdc6;
+  --muted: #a89e97;
+  --accent: #f3eee9;
+  --accent-strong: #e6dfd8;
+  --accent-2: #cbc2ba;
+  --accent-rgb: 255 236 224;
+  --accent-soft: rgb(255 236 224 / 0.12);
+  --on-accent: #14110f;
+  --scene-veil: linear-gradient(180deg, rgba(20, 18, 15, 0.36) 0%, rgba(20, 18, 15, 0.62) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(12, 10, 8, 0.55) 100%);
+  --scene-filter: grayscale(0.9) sepia(0.08) contrast(1.02) brightness(1);
+  --hero-scrim: linear-gradient(90deg, rgba(20, 18, 15, 0.86), rgba(20, 18, 15, 0.5));
+  --dock-bg: rgba(24, 21, 18, 0.94);
+  --dock-border: rgba(255, 236, 224, 0.18);
+  --tooltip: #f3eee9;
+  --tooltip-text: #14120f;
+  --scrim: rgba(10, 9, 7, 0.72);
   --sky-filter: grayscale(1);
 }
 
-/* Offline in the light appearance is paper and ink: white surfaces, black
-   hairlines, no colour. */
+/* Offline in the light appearance is paper and ink. */
 :root[data-theme="light"][data-play-mode="offline"] {
   color-scheme: light;
-  --bg: #f4f5f7;
-  --bg-2: #fbfbfc;
-  --surface: rgba(255, 255, 255, 0.9);
+  --bg: #f5f1ec;
+  --bg-2: #fbf8f5;
+  --surface: rgba(255, 255, 255, 0.88);
   --surface-solid: #ffffff;
-  --raised: rgba(250, 250, 251, 0.95);
+  --raised: rgba(251, 248, 245, 0.95);
   --raised-solid: #ffffff;
-  --raised-2: #eceef1;
+  --raised-2: #efe9e3;
   --glass: rgba(255, 255, 255, 0.86);
   --glass-strong: rgba(255, 255, 255, 0.96);
-  --glass-border: rgba(16, 18, 22, 0.2);
-  --border: rgba(16, 18, 22, 0.18);
-  --border-strong: rgba(16, 18, 22, 0.4);
-  --text: #101318;
-  --text-soft: #2b3038;
-  --muted: #5c636d;
-  --accent: #101318;
-  --accent-strong: #2a2f37;
-  --accent-2: #5c636d;
-  --accent-rgb: 16 19 24;
-  --accent-soft: rgb(16 19 24 / 0.1);
+  --glass-border: rgba(40, 28, 20, 0.2);
+  --border: rgba(40, 28, 20, 0.16);
+  --border-strong: rgba(40, 28, 20, 0.36);
+  --text: #191410;
+  --text-soft: #33291f;
+  --muted: #665b52;
+  --accent: #191410;
+  --accent-strong: #33291f;
+  --accent-2: #665b52;
+  --accent-rgb: 25 20 16;
+  --accent-soft: rgb(25 20 16 / 0.1);
   --on-accent: #ffffff;
-  --scene-veil: linear-gradient(180deg, rgba(250, 250, 251, 0.7) 0%, rgba(244, 245, 247, 0.86) 100%);
-  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(220, 222, 226, 0.6));
+  --scene-veil: linear-gradient(180deg, rgba(250, 247, 244, 0.7) 0%, rgba(245, 241, 236, 0.86) 100%);
+  --scene-vignette: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(224, 216, 209, 0.6));
   --scene-filter: grayscale(1) contrast(1) brightness(1.08);
   --hero-scrim: linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.55));
   --dock-bg: rgba(255, 255, 255, 0.96);
-  --dock-border: rgba(16, 18, 22, 0.18);
-  --tooltip: #101318;
+  --dock-border: rgba(40, 28, 20, 0.16);
+  --tooltip: #191410;
   --tooltip-text: #ffffff;
-  --scrim: rgba(20, 22, 26, 0.45);
+  --scrim: rgba(30, 20, 14, 0.45);
 }
 
 /* Mode changes are a calm fade rather than a flash between palettes. */

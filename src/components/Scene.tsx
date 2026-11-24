@@ -51,6 +51,11 @@ export function AppBackground({ id }: { id: BackdropId }) {
       </div>
       <div className="app-bg-veil" />
       <div className="app-bg-vignette" />
+      <div className="app-bg-ember" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
     </div>
   );
 }
