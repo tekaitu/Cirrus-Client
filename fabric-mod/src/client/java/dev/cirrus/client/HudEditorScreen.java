@@ -29,17 +29,17 @@ public final class HudEditorScreen extends CirrusScreen {
     public HudEditorScreen(Screen parent) { this(parent, ""); }
 
     public HudEditorScreen(Screen parent, String selectedId) {
-        super(Component.literal("Cirrus HUD Editor"), parent);
+        super(Component.literal("Maple HUD Editor"), parent);
         this.selected = selectedId;
     }
 
     @Override protected void init() {
         rows.clear();
         rowWidgets.clear();
-        railW = Math.max(compact() ? 126 : 140, Math.min(190, width / 3));
+        railW = Math.max(compact() ? 140 : 160, Math.min(200, width / 3));
         railX = width - 14 - railW;
         var cfg = config();
-        int w = railW - 16, toggleW = 48;
+        int w = railW - 16, toggleW = 60;
         listTop = 14 + 50;
         listBottom = height - 14 - 8 - 22 - 6;
         for (HudElement e : HudElementRegistry.all()) {

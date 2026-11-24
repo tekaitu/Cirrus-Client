@@ -1,5 +1,6 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.client.render.McCanvas;
 
 
 import dev.cirrus.core.input.Keys;
@@ -125,13 +126,13 @@ public final class ModPane {
         if (keyRow != null) {
             CirrusUi.text(g, font, "Toggle key", keyRow.x() + 2, keyRow.y() + (ROW - CirrusUi.LINE) / 2, 0xFFFFFFFF, false);
             boolean hover = keyBtn.contains(mx, my);
-            Gfx.fillRound(g, keyBtn.x(), keyBtn.y(), keyBtn.w(), keyBtn.h(), 5, listening ? 0xFFFFFFFF : (hover ? 0xFF141414 : 0xFF000000));
-            Gfx.strokeRound(g, keyBtn.x(), keyBtn.y(), keyBtn.w(), keyBtn.h(), 5, 0.5f, listening || hover ? 0xFFFFFFFF : t.border);
+            Gfx.fillRound(g, keyBtn.x(), keyBtn.y(), keyBtn.w(), keyBtn.h(), 5, listening ? t.accentDark : (hover ? 0xFF141414 : 0xFF000000));
+            Gfx.strokeRound(g, keyBtn.x(), keyBtn.y(), keyBtn.w(), keyBtn.h(), 5, 0.5f, listening || hover ? t.accent : t.border);
             String label = listening ? "Press a key" : ModKeys.label(mod.id());
             CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, label, keyBtn.w() - 8), keyBtn.x() + keyBtn.w() / 2, keyBtn.y() + (keyBtn.h() - CirrusUi.LINE) / 2, listening ? 0xFF000000 : 0xFFFFFFFF);
         }
         if (settingsRect != null) {
-            if (twoCol) g.fill(dividerX, y + pad, dividerX + 1, y + h - pad, t.border);
+            if (twoCol) McCanvas.of(g).fill(dividerX, y + pad, dividerX + 1, y + h - pad, t.border);
             settings.render(g, mx, my, t, focused);
         }
         if (resetBtn != null) button(g, font, resetBtn, "Reset settings", mx, my, t);
@@ -141,7 +142,7 @@ public final class ModPane {
     private static void button(GuiGraphics g, Font font, ClickGuiLayout.Rect r, String label, int mx, int my, CirrusTheme t) {
         boolean hover = r.contains(mx, my);
         Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, hover ? 0xFF141414 : 0xFF000000);
-        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 6, 0.5f, hover ? 0xFFFFFFFF : t.border);
+        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 6, 0.5f, hover ? t.accent : t.border);
         CirrusUi.centered(g, font, CirrusUi.fitBody(font, label, r.w() - 8), r.x() + r.w() / 2, r.y() + (r.h() - CirrusUi.LINE) / 2, 0xFFFFFFFF);
     }
 

@@ -48,14 +48,14 @@ public final class CirrusButton extends Button {
         float radius = Math.min(6f, h / 2f);
         selectedBlend = Anim.approach(selectedBlend, selected ? 1f : 0f, dt, 16f);
         boolean primary = style == Style.PRIMARY || selectedBlend > 0.5f;
-        // Flat black. Hover lifts the fill slightly and whitens the outline; primary and selected buttons get a white outline.
+        // Flat black. Hover lifts the fill slightly and turns the outline light orange; primary and selected buttons get an orange outline.
         int fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
-        int edge = Gfx.mix(primary ? 0xFFFFFFFF : t.border, 0xFFFFFFFF, hover);
+        int edge = Gfx.mix(primary ? t.accent : t.border, t.accentLight, hover);
         if (!active) { fill = 0xFF000000; edge = Gfx.scaleAlpha(t.border, 0.6f); }
 
         Gfx.fillRound(g, x, y, w, h, radius, fill);
         Gfx.strokeRound(g, x, y, w, h, radius, primary ? 1f : 0.5f, edge);
-        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, 0xFFFFFFFF);
+        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.accentLight);
 
         Font font = mc.font;
         int textColor = active ? 0xFFFFFFFF : 0xFF7A7A7A;

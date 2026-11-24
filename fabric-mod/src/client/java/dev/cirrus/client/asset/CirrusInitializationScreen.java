@@ -16,7 +16,7 @@ public final class CirrusInitializationScreen extends CirrusScreen {
     private boolean continued;
 
     public CirrusInitializationScreen(Screen parent, AssetManager assets) {
-        super(Component.literal("Initializing Cirrus"), parent);
+        super(Component.literal("Initializing Maple"), parent);
         this.assets = assets;
         assets.initialize();
     }

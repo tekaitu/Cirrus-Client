@@ -1,5 +1,6 @@
 package dev.cirrus.client;
 
+import dev.cirrus.client.render.McCanvas;
 import dev.cirrus.core.profile.Profiles;
 import dev.cirrus.core.module.ModRegistry;
 import dev.cirrus.core.module.CirrusMod;
@@ -57,7 +58,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
     public CirrusMenuScreen(Screen parent) { this(parent, false); }
 
     public CirrusMenuScreen(Screen parent, boolean openProfiles) {
-        super(Component.literal("Cirrus Mod Menu"), parent);
+        super(Component.literal("Maple Mod Menu"), parent);
         CirrusConfig cfg = config();
         String view = cfg.getString("ui.menu.view", "ALL");
         if (view.equals("FAVORITES")) favoritesOnly = true;
@@ -238,9 +239,9 @@ public final class CirrusMenuScreen extends CirrusScreen {
         var w = layout.window;
         CirrusUi.panel(g, w.x(), w.y(), w.w(), w.h(), 12, t);
         drawTopBar(g, mx, my, t);
-        g.fill(w.x() + 1, layout.topBar.bottom(), w.right() - 1, layout.topBar.bottom() + 1, t.border);
+        McCanvas.of(g).fill(w.x() + 1, layout.topBar.bottom(), w.right() - 1, layout.topBar.bottom() + 1, t.border);
         drawSidebar(g, mx, my, t);
-        g.fill(layout.sidebar.right(), layout.sidebar.y() + 1, layout.sidebar.right() + 1, layout.sidebar.bottom() - 1, t.border);
+        McCanvas.of(g).fill(layout.sidebar.right(), layout.sidebar.y() + 1, layout.sidebar.right() + 1, layout.sidebar.bottom() - 1, t.border);
         if (profilesPage) {
             profiles.render(g, mx, my, t);
             if (layout.content.contains(mx, my)) tooltip = profiles.tooltip(mx, my);
@@ -260,7 +261,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         var b = layout.brand;
         if (layout.rail) CirrusUi.mark(g, b.x(), b.y() + (b.h() - 14) / 2, 14, t);
         else CirrusUi.brand(g, b.x(), b.y() + (b.h() - 14) / 2, 14, t);
-        iconButton(g, layout.homeButton, Icons.GLOBE, mx, my, t, "Home: Cirrus news and partners.");
+        iconButton(g, layout.homeButton, Icons.GLOBE, mx, my, t, "Home: Maple news and partners.");
         iconButton(g, layout.closeButton, Icons.CLOSE, mx, my, t, "Close (Right Shift)");
     }
 
@@ -313,13 +314,13 @@ public final class CirrusMenuScreen extends CirrusScreen {
 
     private void drawSidebar(GuiGraphics g, int mx, int my, CirrusTheme t) {
         var sb = layout.sidebar;
-        g.enableScissor(sb.x(), sb.y(), sb.right(), sb.bottom() - 1);
+        McCanvas.of(g).pushClip(sb.x(), sb.y(), (sb.right()) - (sb.x()), (sb.bottom() - 1) - (sb.y()));
         List<Side> sides = sides();
         int ih = sideItemH();
         for (int i = 0; i < sides.size(); i++) {
             Side s = sides.get(i);
             int y = sideY(i, sides.size());
-            if (i == 2 || i == 3) g.fill(sb.x() + 10, y - 5, sb.right() - 10, y - 4, t.border);
+            if (i == 2 || i == 3) McCanvas.of(g).fill(sb.x() + 10, y - 5, sb.right() - 10, y - 4, t.border);
             int x = sb.x() + 6, w = sb.w() - 12;
             boolean on = sideSelected(s), hover = mx >= x && mx < x + w && my >= y && my < y + ih && sb.contains(mx, my);
             Gfx.fillRound(g, x, y, w, ih, 6, on ? WHITE : (hover ? 0xFF141414 : 0xFF000000));
@@ -333,12 +334,12 @@ public final class CirrusMenuScreen extends CirrusScreen {
                 if (s.count() >= 0) CirrusUi.rightSmall(g, font, Integer.toString(s.count()), x + w - 6, y + (ih - CirrusUi.LINE) / 2, on ? 0xFF000000 : GRAY);
             }
         }
-        g.disableScissor();
+        McCanvas.of(g).popClip();
     }
 
     private void drawGrid(GuiGraphics g, int mx, int my, float dt, CirrusTheme t) {
         var l = layout.list;
-        g.enableScissor(l.x(), l.y(), l.right(), l.bottom());
+        McCanvas.of(g).pushClip(l.x(), l.y(), (l.right()) - (l.x()), (l.bottom()) - (l.y()));
         int cw = cellW();
         for (Cell c : cells) {
             int y = cellY(c);
@@ -347,10 +348,10 @@ public final class CirrusMenuScreen extends CirrusScreen {
             if (c.mod() == null) {
                 int tw = CirrusUi.smallWidth(font, c.header());
                 CirrusUi.smallText(g, font, c.header(), l.x() + 2, y + 4, WHITE, false);
-                g.fill(l.x() + 2 + tw + 8, y + 8, l.x() + (cw + GAP) * layout.columns - GAP, y + 9, 0xFF2A2A2A);
+                McCanvas.of(g).fill(l.x() + 2 + tw + 8, y + 8, l.x() + (cw + GAP) * layout.columns - GAP, y + 9, 0xFF2A2A2A);
             } else drawRow(g, c.mod(), cellX(c), y, cw, mx, my, dt, t);
         }
-        g.disableScissor();
+        McCanvas.of(g).popClip();
         if (maxScroll() > 0) CirrusUi.scrollbar(g, l.right() - 3, l.y(), l.h(), scroll / maxScroll(), (float) l.h() / Math.max(1, contentH), t);
         if (cells.isEmpty()) {
             String msg = searching() ? "No modules match your search." : favoritesOnly ? "No favorites yet. Hover a module and click its star." : "No modules here yet.";
@@ -427,7 +428,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
             PItem it = items.get(i);
             int y = r.y() + 4 + i * P_ROW;
             boolean hover = mx >= r.x() + 4 && mx < r.right() - 4 && my >= y && my < y + P_ROW;
-            if (it.kind() != P_LOAD && i > 0 && items.get(i - 1).kind() == P_LOAD) g.fill(r.x() + 8, y - 1, r.right() - 8, y, t.border);
+            if (it.kind() != P_LOAD && i > 0 && items.get(i - 1).kind() == P_LOAD) McCanvas.of(g).fill(r.x() + 8, y - 1, r.right() - 8, y, t.border);
             if (hover) Gfx.fillRound(g, r.x() + 4, y, r.w() - 8, P_ROW, 5, 0xFF1A1A1A);
             if (it.kind() == P_LOAD) {
                 if (it.active()) Glyphs.draw(g, Icons.CHECK, r.x() + 9, y + (P_ROW - 10) / 2, 10, WHITE);

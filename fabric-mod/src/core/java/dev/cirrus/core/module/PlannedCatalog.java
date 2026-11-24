@@ -12,7 +12,7 @@ import java.util.List;
  * the Click GUI picks it up in the same category with no other change. Nothing in this list does anything in game.
  */
 public final class PlannedCatalog {
-    private static final String PLATFORM = "Provided by the Cirrus platform, not by an in-game module.";
+    private static final String PLATFORM = "Provided by the Maple platform, not by an in-game module.";
 
     /** One planned feature. Immutable. */
     public static final class Entry {

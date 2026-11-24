@@ -11,7 +11,7 @@ public final class CirrusWelcomeScreen extends CirrusScreen {
     private int px, py, pw, ph, brandSize;
     private boolean roomy;
 
-    public CirrusWelcomeScreen(Screen parent) { super(Component.literal("Welcome to Cirrus"), parent); }
+    public CirrusWelcomeScreen(Screen parent) { super(Component.literal("Welcome to Maple"), parent); }
 
     @Override protected void init() {
         pw = Math.min(300, width - 16);

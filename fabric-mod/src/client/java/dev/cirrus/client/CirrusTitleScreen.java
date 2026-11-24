@@ -1,5 +1,6 @@
 package dev.cirrus.client;
 
+import dev.cirrus.client.render.McCanvas;
 
 import dev.cirrus.core.render.Icons;
 import dev.cirrus.client.asset.CirrusAssetTextures;
@@ -65,7 +66,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         if (openedAt == 0) openedAt = System.currentTimeMillis();
 
         int nameWidth = CirrusUi.bodyWidth(font, playerName);
-        layout = new MenuLayout(width, height, dashboard.partners().size(), CirrusUi.headingWidth(font, "CIRRUS CLIENT"), nameWidth);
+        layout = new MenuLayout(width, height, dashboard.partners().size(), CirrusUi.headingWidth(font, dev.cirrus.core.theme.Brand.NAME.toUpperCase(java.util.Locale.ROOT)), nameWidth);
         MenuLayout.Rect[] b = layout.buttons;
         DashboardConfig.Store store = dashboard.store();
 
@@ -74,7 +75,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         add(MenuButton.list(b[2].x(), b[2].y(), b[2].w(), b[2].h(), "Cosmetics", Icons.COSMETICS, x -> minecraft.setScreen(new SkinCustomizationScreen(this, minecraft.options))));
         add(MenuButton.list(b[3].x(), b[3].y(), b[3].w(), b[3].h(), "Screenshots", Icons.SCREENSHOTS, x -> PlatformOpen.folder(PlatformOpen.screenshots())));
         MenuButton storeButton = MenuButton.primary(b[4].x(), b[4].y(), b[4].w(), b[4].h(), store.label(), Icons.STORE, x -> PlatformOpen.link(this, store.url()));
-        if (!store.enabled()) storeButton.setTooltip(Tooltip.create(Component.literal("The Cirrus store is not connected yet. It is configured from the Cirrus dashboard.")));
+        if (!store.enabled()) storeButton.setTooltip(Tooltip.create(Component.literal("The Maple store is not connected yet. It is configured from the Cirrus dashboard.")));
         else if (!dashboard.storePromos().isEmpty()) storeButton.setTooltip(Tooltip.create(Component.literal(dashboard.storePromos().get(0).text())));
         add(storeButton);
         MenuLayout.Rect q = layout.quit;
@@ -84,7 +85,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         add(MenuButton.square(i[0].x(), i[0].y(), i[0].w(), Icons.GRID, "Mod menu  (Right Shift)", x -> minecraft.setScreen(new CirrusMenuScreen(this))));
         add(MenuButton.square(i[1].x(), i[1].y(), i[1].w(), Icons.CHAT, "Chat settings", x -> minecraft.setScreen(new ChatOptionsScreen(this, minecraft.options))));
         add(MenuButton.square(i[2].x(), i[2].y(), i[2].w(), Icons.SETTINGS, "Game options", x -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))));
-        add(MenuButton.square(i[3].x(), i[3].y(), i[3].w(), Icons.BOX, "Cirrus home", x -> minecraft.setScreen(new CirrusDashboardScreen(this))));
+        add(MenuButton.square(i[3].x(), i[3].y(), i[3].w(), Icons.BOX, "Maple home", x -> minecraft.setScreen(new CirrusDashboardScreen(this))));
         add(MenuButton.square(i[4].x(), i[4].y(), i[4].w(), Icons.LIST, "HUD editor", x -> minecraft.setScreen(new HudEditorScreen(this))));
 
         for (int n = 0; n < layout.partnerTiles.length; n++) {
@@ -120,13 +121,13 @@ public final class CirrusTitleScreen extends TitleScreen {
         CirrusUi.centeredSmall(g, font, versionLine, width / 2, layout.versionY, Gfx.scaleAlpha(t.muted, 0.8f));
         drawProfile(g, t);
         drawBanner(g, t);
-        if (fade < 1f) g.fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - fade) * 200)));
+        if (fade < 1f) McCanvas.of(g).fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - fade) * 200)));
     }
 
     private void drawLogo(GuiGraphics g, CirrusTheme t) {
         MenuLayout.Rect m = layout.logoMark;
         CirrusAssetTextures.drawMark(g, m.x(), m.y(), m.w(), m.h(), 0xFFFFFFFF);
-        if (layout.logoText) CirrusUi.headingText(g, font, "CIRRUS CLIENT", layout.logoTextX, layout.logoTextY, t.text);
+        if (layout.logoText) CirrusUi.headingText(g, font, dev.cirrus.core.theme.Brand.NAME.toUpperCase(java.util.Locale.ROOT), layout.logoTextX, layout.logoTextY, t.text);
     }
 
     private void drawStrip(GuiGraphics g, CirrusTheme t) {

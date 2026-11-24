@@ -1,5 +1,6 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.client.render.McCanvas;
 
 import dev.cirrus.core.input.Keys;
 import dev.cirrus.core.theme.CirrusTheme;
@@ -73,7 +74,7 @@ public final class SettingsPanel {
 
     public void render(GuiGraphics g, int mx, int my, CirrusTheme t, boolean focused) {
         Font font = font();
-        g.enableScissor(x - 2, y, x + w + 2, y + h);
+        McCanvas.of(g).pushClip(x - 2, y, (x + w + 2) - (x - 2), (y + h) - (y));
         for (int i = 0; i < rows.size(); i++) {
             Row r = rows.get(i);
             int top = rowTop(i);
@@ -81,7 +82,7 @@ public final class SettingsPanel {
             if (r.setting() == null) CirrusUi.smallText(g, font, r.header().toUpperCase(java.util.Locale.ROOT), x + 2, top + 5, t.muted, false);
             else drawRow(g, font, r.setting(), top, focused && i == selected, mx, my, t);
         }
-        g.disableScissor();
+        McCanvas.of(g).popClip();
         if (maxScroll() > 0) CirrusUi.scrollbar(g, x + w - 3, y, h, scroll / (float) maxScroll(), h / (float) contentHeight(), t);
     }
 
@@ -90,7 +91,7 @@ public final class SettingsPanel {
         int rh = rowH(), r = right();
         boolean hover = mx >= x && mx < r && my >= top && my < top + rh && my >= y && my < y + h;
         if (sel || hover) Gfx.fillRound(g, x, top + 1, r - x, rh - 2, 6, sel ? 0xFF0D0D0D : 0xFF080808);
-        if (sel) Gfx.strokeRound(g, x, top + 1, r - x, rh - 2, 6, 0.5f, 0xFFFFFFFF);
+        if (sel) Gfx.strokeRound(g, x, top + 1, r - x, rh - 2, 6, 0.5f, t.accent);
         int textColor = active ? t.text : Gfx.scaleAlpha(t.muted, 0.6f);
         String v = value(s);
         int cy = stacked ? top + rh - 10 : top + rh / 2;
@@ -113,8 +114,8 @@ public final class SettingsPanel {
                 int tx = trackX() + (stacked ? 4 : 0), tw = trackW();
                 double f = s.fraction(v);
                 Gfx.fillRound(g, tx, cy - 2, tw, 4, 2, active ? Gfx.scaleAlpha(t.border, 0.9f) : Gfx.scaleAlpha(t.border, 0.4f));
-                Gfx.fillRound(g, tx, cy - 2, Math.max(3, (float) (tw * f)), 4, 2, active ? 0xFFFFFFFF : Gfx.scaleAlpha(0xFFFFFFFF, 0.4f));
-                Gfx.fillRound(g, tx + (float) (tw * f) - 4, cy - 5, 8, 10, 4, active ? 0xFFFFFFFF : Gfx.scaleAlpha(0xFFFFFFFF, 0.4f));
+                Gfx.fillRound(g, tx, cy - 2, Math.max(3, (float) (tw * f)), 4, 2, active ? t.accent : Gfx.scaleAlpha(t.accent, 0.4f));
+                Gfx.fillRound(g, tx + (float) (tw * f) - 4, cy - 5, 8, 10, 4, active ? t.accentLight : Gfx.scaleAlpha(t.accentLight, 0.4f));
                 String shown = s.display(v);
                 CirrusUi.smallText(g, font, shown, r - CirrusUi.smallWidth(font, shown) - 4, cy - 4, textColor, false);
             }

@@ -1,5 +1,6 @@
 package dev.cirrus.client;
 
+import dev.cirrus.client.render.McCanvas;
 import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.core.module.ModRegistry;
 import dev.cirrus.client.ui.*;
@@ -13,7 +14,7 @@ import net.minecraft.network.chat.Component;
 public final class CirrusDashboardScreen extends CirrusScreen {
     private int px, py, pw, ph;
 
-    public CirrusDashboardScreen(Screen parent) { super(Component.literal("Cirrus Home"), parent); }
+    public CirrusDashboardScreen(Screen parent) { super(Component.literal("Maple Home"), parent); }
 
     @Override protected Tab activeTab() { return Tab.HOME; }
 
@@ -32,7 +33,7 @@ public final class CirrusDashboardScreen extends CirrusScreen {
         CirrusUi.panel(g, px, py, pw, ph, 14, t);
         int pad = compact() ? 8 : 14, x = px + pad, w = pw - pad * 2, y = py + pad;
         CirrusUi.headingText(g, font, "YOUR SESSION", x, y, t.cyan);
-        g.fill(x, y + 14, x + w, y + 15, t.border);
+        McCanvas.of(g).fill(x, y + 14, x + w, y + 15, t.border);
         y += 22;
         long on = ModRegistry.all().stream().filter(m -> m.enabled(config())).count();
         row(g, x, y, w, "Minecraft", "1.21.11  ·  " + Minecraft.getInstance().getLaunchedVersion(), t); y += 14;

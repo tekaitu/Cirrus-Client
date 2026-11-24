@@ -1,5 +1,6 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.client.render.McCanvas;
 
 import dev.cirrus.client.render.McInput;
 import dev.cirrus.core.input.Keys;
@@ -49,7 +50,7 @@ public abstract class CirrusScreen extends Screen {
         int closeSize = 22;
         int y = margin;
         int markSize = twoRows ? 28 : 18;
-        int brandW = twoRows ? CirrusUi.brandWidth(font, markSize) : (markSize * 640 + 236) / 473;
+        int brandW = twoRows ? CirrusUi.brandWidth(font, markSize) : dev.cirrus.core.theme.Brand.markWidth(markSize);
         int tabsY = twoRows ? y + markSize + 8 : y;
         // right cluster: close button, then (roomy only) the player chip
         addRenderableWidget(CirrusButton.icon(width - margin - closeSize, y + (twoRows ? (markSize - closeSize) / 2 : (rowH - closeSize) / 2), closeSize, CirrusUi.ICON_CLOSE, b -> closeAll()));
@@ -117,7 +118,7 @@ public abstract class CirrusScreen extends Screen {
     /** The darkened game when in a world, the Cirrus artwork otherwise. */
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {
         // Flat black: solid over the menu, a heavy black veil over the game when opened in a world.
-        if (minecraft.level != null) g.fill(0, 0, width, height, 0xE6000000);
+        if (minecraft.level != null) McCanvas.of(g).fill(0, 0, width, height, 0xE6000000);
         else CirrusUi.backdrop(g, width, height, theme());
     }
 
@@ -129,7 +130,7 @@ public abstract class CirrusScreen extends Screen {
         super.render(g, mx, my, delta);
         drawOverlay(g, mx, my, delta, t);
         float open = Anim.easeOut((Anim.now() - openedAt) / 200f);
-        if (open < 1f) g.fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - open) * 120)));
+        if (open < 1f) McCanvas.of(g).fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - open) * 120)));
         dev.cirrus.core.perf.PerfMeter.MENU.end();
         dev.cirrus.core.perf.PerfOverlay.draw(dev.cirrus.client.render.McCanvas.of(g), height);
         McInput.INSTANCE.endFrame();

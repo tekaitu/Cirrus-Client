@@ -42,7 +42,7 @@ public interface Canvas {
 
     void popTransform();
 
-    /** Restricts drawing to a rectangle until {@link #popClip()}. Clips do not nest. */
+    /** Restricts drawing to a rectangle until {@link #popClip()}. Clips nest: the visible area is the intersection. */
     void pushClip(int x, int y, int w, int h);
 
     void popClip();

@@ -83,7 +83,7 @@ public final class ProfileCodec {
     public static Profile decode(String code) {
         if (code == null) throw new IllegalArgumentException("Nothing to import.");
         String c = code.trim();
-        if (!c.startsWith(PREFIX)) throw new IllegalArgumentException("That is not a Cirrus profile code.");
+        if (!c.startsWith(PREFIX)) throw new IllegalArgumentException("That is not a Maple profile code.");
         if (c.length() > MAX_CODE) throw new IllegalArgumentException("That profile code is too large.");
         byte[] packed;
         try { packed = Base64.getUrlDecoder().decode(c.substring(PREFIX.length())); }

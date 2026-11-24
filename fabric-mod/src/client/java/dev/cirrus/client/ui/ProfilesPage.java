@@ -1,5 +1,6 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.client.render.McCanvas;
 
 import dev.cirrus.core.render.Icons;
 import dev.cirrus.core.theme.CirrusTheme;
@@ -85,7 +86,7 @@ public final class ProfilesPage {
         button(g, font, createBtn, "Create", Icons.ADD, false, mx, my, t, true);
         button(g, font, shareBtn, "Share current settings", Icons.EXTERNAL, false, mx, my, t, false);
         button(g, font, importBtn, "Import from clipboard", Icons.LIST, false, mx, my, t, false);
-        g.enableScissor(listRect.x() - 2, listRect.y(), listRect.right() + 2, listRect.bottom());
+        McCanvas.of(g).pushClip(listRect.x() - 2, listRect.y(), (listRect.right() + 2) - (listRect.x() - 2), (listRect.bottom()) - (listRect.y()));
         for (int i = 0; i < names.size(); i++) {
             var r = rowRect(i);
             if (r.bottom() < listRect.y() || r.y() > listRect.bottom()) continue;
@@ -109,7 +110,7 @@ public final class ProfilesPage {
                 button(g, font, b, confirm ? "Sure?" : LABELS[s], GLYPHS[s], compactButtons && !confirm, mx, my, t, false);
             }
         }
-        g.disableScissor();
+        McCanvas.of(g).popClip();
         if (maxScroll() > 0) CirrusUi.scrollbar(g, x + w - 3, listRect.y(), listRect.h(), scroll / (float) maxScroll(), listRect.h() / (float) (names.size() * ROW_H), t);
         if (names.isEmpty()) CirrusUi.centeredSmall(g, font, "No profiles yet. Type a name and press Create to save your current settings.", x + w / 2, listRect.y() + 12, 0xFF8C8C8C);
         if (!status.isEmpty()) CirrusUi.smallText(g, font, CirrusUi.fitSmall(font, status, w), x, y + h - 10, 0xFFFFFFFF, false);
@@ -133,7 +134,7 @@ public final class ProfilesPage {
     public String tooltip(double mx, double my) {
         if (createBtn.contains(mx, my)) return "Save your current settings as a new profile.";
         if (shareBtn.contains(mx, my)) return "Copy a code of all your current module settings to the clipboard. Anyone can paste it into Import.";
-        if (importBtn.contains(mx, my)) return "Read a Cirrus profile code from the clipboard and save it as a new profile.";
+        if (importBtn.contains(mx, my)) return "Read a Maple profile code from the clipboard and save it as a new profile.";
         for (int i = 0; i < names.size(); i++) {
             var r = rowRect(i);
             if (!listRect.contains(mx, my)) break;

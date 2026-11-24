@@ -1,7 +1,7 @@
 package dev.cirrus.client.render;
 
 import dev.cirrus.client.ui.CirrusUi;
-import dev.cirrus.client.ui.Glyphs;
+import dev.cirrus.client.ui.Gfx;
 import dev.cirrus.core.perf.PerfCounters;
 import dev.cirrus.core.render.Canvas;
 import dev.cirrus.core.text.TextStyle;
@@ -18,6 +18,9 @@ import net.minecraft.resources.Identifier;
  * Render thread only.
  */
 public final class McCanvas implements Canvas {
+    /** Cirrus' glyph sheet (tools/make_glyphs.py): white 64px cells, 8 columns x 8 rows, tinted when drawn. Indices are {@code Icons}. */
+    private static final Identifier GLYPH_SHEET = Identifier.fromNamespaceAndPath("cirrus_fabric", "textures/gui/glyphs.png");
+    private static final int GLYPH_COLS = 8, GLYPH_ROWS = 8, GLYPH_CELL = 64;
     private static final McCanvas INSTANCE = new McCanvas();
     private GuiGraphics g;
 
@@ -52,16 +55,18 @@ public final class McCanvas implements Canvas {
 
     @Override public void icon(int index, int x, int y, int size, int argb) {
         PerfCounters.icons++;
-        Glyphs.draw(g, index, x, y, size, argb);
+        int i = Math.floorMod(index, GLYPH_COLS * GLYPH_ROWS);
+        Gfx.region(g, GLYPH_SHEET, x, y, size, size, (i % GLYPH_COLS) * GLYPH_CELL, (i / GLYPH_COLS) * GLYPH_CELL, GLYPH_CELL, GLYPH_CELL,
+            GLYPH_COLS * GLYPH_CELL, GLYPH_ROWS * GLYPH_CELL, argb);
     }
 
     @Override public void text(String text, TextStyle style, int x, int y, int argb, boolean shadow) {
         PerfCounters.texts++;
         var font = Minecraft.getInstance().font;
         switch (style) {
-            case BODY -> CirrusUi.text(g, font, text, x, y, argb, shadow);
-            case SMALL -> CirrusUi.smallText(g, font, text, x, y, argb, shadow);
-            case HEADING -> CirrusUi.headingText(g, font, text, x, y, argb);
+            case BODY -> g.drawString(font, CirrusUi.body(text), x, y + CirrusUi.NUDGE, argb, shadow);
+            case SMALL -> g.drawString(font, CirrusUi.small(text), x, y + CirrusUi.NUDGE, argb, shadow);
+            case HEADING -> g.drawString(font, CirrusUi.heading(text), x, y, argb, false);
         }
     }
 

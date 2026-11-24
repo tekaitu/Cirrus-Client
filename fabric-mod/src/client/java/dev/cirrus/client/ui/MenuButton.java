@@ -51,7 +51,7 @@ public final class MenuButton extends Button {
         switch (kind) {
             case PRIMARY -> {
                 fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
-                edge = 0xFFFFFFFF;
+                edge = Gfx.mix(t.accent, t.accentLight, hover);
                 text = 0xFFFFFFFF; icon = 0xFFFFFFFF;
             }
             case QUIT -> {
@@ -61,7 +61,7 @@ public final class MenuButton extends Button {
             }
             default -> {
                 fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
-                edge = Gfx.mix(t.border, 0xFFFFFFFF, hover);
+                edge = Gfx.mix(t.border, t.accentLight, hover);
                 text = 0xFFFFFFFF; icon = 0xFFFFFFFF;
             }
         }
@@ -71,7 +71,7 @@ public final class MenuButton extends Button {
             Gfx.fillRound(g, x, y, w, h, radius, fill);
             Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
         }
-        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, 0xFFFFFFFF);
+        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.accentLight);
 
         Font font = mc.font;
         if (kind == Kind.SQUARE) {

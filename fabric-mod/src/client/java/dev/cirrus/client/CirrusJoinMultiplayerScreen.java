@@ -1,5 +1,6 @@
 package dev.cirrus.client;
 
+import dev.cirrus.client.render.McCanvas;
 
 
 import dev.cirrus.core.input.Keys;
@@ -39,7 +40,7 @@ import java.util.List;
  * exactly the vanilla one.
  */
 public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
-    private static final int STAR = 0xFFFFC94D, ACCENT = 0xFF42C8F5;
+    private static final int STAR = 0xFFFFC94D, ACCENT = dev.cirrus.core.theme.Brand.LIGHT;
     private static final Component EDIT = Component.translatable("selectServer.edit"), DELETE = Component.translatable("selectServer.delete");
 
     private final List<PartnerEntry> partnerEntries = new ArrayList<>();
@@ -76,7 +77,7 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
             if (!(child instanceof Button b) || !b.visible) continue;
             int x = b.getX(), y = b.getY(), w = b.getWidth(), h = b.getHeight();
             boolean lit = b.active && b.isHoveredOrFocused();
-            g.fill(x, y, x + w, y + h, 0xFF000000);
+            McCanvas.of(g).fill(x, y, x + w, y + h, 0xFF000000);
             int edge = !b.active ? 0xFF2A2F38 : lit ? 0xFFFFFFFF : 0xFF4A515E;
             g.renderOutline(x, y, w, h, edge);
             int color = b.active ? 0xFFFFFFFF : 0xFF6B7280;
@@ -163,7 +164,7 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
         private final boolean advertised;
         private final String startLabel;
         private final String partnerName;
-        private final int markW = (MARK_H * 640 + 236) / 473;
+        private final int markW = dev.cirrus.core.theme.Brand.markWidth(MARK_H);
         private int startX, startY, startW, startH;
         boolean startVisible;
 
@@ -191,7 +192,7 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
             CirrusAssetTextures.drawMark(g, nameX, ty, markW, MARK_H, 0xFFFFFFFF);
             Glyphs.draw(g, Icons.STAR, nameX + markW + 2, ty - 1, 10, STAR);
             if (mouseX >= nameX && mouseX < nameX + markW + 2 + 10 && mouseY >= ty - 1 && mouseY < ty + 9) {
-                g.setTooltipForNextFrame(Component.literal("Official Cirrus partner server"), mouseX, mouseY);
+                g.setTooltipForNextFrame(Component.literal("Official Maple partner server"), mouseX, mouseY);
             }
             if (!startLabel.isEmpty()) drawStart(g, mouseX, mouseY, x, y, w, h);
         }
@@ -206,7 +207,7 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
             startY = outside ? y + (h - startH) / 2 : y + h - startH - 1;
             startVisible = true;
             boolean over = mouseX >= startX && mouseX < startX + startW && mouseY >= startY && mouseY < startY + startH;
-            g.fill(startX, startY, startX + startW, startY + startH, 0xFF000000);
+            McCanvas.of(g).fill(startX, startY, startX + startW, startY + startH, 0xFF000000);
             g.renderOutline(startX, startY, startW, startH, over ? 0xFFFFFFFF : ACCENT);
             String label = CirrusUi.fitBody(font, startLabel, startW - 6);
             CirrusUi.centered(g, font, label, startX + startW / 2, startY + (startH - CirrusUi.LINE) / 2, 0xFFFFFFFF);
@@ -221,7 +222,7 @@ public class CirrusJoinMultiplayerScreen extends JoinMultiplayerScreen {
         }
 
         @Override public Component getNarration() {
-            return Component.literal("Official Cirrus partner server ").append(super.getNarration());
+            return Component.literal("Official Maple partner server ").append(super.getNarration());
         }
     }
 }

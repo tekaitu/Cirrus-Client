@@ -1,5 +1,6 @@
 package dev.cirrus.client.ui;
 
+import dev.cirrus.client.render.McCanvas;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -13,6 +14,6 @@ public abstract class SceneScreen extends Screen {
     protected SceneScreen(Component title) { super(title); }
 
     @Override public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        g.fill(0, 0, width, height, 0xFF000000);
+        McCanvas.of(g).fill(0, 0, width, height, 0xFF000000);
     }
 }

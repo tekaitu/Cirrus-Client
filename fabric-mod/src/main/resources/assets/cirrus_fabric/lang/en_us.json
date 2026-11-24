@@ -1,7 +1,7 @@
 {
-  "key.cirrus.open_gui": "Open Cirrus menu",
-  "key.category.cirrus_fabric.general": "Cirrus",
-  "key.category.cirrus_fabric.modules": "Cirrus modules",
+  "key.cirrus.open_gui": "Open Maple menu",
+  "key.category.cirrus_fabric.general": "Maple",
+  "key.category.cirrus_fabric.modules": "Maple modules",
   "key.cirrus.toggle.fps": "Toggle FPS",
   "key.cirrus.toggle.ping": "Toggle Ping",
   "key.cirrus.toggle.armor_status": "Toggle Armor Status",
