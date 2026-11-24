@@ -2138,8 +2138,8 @@ describe("Versions", () => {
     const dialog = await screen.findByRole("dialog", { name: "Install Minecraft 1.21.11" });
     expect(within(dialog).getByRole("radio", { name: /^Fabric/ })).toBeTruthy();
     expect(within(dialog).getByRole("radio", { name: /^Vanilla/ })).toBeTruthy();
-    // OptiFine is explained instead of being offered without a verified installer.
-    expect(within(dialog).getByText(/OptiFine/)).toBeTruthy();
+    // OptiFine is added to the instance afterwards, and the dialog says so.
+    expect(within(dialog).getByText(/added after the install/)).toBeTruthy();
     // The recommended Fabric loader is preselected and can be changed before installing.
     expect(await within(dialog).findByRole("combobox")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("radio", { name: /^Vanilla/ }));
