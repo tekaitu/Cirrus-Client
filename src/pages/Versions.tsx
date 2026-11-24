@@ -130,6 +130,8 @@ export function VersionsPage({
   const currentFamily = current?.family ?? familyOf(version);
   const installedHere = instances.filter((i) => i.minecraft === version);
   const chosen = installedHere.find((i) => i.loader === loader) ?? null;
+  // OptiFine belongs to a Vanilla instance, whichever loader the rail is showing.
+  const optifineTarget = installedHere.find((i) => i.loader === "vanilla") ?? null;
   const installed = game.status?.installed === true && game.status.minecraft === version;
   const running = game.run.phase === "running" || game.run.phase === "starting";
   const downloading = game.installer.phase === "running";
@@ -200,12 +202,12 @@ export function VersionsPage({
 
   /** The jar is checked in Rust; this only reads the file and reports the answer. */
   const addOptifine = async (file: File | undefined) => {
-    if (!file || !chosen) return;
+    if (!file || !optifineTarget) return;
     setOptifineBusy(true);
     setOptifineNotice(null);
     try {
       const dataBase64 = await readBase64(file);
-      await api.installOptifine(chosen.id, file.name, dataBase64);
+      await api.installOptifine(optifineTarget.id, file.name, dataBase64);
       await data.reloadInstances();
       setOptifineNotice({ tone: "good", text: `${file.name} is installed. Play starts it through OptiFine.` });
     } catch (e) {
@@ -448,20 +450,20 @@ export function VersionsPage({
             ))}
           </div>
 
-          {chosen && supportsOptifine(version) && (
+          {optifineTarget && supportsOptifine(version) && (
             <div className="vx-optifine-block">
               <div className="vx-optifine-head">
                 <span className="vx-optifine-name">
                   <OptifineIcon /> OptiFine
                 </span>
-                {chosen.optifine ? (
+                {optifineTarget.optifine ? (
                   <>
-                    <span className="vx-badge vx-badge-good">{chosen.optifine}</span>
+                    <span className="vx-badge vx-badge-good">{optifineTarget.optifine}</span>
                     <button
                       type="button"
                       className="link-inline"
                       disabled={optifineBusy}
-                      onClick={() => void dropOptifine(chosen)}
+                      onClick={() => void dropOptifine(optifineTarget)}
                     >
                       Remove
                     </button>
@@ -470,7 +472,7 @@ export function VersionsPage({
                   <button
                     type="button"
                     className="btn btn-small"
-                    disabled={optifineBusy || chosen.loader !== "vanilla"}
+                    disabled={optifineBusy}
                     onClick={() => optifineFile.current?.click()}
                   >
                     {optifineBusy ? "Adding…" : "Choose jar…"}
@@ -478,11 +480,9 @@ export function VersionsPage({
                 )}
               </div>
               <p className="muted small">
-                {chosen.optifine
-                  ? `Minecraft ${version} starts through OptiFine ${chosen.optifine}.`
-                  : chosen.loader !== "vanilla"
-                    ? "OptiFine replaces the game's own launcher, so it needs a Vanilla instance."
-                    : `Download OptiFine for ${version} from optifine.net, then choose that .jar. It is checked before anything is installed.`}
+                {optifineTarget.optifine
+                  ? `“${optifineTarget.name}” starts Minecraft ${version} through OptiFine ${optifineTarget.optifine}.`
+                  : `Download OptiFine for ${version} from optifine.net, then choose that .jar for “${optifineTarget.name}”. It is checked before anything is installed.`}
               </p>
               {optifineNotice && (
                 <p className={`vx-optifine-note small vx-note-${optifineNotice.tone}`} role="status">
@@ -500,10 +500,19 @@ export function VersionsPage({
             </div>
           )}
 
-          {!chosen && supportsOptifine(version) && (
+          {!optifineTarget && supportsOptifine(version) && (
             <p className="vx-optifine muted small">
-              <strong>OptiFine</strong> can be added once {version} is installed: it attaches to an instance, not to a
-              download.
+              {installedHere.length === 0 ? (
+                <>
+                  <strong>OptiFine</strong> can be added once {version} is installed: it attaches to an instance, not to a
+                  download.
+                </>
+              ) : (
+                <>
+                  <strong>OptiFine</strong> needs a Vanilla instance of {version}: this version is only installed with a
+                  loader, and OptiFine replaces the game&apos;s own launcher.
+                </>
+              )}
             </p>
           )}
 
