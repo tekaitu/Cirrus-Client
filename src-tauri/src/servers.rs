@@ -180,6 +180,10 @@ fn parse_srv(data: &str) -> Option<(String, u16)> {
     let _weight = parts.next()?;
     let port: u16 = parts.next()?.parse().ok()?;
     let target = parts.next()?.trim_end_matches('.').to_string();
+    // A SRV answer has exactly four fields; anything after them is not one.
+    if parts.next().is_some() {
+        return None;
+    }
     if port == 0 || target.is_empty() || !valid_address(&target) {
         return None;
     }
