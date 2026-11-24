@@ -39,7 +39,7 @@ export const PAGE_TITLES: Record<PageId, string> = {
   browse: "Mods",
   mods: "Mods",
   modpacks: "Modpacks",
-  skins: "Character",
+  skins: "Skins",
   servers: "Servers",
   accounts: "Accounts",
   settings: "Settings",
@@ -66,7 +66,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "servers", label: "Servers", icon: <ServerIcon /> },
   { id: "mods", label: "Mods", icon: <ModsIcon /> },
   { id: "modpacks", label: "Modpacks", icon: <PackageIcon /> },
-  { id: "skins", label: "Character", icon: <ShirtIcon /> },
+  { id: "skins", label: "Skins", icon: <ShirtIcon /> },
   { id: "home", label: "News", icon: <NewsIcon />, section: "news" },
 ];
 

@@ -19,10 +19,10 @@ export function ThemeChooser({ onChosen }: { onChosen: (id: ThemeId) => void }) 
       <div className="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
         <header className="welcome-head">
           <p className="eyebrow">Welcome to Maple</p>
-          <h1 id="welcome-title">Choose your look</h1>
+          <h1 id="welcome-title">Choose your Maple experience</h1>
           <p className="muted">
-            Both themes run the same launcher — your accounts, instances, mods and settings are shared. You can switch
-            whenever you like in Settings.
+            Choose the look you want for your launcher. You can change this anytime in Settings — both themes run the
+            same launcher, so your accounts, instances, mods and settings are shared.
           </p>
         </header>
 

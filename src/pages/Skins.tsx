@@ -59,11 +59,11 @@ function sourceLabel(source: string): string {
 }
 
 /**
- * The Character Studio: the signed-in account's real Minecraft character in the
- * middle, its own skin, arm model and equipped cape on screen, and the ways to
- * change that skin through the account. Everything the figure shows is the
- * appearance Mojang returns for this account; the library only holds skins the
- * player added or uploaded themselves.
+ * Skins: the signed-in account's real Minecraft character in the middle, its own
+ * skin, arm model and equipped cape on screen, and the ways to change that skin
+ * through the account. Everything the figure shows is the appearance Mojang
+ * returns for this account; the library only holds skins the player added or
+ * uploaded themselves.
  */
 export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (page: PageId) => void }) {
   const [skins, setSkins] = useState<SkinEntry[] | null>(null);
@@ -263,8 +263,8 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
   return (
     <div className="page studio-page">
       <header className="page-head">
-        <p className="eyebrow">Character Studio</p>
-        <h1>Character</h1>
+        <p className="eyebrow">Skins &amp; capes</p>
+        <h1>Skins</h1>
         <p className="muted">
           {player
             ? `${player.name}'s Minecraft character, read from the account Maple is signed in with.`
@@ -284,7 +284,7 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
       )}
 
       <div className="studio-grid">
-        <section className="studio-stage-card" aria-label="Character preview">
+        <section className="studio-stage-card" aria-label="Skin preview">
           <div
             className={`studio-stage ${dropping ? "is-dropping" : ""}`.trim()}
             onDragOver={(e) => {
@@ -420,6 +420,47 @@ export function SkinsPage({ data, onNavigate }: { data: AppData; onNavigate: (pa
                 Sign in with Microsoft to load the character, skin and cape that belong to your account.
               </p>
             )}
+          </section>
+
+          <section className="studio-panel" aria-label="Capes">
+            <div className="studio-panel-head">
+              <h2>Capes</h2>
+              {player && <Badge tone={appearance?.cape ? "good" : "info"}>{appearance?.cape ? "1 owned" : "None"}</Badge>}
+            </div>
+            {!player ? (
+              <p className="muted small">Sign in with Microsoft to see the capes your account owns.</p>
+            ) : !appearance ? (
+              <p className="muted small">{loading ? "Loading your capes…" : "Capes are unavailable for this account."}</p>
+            ) : appearance.cape ? (
+              <>
+                <div className="cape-card is-equipped">
+                  <span className="cape-art" aria-hidden="true">
+                    <img src={appearance.cape} alt="" />
+                  </span>
+                  <span className="cape-text">
+                    <strong>Minecraft cape</strong>
+                    <span className="muted small">Equipped on this account</span>
+                  </span>
+                  <Badge tone="good">Equipped</Badge>
+                </div>
+                <p className="muted small">
+                  Minecraft has no public way for another launcher to change a cape, so Maple only shows the one your
+                  account owns. Change it on minecraft.net; it then appears here and on the figure above.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="muted small">No cape is equipped on this account.</p>
+                <p className="muted small">
+                  Capes are granted by Mojang or event organisers. Once your account has one, it is shown here and on the
+                  figure above; Maple never adds a cape that is not there.
+                </p>
+              </>
+            )}
+            <p className="muted small">
+              Maple capes are not available yet. When the Maple platform confirms ownership of one, it will appear in
+              this list and only then can it be equipped.
+            </p>
           </section>
 
           <section className="studio-panel" aria-label="Change skin">

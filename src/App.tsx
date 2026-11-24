@@ -247,7 +247,7 @@ export default function App() {
           {page === "mods" && <ModsPage data={data} mode="manage" onNavigate={navigate} />}
           {page === "modpacks" && <ModpacksPage data={data} onNavigate={navigate} />}
           {page === "skins" && <SkinsPage data={data} onNavigate={navigate} />}
-          {page === "servers" && <ServersPage />}
+          {page === "servers" && <ServersPage data={data} onNavigate={navigate} onOpenAccount={openAccount} />}
           {page === "accounts" && <AccountsPage data={data} onNavigate={navigate} />}
           {page === "settings" && <SettingsPage data={data} section={section} onNavigate={navigate} discord={{ enabled: discordOn, onToggle: toggleDiscord }} />}
           {page === "about" && <AboutPage data={data} onLicense={() => setLicenseOpen(true)} />}

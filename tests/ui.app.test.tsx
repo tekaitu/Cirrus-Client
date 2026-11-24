@@ -7,6 +7,7 @@ import { notify, resetNotifications } from "../src/core/notifications";
 import { api } from "../src/api/client";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
 import { resetAppearanceCache } from "../src/hooks/useAppearance";
+import { resetServerStatusCache } from "../src/hooks/useServerStatus";
 import type { AuthStatus, DeviceCodeInfo, GameExit, GameProgress, GameStatus, InstanceView, InstallProgress, InstallResult } from "../src/api/types";
 import { appInfo, java17Raw, java21Raw, settingsState, systemInfo } from "./helpers/fixtures";
 
@@ -32,6 +33,7 @@ vi.mock("../src/api/client", () => ({
     deleteProfile: vi.fn(),
     openCommunity: vi.fn(),
     openGithub: vi.fn(),
+    serverStatus: vi.fn(),
     discordSetPresence: vi.fn(),
     discordClearPresence: vi.fn(),
     listSkins: vi.fn(),
@@ -94,6 +96,7 @@ const GO_TO: Record<string, string> = {
   Home: "Play",
   Library: "Instances",
   Browse: "Mods",
+  Character: "Skins",
 };
 
 function goTo(name: string) {
@@ -257,6 +260,18 @@ beforeEach(() => {
   mocked.openCommunity.mockResolvedValue(undefined);
   mocked.openGithub.mockResolvedValue(undefined);
   mocked.listSkins.mockResolvedValue([]);
+  resetServerStatusCache();
+  mocked.serverStatus.mockResolvedValue({
+    address: "vanguards.ggwp.cc",
+    online: false,
+    latencyMs: null,
+    version: null,
+    playersOnline: null,
+    playersMax: null,
+    motd: null,
+    icon: null,
+    error: "The server did not answer.",
+  });
   mocked.discordSetPresence.mockResolvedValue("ok");
   mocked.readGameLog.mockResolvedValue({ text: "", offset: 0 });
   mocked.openGameFolder.mockResolvedValue(undefined);
@@ -321,7 +336,7 @@ describe("Home", () => {
   it("has a vertical sidebar with labelled sections, a bell and the account", async () => {
     render(<App />);
     const main = screen.getByRole("navigation", { name: "Main" });
-    for (const name of ["Play", "Instances", "Versions", "Mods", "Modpacks", "Servers", "Character"]) {
+    for (const name of ["Play", "Instances", "Versions", "Mods", "Modpacks", "Servers", "Skins"]) {
       expect(main.contains(screen.getByRole("button", { name }))).toBe(true);
     }
     for (const name of ["Accounts", "About", "Diagnostics", "Re-scan Java", "Discord Presence"]) {
@@ -352,7 +367,7 @@ describe("Home", () => {
     fireEvent.keyDown(window, { key: "4", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Mod manager" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "6", altKey: true });
-    expect(await screen.findByRole("heading", { level: 1, name: "Character" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "7", altKey: true });
     expect(await screen.findByRole("heading", { level: 1, name: "Servers" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "3", altKey: true, ctrlKey: true }); // not ours
@@ -407,11 +422,47 @@ describe("Home", () => {
     await settled();
   });
 
-  it("has an empty Servers page that makes nothing up", async () => {
+  it("lists Vanguards as a partner with the address its listing publishes", async () => {
     render(<App />);
     goTo("Servers");
     expect(await screen.findByRole("heading", { level: 1, name: "Servers" })).toBeTruthy();
-    expect(screen.getByText("No partner servers yet")).toBeTruthy();
+    const card = screen.getByRole("article", { name: "Vanguards" });
+    expect(within(card).getByRole("heading", { level: 2, name: "Vanguards" })).toBeTruthy();
+    expect(within(card).getByText("vanguards.ggwp.cc")).toBeTruthy();
+    expect(within(card).getByText("Partnered")).toBeTruthy();
+    // The mocked ping said the server did not answer: it is offline, and no counts are shown.
+    expect(await within(card).findByText("Offline")).toBeTruthy();
+    expect(within(card).queryByText(/\d+ players/)).toBeNull();
+    await settled();
+  });
+
+  it("shows the real player count only when the server answered with one", async () => {
+    mocked.serverStatus.mockResolvedValue({
+      address: "vanguards.ggwp.cc",
+      online: true,
+      latencyMs: 32,
+      version: "Paper 1.21.11",
+      playersOnline: 412,
+      playersMax: 1000,
+      motd: "Vanguards SMP",
+      icon: null,
+      error: null,
+    });
+    render(<App />);
+    goTo("Servers");
+    const card = screen.getByRole("article", { name: "Vanguards" });
+    expect(await within(card).findByText(/412 \/ 1,000 players/)).toBeTruthy();
+    expect(within(card).getByText("Online")).toBeTruthy();
+    await settled();
+  });
+
+  it("says the status is unavailable instead of inventing one outside the desktop app", async () => {
+    mocked.serverStatus.mockRejectedValue(new Error("Only in the desktop app."));
+    render(<App />);
+    goTo("Servers");
+    const card = screen.getByRole("article", { name: "Vanguards" });
+    expect(await within(card).findByText("Status unavailable")).toBeTruthy();
+    expect(within(card).queryByText(/\d+ players/)).toBeNull();
     await settled();
   });
 
@@ -786,7 +837,7 @@ describe("Settings layout", () => {
     render(<App />);
     await goToSettings("Keybinds");
     expect(await screen.findByText("Go to Mods")).toBeTruthy();
-    expect(screen.getByText("Go to Character")).toBeTruthy();
+    expect(screen.getByText("Go to Skins")).toBeTruthy();
     expect(screen.getByText(/In-game keybinds come with the in-game client/)).toBeTruthy();
   });
 
@@ -1360,19 +1411,19 @@ describe("Themes", () => {
     window.localStorage.removeItem("unlimited.theme");
     initTheme();
     render(<App />);
-    const dialog = await screen.findByRole("dialog", { name: "Choose your look" });
+    const dialog = await screen.findByRole("dialog", { name: "Choose your Maple experience" });
     expect(dialog).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "Colorful theme" }));
     expect(document.documentElement.dataset.theme).toBe("colorful");
     expect(window.localStorage.getItem("unlimited.theme")).toBe("colorful");
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Choose your look" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Choose your Maple experience" })).toBeNull());
     await settled();
   });
 
   it("does not ask again once a theme is saved", async () => {
     initTheme();
     render(<App />);
-    expect(screen.queryByRole("dialog", { name: "Choose your look" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Choose your Maple experience" })).toBeNull();
     await settled();
   });
 
@@ -1787,7 +1838,7 @@ describe("Accounts page", () => {
     expect(screen.getAllByText("Minecraft: Java Edition owned").length).toBeGreaterThan(0);
     expect(screen.getByText("MINECRAFT: JAVA EDITION")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Change skin" }));
-    expect(await screen.findByRole("heading", { level: 1, name: "Character" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Skins" })).toBeTruthy();
   });
 });
 

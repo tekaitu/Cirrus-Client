@@ -1186,6 +1186,8 @@ pub struct LaunchOptions {
     pub window_width: u32,
     pub window_height: u32,
     pub jvm_args: Vec<String>,
+    /// A server the game opens on start (`--quickPlayMultiplayer`), from the Servers page.
+    pub quick_play: Option<String>,
 }
 
 impl Default for LaunchOptions {
@@ -1195,6 +1197,7 @@ impl Default for LaunchOptions {
             window_width: 1280,
             window_height: 720,
             jvm_args: Vec::new(),
+            quick_play: None,
         }
     }
 }
@@ -1202,6 +1205,15 @@ impl Default for LaunchOptions {
 fn read_json(path: &Path, what: &str) -> Result<Value, String> {
     let text = fs::read_to_string(path).map_err(|e| format!("Could not read the {what}: {e}. Try installing the game files again."))?;
     serde_json::from_str(&text).map_err(|e| format!("The {what} is damaged ({e}). Try installing the game files again."))
+}
+
+/// `--quickPlayMultiplayer` exists from 1.20 on. Older clients would ignore it and
+/// open the title screen, so the launcher asks for a newer game instead of pretending.
+pub fn quick_play_supported(version: &str) -> bool {
+    let mut parts = version.split('.');
+    let major = parts.next().and_then(|p| p.parse::<u32>().ok());
+    let minor = parts.next().and_then(|p| p.parse::<u32>().ok());
+    matches!((major, minor), (Some(1), Some(m)) if m >= 20)
 }
 
 /// Build the exact command that starts the game. Nothing is run here.
@@ -1310,6 +1322,20 @@ pub fn build_launch(
         args.push(options.window_width.to_string());
         args.push("--height".to_string());
         args.push(options.window_height.to_string());
+    }
+    if let Some(address) = options.quick_play.as_deref() {
+        let address = address.trim();
+        if !crate::servers::valid_address(address) {
+            return Err("That server address cannot be used to join a game.".to_string());
+        }
+        if !quick_play_supported(&info.minecraft) {
+            return Err(format!(
+                "Minecraft {} cannot open a server from the launcher. Use 1.20 or newer, or add {} in Multiplayer.",
+                info.minecraft, address
+            ));
+        }
+        args.push("--quickPlayMultiplayer".to_string());
+        args.push(address.to_string());
     }
 
     Ok(LaunchSpec { program: java.to_path_buf(), args, cwd: instance })
@@ -1723,6 +1749,42 @@ mod tests {
     fn the_catalog_skips_entries_without_an_id() {
         let manifest = json!({"versions":[{"type":"release"},{"id":"","type":"release"}]});
         assert!(catalog_from_manifest(&manifest).is_empty());
+    }
+
+    #[test]
+    fn quick_play_joins_a_server_on_1_20_and_newer() {
+        assert!(quick_play_supported("1.20"));
+        assert!(quick_play_supported("1.20.4"));
+        assert!(quick_play_supported("1.21.11"));
+        assert!(!quick_play_supported("1.19.4"));
+        assert!(!quick_play_supported("1.8.9"));
+        assert!(!quick_play_supported(""));
+
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mc = "1.21.11";
+        let info = InstallInfo { minecraft: mc.into(), loader: None, profile_id: mc.into(), java_major: Some(21) };
+        let mut v = vanilla();
+        v["mainClass"] = json!("net.minecraft.client.main.Main");
+        v["assetIndex"] = json!({"id":"29"});
+        v["arguments"] = json!({"jvm":["-cp","${classpath}"],"game":["--username","${auth_player_name}"]});
+        write_atomic(&vanilla_json_path(root, mc), &v.to_string()).unwrap();
+        write_atomic(&client_jar_path(root, mc), "jar").unwrap();
+        for lib in libraries_of(&v) {
+            write_atomic(&root.join("libraries").join(&lib.rel_path), "x").unwrap();
+        }
+        let player = Player::offline("Steve").unwrap();
+        let options = LaunchOptions {
+            quick_play: Some("vanguards.ggwp.cc".to_string()),
+            ..LaunchOptions::default()
+        };
+        let spec = build_launch(root, &info, Path::new("java.exe"), &options, &player, "0.4.0", None, None).unwrap();
+        let at = spec.args.iter().position(|a| a == "--quickPlayMultiplayer").unwrap();
+        assert_eq!(spec.args[at + 1], "vanguards.ggwp.cc");
+
+        // An address that is not a host name is refused instead of being passed to Java.
+        let bad = LaunchOptions { quick_play: Some("host name; rm".to_string()), ..LaunchOptions::default() };
+        assert!(build_launch(root, &info, Path::new("java.exe"), &bad, &player, "0.4.0", None, None).is_err());
     }
 
     #[test]
