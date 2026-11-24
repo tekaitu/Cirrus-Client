@@ -7,11 +7,15 @@
 
 use serde::Serialize;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::io::{Cursor, Read, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{IpAddr, TcpStream, ToSocketAddrs};
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 pub const DEFAULT_PORT: u16 = 25565;
+/// How long one host's SRV answer is reused before it is asked for again.
+const SRV_TTL: Duration = Duration::from_secs(600);
 /// The protocol the request claims; servers accept any number for a status ping.
 const STATUS_PROTOCOL: i32 = 767;
 /// A status answer is a few kilobytes; anything far larger is refused unread.
@@ -159,13 +163,95 @@ fn handshake(host: &str, port: u16) -> Vec<u8> {
 
 const STATUS_REQUEST: [u8; 2] = [0x01, 0x00];
 
+struct SrvEntry {
+    target: Option<(String, u16)>,
+    at: Instant,
+}
+
+fn srv_cache() -> &'static Mutex<HashMap<String, SrvEntry>> {
+    static CACHE: OnceLock<Mutex<HashMap<String, SrvEntry>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// One DNS SRV answer as `0 5 17515 aurora.dathost.net` means it.
+fn parse_srv(data: &str) -> Option<(String, u16)> {
+    let mut parts = data.split_whitespace();
+    let _priority = parts.next()?;
+    let _weight = parts.next()?;
+    let port: u16 = parts.next()?.parse().ok()?;
+    let target = parts.next()?.trim_end_matches('.').to_string();
+    if port == 0 || target.is_empty() || !valid_address(&target) {
+        return None;
+    }
+    Some((target, port))
+}
+
+/// The `_minecraft._tcp` SRV target of a host name, the way the game finds one.
+///
+/// Shared Minecraft hosts publish their real port only in that record, so pinging
+/// 25565 would report a healthy server as offline. The lookup goes over
+/// DNS-over-HTTPS, so no resolver configuration has to be read or parsed; when it
+/// cannot be asked, the launcher falls back to the host on the default port.
+fn srv_target(host: &str) -> Option<(String, u16)> {
+    if host.parse::<IpAddr>().is_ok() {
+        return None;
+    }
+    if let Ok(cache) = srv_cache().lock() {
+        if let Some(entry) = cache.get(host) {
+            if entry.at.elapsed() < SRV_TTL {
+                return entry.target.clone();
+            }
+        }
+    }
+    let url = format!("https://cloudflare-dns.com/dns-query?name=_minecraft._tcp.{host}&type=SRV");
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(3))
+        .build()
+        .ok()?;
+    let found = client
+        .get(&url)
+        .header("accept", "application/dns-json")
+        .send()
+        .ok()
+        .and_then(|resp| resp.json::<Value>().ok())
+        .and_then(|answer| {
+            answer
+                .get("Answer")
+                .and_then(Value::as_array)
+                .and_then(|items| {
+                    items
+                        .iter()
+                        .find(|item| item.get("type").and_then(Value::as_u64) == Some(33))
+                        .and_then(|item| item.get("data").and_then(Value::as_str))
+                        .and_then(parse_srv)
+                })
+        });
+    if let Ok(mut cache) = srv_cache().lock() {
+        cache.insert(
+            host.to_string(),
+            SrvEntry {
+                target: found.clone(),
+                at: Instant::now(),
+            },
+        );
+    }
+    found
+}
+
 /// Ask one server for its status. Never panics: every failure becomes `online: false`.
 pub fn query(address: &str, timeout: Duration) -> ServerStatus {
+    let typed_port = address.trim().contains(':');
     let (host, port) = match split_address(address) {
         Ok(parts) => parts,
         Err(message) => return ServerStatus::failed(address, &message),
     };
-    let target = match (host.as_str(), port).to_socket_addrs() {
+    // A port typed by hand always wins; otherwise the server's own SRV record is followed.
+    let (connect_host, port) = if typed_port {
+        (host.clone(), port)
+    } else {
+        srv_target(&host).unwrap_or((host.clone(), port))
+    };
+    let target = match (connect_host.as_str(), port).to_socket_addrs() {
         Ok(mut addrs) => match addrs.next() {
             Some(addr) => addr,
             None => return ServerStatus::failed(address, "That server name could not be found."),
@@ -345,6 +431,21 @@ mod tests {
         assert!(!status.online);
         assert_eq!(status.players_online, None, "no count is invented for an offline server");
         assert!(status.error.is_some());
+    }
+
+    #[test]
+    fn srv_answers_are_read_the_way_minecraft_reads_them() {
+        assert_eq!(
+            parse_srv("0 5 17515 aurora.dathost.net."),
+            Some(("aurora.dathost.net".to_string(), 17515))
+        );
+        assert_eq!(
+            parse_srv("0 5 25565 example.org"),
+            Some(("example.org".to_string(), 25565))
+        );
+        for bad in ["nonsense", "0 5", "0 5 0 host.", "0 5 17515 ", "0 5 17515 bad host"] {
+            assert_eq!(parse_srv(bad), None, "{bad:?}");
+        }
     }
 
     #[test]
