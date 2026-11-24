@@ -1320,7 +1320,7 @@ async fn launch_game(
     loader: String,
     profile: Option<String>,
     instance_id: Option<String>,
-    /// A server to open straight away, used by the Servers page's Join.
+    // A server to open straight away, used by the Servers page's Join.
     server: Option<String>,
 ) -> Result<LaunchResult, String> {
     let refuse = |m: &str| Ok(LaunchResult { started: false, message: Some(m.to_string()), log_path: None });
