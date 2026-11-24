@@ -449,3 +449,20 @@ export interface DiscordPresence {
   /** Unix time in seconds; Discord shows elapsed time from it. */
   startedAt?: number | null;
 }
+
+/**
+ * One Minecraft server's answer to the game's own Server List Ping. Fields the
+ * server did not send stay null, and `online` is only true when it answered.
+ */
+export interface ServerStatus {
+  address: string;
+  online: boolean;
+  latencyMs: number | null;
+  version: string | null;
+  playersOnline: number | null;
+  playersMax: number | null;
+  motd: string | null;
+  icon: string | null;
+  /** Set only when `online` is false: the reason the check failed. */
+  error: string | null;
+}

@@ -35,6 +35,7 @@ import type {
   SettingsState,
   SystemInfo,
   VersionEntry,
+  ServerStatus,
 } from "./types";
 
 export function errorMessage(e: unknown): string {
@@ -136,6 +137,8 @@ export const api = {
     loader: string,
     profile?: string,
     instanceId?: string,
+    /** Opens this server on start; the Servers page's Join uses it. */
+    server?: string,
   ) =>
     call<LaunchResult>("launch_game", {
       javaPath,
@@ -145,7 +148,10 @@ export const api = {
       loader,
       profile: profile ?? null,
       instanceId: instanceId ?? null,
+      server: server ?? null,
     }),
+  /** The game's own Server List Ping, run by the launcher. */
+  serverStatus: (address: string) => call<ServerStatus>("server_status", { address }),
   listProfiles: () => call<Profile[]>("list_profiles"),
   createProfile: (name: string, version: string, loader: string) =>
     call<Profile>("create_profile", { name, version, loader }),

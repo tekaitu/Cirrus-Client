@@ -12,6 +12,7 @@ pub mod mod_upload;
 pub mod mods;
 pub mod packs;
 pub mod runtime;
+pub mod servers;
 pub mod settings;
 pub mod skins;
 pub mod system;
@@ -714,6 +715,17 @@ fn open_community() -> Result<(), String> {
     open_in_browser(COMMUNITY_URL)
 }
 
+/// Ask a Minecraft server for its status with the game's own Server List Ping.
+/// It runs on a worker thread, and a server that stays silent is reported offline.
+#[tauri::command]
+async fn server_status(address: String) -> Result<servers::ServerStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        servers::query(&address, std::time::Duration::from_secs(4))
+    })
+    .await
+    .map_err(|e| format!("The server check stopped unexpectedly: {e}"))
+}
+
 /// The project page on GitHub (the repository was renamed to Maple-Client; GitHub redirects the old name).
 const GITHUB_URL: &str = "https://github.com/tekaitu/Maple-Client";
 
@@ -1308,6 +1320,8 @@ async fn launch_game(
     loader: String,
     profile: Option<String>,
     instance_id: Option<String>,
+    // A server to open straight away, used by the Servers page's Join.
+    server: Option<String>,
 ) -> Result<LaunchResult, String> {
     let refuse = |m: &str| Ok(LaunchResult { started: false, message: Some(m.to_string()), log_path: None });
     check_version(&version)?;
@@ -1386,6 +1400,9 @@ async fn launch_game(
         window_width: stored.window_width,
         window_height: stored.window_height,
         jvm_args,
+        quick_play: server
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty()),
     };
     let Some(info) = game::installed(&root, &version, fabric) else {
         return refuse("The game files are not installed yet.");
@@ -1917,6 +1934,7 @@ pub fn run() {
             delete_profile,
             open_community,
             open_github,
+            server_status,
             check_for_updates,
             open_update_page,
             install_game,

@@ -11,7 +11,7 @@ export interface Game {
   /** Downloads this version. `loaderVersion` pins a Fabric loader. */
   install: (loaderVersion?: string | null) => void;
   cancelInstall: () => void;
-  play: (javaPath: string, mode: PlayMode, username: string) => void;
+  play: (javaPath: string, mode: PlayMode, username: string, server?: string) => void;
   stop: () => void;
   dismissRun: () => void;
   refresh: () => void;
@@ -145,14 +145,19 @@ export function useGame(version: string, loader: LoaderId, instanceId: string | 
     api.cancelGameInstall().catch(() => {});
   }, []);
 
-  const play = useCallback((javaPath: string, mode: PlayMode, username: string) => {
+  const play = useCallback((javaPath: string, mode: PlayMode, username: string, server?: string) => {
     if (playGate.busy) return;
     setRun({ phase: "starting" });
     setLog("");
     logOffset.current = 0;
     const who = mode === "offline" ? username.trim() : null;
+    // The server argument is only sent when there is one, so a normal launch keeps its usual call.
+    const start = () =>
+      server
+        ? api.launchGame(javaPath, mode, who, version, loader, undefined, instanceId ?? undefined, server)
+        : api.launchGame(javaPath, mode, who, version, loader, undefined, instanceId ?? undefined);
     void playGate
-      .run(() => api.launchGame(javaPath, mode, who, version, loader, undefined, instanceId ?? undefined))
+      .run(start)
       .then((r) => {
         if (!mounted.current || !r) return;
         setRun(r.started ? { phase: "running" } : { phase: "error", message: r.message ?? "Minecraft could not be started." });
