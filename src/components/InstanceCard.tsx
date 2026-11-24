@@ -6,12 +6,13 @@ import { lastPlayedText } from "../core/instances";
 import { readInstanceIcon } from "../core/instanceIcons";
 
 function loaderLine(instance: InstanceView) {
+  const optifine = instance.optifine ? `OptiFine ${instance.optifine}` : "";
   if (instance.loader === "fabric") {
     const version = instance.loaderVersion ? `LOADER ${instance.loaderVersion}` : "LOADER";
     const mods = instance.modCount > 0 ? ` · ${instance.modCount} ${instance.modCount === 1 ? "mod" : "mods"}` : "";
     return `${version}${mods}`;
   }
-  return "Vanilla";
+  return optifine ? `Vanilla · ${optifine}` : "Vanilla";
 }
 
 /**

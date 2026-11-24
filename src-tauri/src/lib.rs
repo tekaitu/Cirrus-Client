@@ -10,6 +10,7 @@ pub mod instance;
 pub mod java;
 pub mod mod_upload;
 pub mod mods;
+pub mod optifine;
 pub mod packs;
 pub mod runtime;
 pub mod servers;
@@ -955,6 +956,13 @@ fn save_instance(app: AppHandle, config: instance::InstanceConfig) -> Result<ins
             let _ = std::fs::write(backup, text);
         }
     }
+    // Editing the other settings must not drop an installed OptiFine.
+    let mut config = config;
+    if config.optifine.is_none() {
+        if let Some(previous) = &existing {
+            config.optifine = previous.optifine.clone();
+        }
+    }
     let saved = instance::upsert(&root, config)?;
     let info = game::installed_infos(&root).into_iter().find(|i| i.profile_id == saved.id);
     Ok(instance::view(&root, &saved, info.as_ref()))
@@ -1232,6 +1240,52 @@ async fn install_game(
 }
 
 /// Download anything missing or damaged again, keeping worlds, mods and settings.
+/// Install OptiFine from the jar the person downloaded from optifine.net.
+///
+/// The jar is checked before anything is written: it must be an OptiFine build
+/// for this instance's Minecraft version, and it must be a Vanilla instance,
+/// because OptiFine replaces the game's own launcher.
+#[tauri::command]
+async fn install_optifine(
+    app: AppHandle,
+    id: String,
+    file_name: String,
+    data_base64: String,
+) -> Result<instance::InstanceView, String> {
+    let (root, _) = game_root(&app)?;
+    let mut cfg = instance::find(&root, &id).ok_or_else(|| "That instance no longer exists.".to_string())?;
+    if cfg.loader != "vanilla" {
+        return Err(
+            "OptiFine replaces the game's own launcher, so it only works in a Vanilla instance. Create a Vanilla instance for it."
+                .to_string(),
+        );
+    }
+    let minecraft = cfg.minecraft.clone();
+    let bytes = base64::decode(&data_base64)?;
+    let install_root = root.clone();
+    let edition = tauri::async_runtime::spawn_blocking(move || {
+        optifine::install(&install_root, &minecraft, &file_name, &bytes)
+    })
+    .await
+    .map_err(|e| format!("The install stopped unexpectedly: {e}"))??;
+    cfg.optifine = Some(edition);
+    let saved = instance::upsert(&root, cfg)?;
+    let info = game::installed_infos(&root).into_iter().find(|i| i.profile_id == saved.id);
+    Ok(instance::view(&root, &saved, info.as_ref()))
+}
+
+/// Stop starting the instance through OptiFine. Its jar stays in `libraries/`
+/// so nothing has to be downloaded again, and no world or mod is touched.
+#[tauri::command]
+fn remove_optifine(app: AppHandle, id: String) -> Result<instance::InstanceView, String> {
+    let (root, _) = game_root(&app)?;
+    let mut cfg = instance::find(&root, &id).ok_or_else(|| "That instance no longer exists.".to_string())?;
+    cfg.optifine = None;
+    let saved = instance::upsert(&root, cfg)?;
+    let info = game::installed_infos(&root).into_iter().find(|i| i.profile_id == saved.id);
+    Ok(instance::view(&root, &saved, info.as_ref()))
+}
+
 #[tauri::command]
 async fn repair_instance(
     app: AppHandle,
@@ -1435,6 +1489,7 @@ async fn launch_game(
         env!("CARGO_PKG_VERSION"),
         instance_cfg.as_ref().map(|cfg| cfg.id.as_str()),
         game_dir.as_deref(),
+        instance_cfg.as_ref().and_then(|cfg| cfg.optifine.as_deref()),
     ) {
         Ok(s) => s,
         Err(m) => return refuse(&m),
@@ -1926,6 +1981,8 @@ pub fn run() {
             clone_instance,
             delete_instance,
             repair_instance,
+            install_optifine,
+            remove_optifine,
             switch_fabric_loader,
             fabric_loader_versions,
             diagnose_crash,

@@ -392,6 +392,8 @@ export interface InstanceView {
   /** The Java major this Minecraft version needs, when known. */
   javaMajor: number | null;
   clonedFrom: string | null;
+  /** The OptiFine edition this instance starts with, e.g. `1.8.9_HD_U_M5`. */
+  optifine: string | null;
 }
 
 /** What a delete would remove, so the confirmation can say it honestly. */
