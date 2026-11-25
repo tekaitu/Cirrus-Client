@@ -208,11 +208,13 @@ public final class HudEditorScreen extends CirrusScreen {
             if (drag.guideY() != SnapEngine.NONE) canvas.fill(0, Math.min(drag.guideY(), height - 1), width, Math.min(drag.guideY(), height - 1) + 1, guide);
         }
         if (!any) CirrusUi.centeredSmall(g, font, "Every widget is removed. Add one from the list to place it here.", (railX - 8) / 2, height / 2 - 4, t.muted);
-        String hint = selected.isEmpty()
-            ? "Click a widget to select it, then drag it into place."
-            : "Drag to move. Arrow keys nudge (Shift: 10). Alt turns snapping off. Delete removes.";
-        // Under the Mods tab rather than along the bottom, where widgets such as Keystrokes usually sit.
-        CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, hint, railX - 24), (railX - 8) / 2, 38, t.muted);
+        // Hint lines sit at the bottom, to the right of the bottom-left corner where Keystrokes usually is.
+        String[] hint = selected.isEmpty()
+            ? new String[] {"Click a widget to select it,", "then drag it into place."}
+            : new String[] {"Drag to move. Arrow keys nudge (Shift: 10).", "Alt turns snapping off. Delete removes."};
+        int left = railX > 300 ? 96 : 8, right = railX - 16, mid = (left + right) / 2;
+        for (int i = 0; i < hint.length; i++)
+            CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, hint[i], Math.max(40, right - left)), mid, height - 30 + i * 12, t.muted);
     }
 
     // ---- input ------------------------------------------------------------------------------------------------------------
