@@ -90,7 +90,7 @@ public final class HudEditorScreen extends CirrusScreen {
     private void initList(int x, int w) {
         var cfg = config();
         int searchY = 14 + 44;
-        search = new EditBox(font, x + 18, searchY + 2, w - 18 - 14, 12, Component.literal("Search widgets"));
+        search = new EditBox(font, x + 18, searchY + 3, w - 18 - 14, 12, Component.literal("Search widgets"));
         search.setBordered(false);
         search.setTextShadow(false);
         search.addFormatter((value, cursor) -> CirrusUi.formatSearch(value));
@@ -211,7 +211,8 @@ public final class HudEditorScreen extends CirrusScreen {
         String hint = selected.isEmpty()
             ? "Click a widget to select it, then drag it into place."
             : "Drag to move. Arrow keys nudge (Shift: 10). Alt turns snapping off. Delete removes.";
-        CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, hint, railX - 24), (railX - 8) / 2, height - 18, t.muted);
+        // Under the Mods tab rather than along the bottom, where widgets such as Keystrokes usually sit.
+        CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, hint, railX - 24), (railX - 8) / 2, 38, t.muted);
     }
 
     // ---- input ------------------------------------------------------------------------------------------------------------
