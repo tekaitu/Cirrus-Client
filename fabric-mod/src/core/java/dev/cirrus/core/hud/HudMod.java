@@ -34,6 +34,9 @@ public abstract class HudMod implements CirrusMod, HudElement {
         Setting.toggle("background", "Background", "Draw a dark panel behind the text.", false).group("Appearance"),
         Setting.slider("scale", "Scale", "Size of this element on screen.", 100, 50, 200, 10, "%").group("Appearance")));
 
+    /** Format and text colour for text counters such as FPS and Ping; shown under their own "Text" heading before the appearance options. */
+    public static final List<Setting> TEXT = Collections.unmodifiableList(Arrays.asList(FormatTemplate.setting(), HudColors.setting()));
+
     private List<Setting> all;
 
     @Override public boolean defaultEnabled() { return true; }
@@ -67,6 +70,8 @@ public abstract class HudMod implements CirrusMod, HudElement {
     protected final boolean borderOn(CirrusConfig c) { return on(c, "background") && (!has("border") || on(c, "border")); }
     /** Simple elements have no shadow option: text gets a shadow when there is no background behind it. */
     protected final boolean shadowOn(CirrusConfig c) { return has("shadow") ? on(c, "shadow") : !on(c, "background"); }
+    /** The chosen text colour, or white for widgets without the option. */
+    protected final int textColor(CirrusConfig c) { return has("color") ? HudColors.argb(opt(c, "color")) : 0xFFFFFFFF; }
     protected final float scale(CirrusConfig c) { return num(c, "scale") / 100f; }
 
     /** Fill colour for a surface of this element: the theme's HUD panel at the chosen opacity, or fully clear when the background is off. */

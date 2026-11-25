@@ -3,6 +3,7 @@ package dev.cirrus.core.hud;
 import dev.cirrus.core.config.CirrusConfig;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.List;
 
 /**
@@ -50,5 +51,21 @@ public final class HudLayout {
     public static void resetPosition(HudElement e, CirrusConfig c, int screenWidth, int screenHeight) {
         c.put("hud.anchor." + e.id(), "TOP_LEFT");
         e.setPosition(c, e.defaultX(), e.defaultY(screenHeight), screenWidth, screenHeight);
+    }
+
+    /** Moves a widget by a whole number of GUI units, clamped to the screen; used by the arrow keys in the editor. */
+    public static void nudge(HudElement e, CirrusConfig c, int dx, int dy, int screenWidth, int screenHeight) {
+        e.setPosition(c, e.x(c, screenWidth) + dx, e.y(c, screenHeight) + dy, screenWidth, screenHeight);
+    }
+
+    /** The widgets whose name contains {@code query} (ignoring case and surrounding spaces); everything for an empty query. */
+    public static List<HudElement> filter(List<HudElement> all, String query) {
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        List<HudElement> out = new ArrayList<HudElement>();
+        for (int i = 0; i < all.size(); i++) {
+            HudElement e = all.get(i);
+            if (q.isEmpty() || e.label().toLowerCase(Locale.ROOT).contains(q) || e.id().toLowerCase(Locale.ROOT).contains(q)) out.add(e);
+        }
+        return out;
     }
 }

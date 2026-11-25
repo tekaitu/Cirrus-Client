@@ -28,7 +28,9 @@ public interface HudElement {
         return clamp(config.getInt("hud.y." + id(), defaultY(screenHeight)), 0, Math.max(0, screenHeight - height()));
     }
 
+    /** Stores an explicit position. A widget that was pinned to the right edge becomes free-positioned, so the move takes effect. */
     default void setPosition(CirrusConfig config, int x, int y, int screenWidth, int screenHeight) {
+        if (!config.getString("hud.anchor." + id(), "TOP_LEFT").equals("TOP_LEFT")) config.put("hud.anchor." + id(), "TOP_LEFT");
         config.put("hud.x." + id(), Integer.toString(clamp(x, 0, Math.max(0, screenWidth - width()))));
         config.put("hud.y." + id(), Integer.toString(clamp(y, 0, Math.max(0, screenHeight - height()))));
     }

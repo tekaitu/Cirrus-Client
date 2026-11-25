@@ -36,6 +36,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         screens.put("menu-planned", () -> new CirrusMenuScreen(null).withModule("zoom"));
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
         screens.put("hud-editor", () -> new HudEditorScreen(null));
+        screens.put("hud-editor-fps", () -> new HudEditorScreen(null, "fps"));
         for (String id : new String[] {"armor_status", "keystrokes", "fps", "ping"})
             screens.put("settings-" + id, () -> new dev.cirrus.client.ModSettingsScreen(null, dev.cirrus.core.module.ModRegistry.find(id).orElseThrow()));
 
@@ -153,6 +154,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot(shot + "-with-profiles-1280x720-gui2");
         }
         verifyArchitecture(context);
+        verifyHudEditor(context, screens);
         measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
@@ -199,6 +201,33 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             dev.cirrus.client.render.McInput.INSTANCE.events().removeListener(counter);
             check("a real key press reaches the Core input listeners", pressed[0] >= 1);
         });
+    }
+
+    /** Phase 3 checks on the real game: the widgets editor opens in both views, nudges with real key presses, and the format option works. */
+    private static void verifyHudEditor(ClientGameTestContext context, Map<String, Supplier<Screen>> screens) {
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var cfg = ctx.config();
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("FPS format defaults to parentheses with no label", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", ((dev.cirrus.core.module.CirrusMod) fps).settings(), "format").equals("Parentheses"));
+            dev.cirrus.core.hud.HudLayout.restore(fps, cfg);
+            fps.setPosition(cfg, 100, 60, ctx.screenWidth(), ctx.screenHeight());
+        });
+        context.setScreen(screens.get("hud-editor-fps"));
+        context.waitTicks(15);
+        context.takeScreenshot("hud-editor-fps-1280x720-gui2");
+        context.getInput().pressKey(Keys.RIGHT);
+        context.getInput().pressKey(Keys.DOWN);
+        context.waitTicks(5);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("arrow keys nudge the selected widget by one unit", fps.x(ctx.config(), ctx.screenWidth()) == 101 && fps.y(ctx.config(), ctx.screenHeight()) == 61);
+            dev.cirrus.core.hud.HudLayout.resetPosition(fps, ctx.config(), ctx.screenWidth(), ctx.screenHeight());
+        });
+        context.setScreen(screens.get("hud-editor"));
+        context.waitTicks(10);
+        context.takeScreenshot("hud-editor-list-1280x720-gui2");
     }
 
     /**
