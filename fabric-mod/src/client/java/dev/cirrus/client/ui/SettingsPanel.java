@@ -25,16 +25,19 @@ public final class SettingsPanel {
 
     private record Row(String header, Setting setting) { }
 
-    private final CirrusMod mod;
+    private final String modId;
     private final List<Setting> settings;
     private final List<Row> rows = new ArrayList<>();
     private int x, y, w, h, scroll, selected = -1;
     private boolean stacked;
     private Setting dragging;
 
-    public SettingsPanel(CirrusMod mod) {
-        this.mod = mod;
-        this.settings = mod.settings();
+    public SettingsPanel(CirrusMod mod) { this(mod.id(), mod.settings()); }
+
+    /** A settings list that is not a module (the Appearance page): {@code id} is the key prefix, as in {@code mod.<id>.<key>}. */
+    public SettingsPanel(String id, List<Setting> settings) {
+        this.modId = id;
+        this.settings = settings;
         String group = null;
         for (Setting s : settings) {
             if (!s.group().equals(group)) { group = s.group(); rows.add(new Row(group, null)); }
@@ -60,10 +63,10 @@ public final class SettingsPanel {
     private int rowTop(int index) { int top = y - scroll; for (int i = 0; i < index; i++) top += rowHeight(rows.get(i)); return top; }
     private int right() { return x + w - (maxScroll() > 0 ? 8 : 0); }
 
-    private String value(Setting s) { return ModSettings.get(config(), mod.id(), settings, s.key()); }
-    private boolean active(Setting s) { return ModSettings.active(config(), mod.id(), settings, s); }
-    private void set(Setting s, String v) { ModSettings.set(config(), mod.id(), s, v); }
-    public void reset() { ModSettings.reset(config(), mod.id(), settings); }
+    private String value(Setting s) { return ModSettings.get(config(), modId, settings, s.key()); }
+    private boolean active(Setting s) { return ModSettings.active(config(), modId, settings, s); }
+    private void set(Setting s, String v) { ModSettings.set(config(), modId, s, v); }
+    public void reset() { ModSettings.reset(config(), modId, settings); }
 
     // ---- slider geometry (shared by drawing and input) --------------------------------------------------------------
 

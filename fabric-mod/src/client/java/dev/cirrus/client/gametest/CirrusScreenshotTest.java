@@ -156,6 +156,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         dumpSignatures(context);
         verifyArchitecture(context);
         verifyHudEditor(context, screens);
+        verifyAppearance(context);
         verifyMapleGlyph(context);
         measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
@@ -413,6 +414,37 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.takeScreenshot("hud-editor-1280x720-gui2");
     }
 
+    /**
+     * Appearance page on the real game: opened from the Click GUI, every option changes the live theme (checked on the values the menus read),
+     * the page is photographed in the default look and with a different theme, accent, text colour and font, and Reset appearance restores the defaults.
+     */
+    private static void verifyAppearance(ClientGameTestContext context) {
+        context.runOnClient(mc -> dev.cirrus.core.settings.ModSettings.reset(dev.cirrus.client.mod.ClientModContext.INSTANCE.config(), dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.theme.Appearance.settings()));
+        context.setScreen(() -> new CirrusMenuScreen(null));
+        context.waitTicks(10);
+        context.runOnClient(mc -> ((CirrusMenuScreen) mc.screen).showAppearance());
+        context.waitTicks(5);
+        context.takeScreenshot("appearance-default-1280x720-gui2");
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var all = dev.cirrus.core.theme.Appearance.settings();
+            dev.cirrus.core.settings.ModSettings.set(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.settings.ModSettings.find(all, "theme"), "Midnight");
+            dev.cirrus.core.settings.ModSettings.set(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.settings.ModSettings.find(all, "accent"), "Ocean");
+            dev.cirrus.core.settings.ModSettings.set(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.settings.ModSettings.find(all, "textcolor"), "Warm");
+            dev.cirrus.core.settings.ModSettings.set(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.settings.ModSettings.find(all, "font"), "Minecraft");
+            dev.cirrus.core.settings.ModSettings.set(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.settings.ModSettings.find(all, "menuopacity"), "60");
+        });
+        context.waitTicks(5);
+        context.runOnClient(mc -> {
+            var t = dev.cirrus.core.theme.CirrusTheme.current(dev.cirrus.client.mod.ClientModContext.INSTANCE.config());
+            check("the Appearance choices reach the live theme", t.accent == 0xFF2E8BE6 && t.text == 0xFFFFF0E3 && (t.panel >>> 24) == Math.round(255 * 0.6f));
+            check("the font choice reaches the menus", dev.cirrus.client.ui.Look.MINECRAFT_FONT);
+        });
+        context.takeScreenshot("appearance-midnight-ocean-1280x720-gui2");
+        context.setScreen(() -> null);
+        context.runOnClient(mc -> dev.cirrus.core.settings.ModSettings.reset(dev.cirrus.client.mod.ClientModContext.INSTANCE.config(), dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.theme.Appearance.settings()));
+    }
+
     private static final java.util.UUID VERIFIED_ID = java.util.UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
     private static final java.util.UUID PLAIN_ID = java.util.UUID.fromString("8667ba71-b85a-4004-af54-457a9734eed7");
 
@@ -435,6 +467,8 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
      */
     private static void verifyMapleGlyph(ClientGameTestContext context) {
         String glyph = dev.cirrus.client.glyph.MapleGlyph.CHARACTER;
+        // Software rendering on the CI runner loads a world slowly; the smallest render distance keeps the world load inside the timeout.
+        context.runOnClient(mc -> { mc.options.renderDistance().set(2); mc.options.simulationDistance().set(5); });
         try (var world = context.worldBuilder().create()) {
             context.waitTicks(60);
         context.runOnClient(mc -> {

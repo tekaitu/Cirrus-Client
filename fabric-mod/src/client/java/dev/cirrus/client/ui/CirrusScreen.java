@@ -7,6 +7,7 @@ import dev.cirrus.core.input.Keys;
 import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.core.anim.Anim;
 import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.theme.Appearance;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -115,14 +116,24 @@ public abstract class CirrusScreen extends Screen {
         }
     }
 
-    /** The darkened game when in a world, the Cirrus artwork otherwise. */
+    /**
+     * Minecraft's own scenery stays visible. Out of a world that is the vanilla panorama, untouched (no dim, no blur). In a world it is
+     * the live game under the Appearance "Screen dim", blurred first when the player chose to blur behind every menu.
+     */
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {
-        // A light dim: the world (or the vanilla panorama behind the menu) stays visible.
+        drawScenery(g, delta, Appearance.blurMenus(config()));
+    }
+
+    /** The shared scenery for Maple screens: panorama out of a world, otherwise the (optionally blurred) game with the themed dim. */
+    protected final void drawScenery(GuiGraphics g, float delta, boolean blur) {
+        if (minecraft.level == null) { renderPanorama(g, delta); return; }
+        if (blur) renderBlurredBackground(g);
         CirrusUi.backdrop(g, width, height, theme());
     }
 
     @Override public final void render(GuiGraphics g, int mx, int my, float delta) {
         dev.cirrus.core.perf.PerfMeter.MENU.begin();
+        Look.refresh(config());
         CirrusTheme t = theme();
         if (activeTab() != null) drawHeader(g, t);
         drawSurfaces(g, mx, my, delta, t);

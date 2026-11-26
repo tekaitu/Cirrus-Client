@@ -108,20 +108,20 @@ public final class CirrusTitleScreen extends TitleScreen {
 
     private void add(AbstractWidget widget) { widgets.add(widget); addRenderableWidget(widget); }
 
+    /** Minecraft's normal main-menu background: the vanilla panorama, with no dim or fade over it. */
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {
-        CirrusUi.backdrop(g, width, height, theme());
+        renderPanorama(g, delta);
     }
 
     @Override public void render(GuiGraphics g, int mx, int my, float delta) {
+        dev.cirrus.client.ui.Look.refresh(dev.cirrus.core.config.CirrusConfig.get(minecraft.gameDirectory.toPath()));
         CirrusTheme t = theme();
-        float fade = Math.min(1f, (System.currentTimeMillis() - openedAt) / 260f);
         drawLogo(g, t);
         drawStrip(g, t);
         for (AbstractWidget w : widgets) w.render(g, mx, my, delta);
         CirrusUi.centeredSmall(g, font, versionLine, width / 2, layout.versionY, Gfx.scaleAlpha(t.muted, 0.8f));
         drawProfile(g, t);
         drawBanner(g, t);
-        if (fade < 1f) McCanvas.of(g).fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - fade) * 200)));
     }
 
     private void drawLogo(GuiGraphics g, CirrusTheme t) {

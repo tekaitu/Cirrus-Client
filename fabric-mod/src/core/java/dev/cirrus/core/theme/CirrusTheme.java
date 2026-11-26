@@ -10,18 +10,22 @@ import dev.cirrus.core.config.CirrusConfig;
  * faint dark inset for inputs, and {@code popup} is the near-opaque surface for menus and tooltips so text stays readable.
  * {@code accentLight} is for headings and hover emphasis, {@code accentDark} for pressed states and fills behind white text.
  * ({@code cyan} is the historical name of the heading colour and now holds {@code accentLight}.)
+ * <p>
+ * {@link #DARK} is the default Maple look. {@link #current} returns the look the player has chosen on the Appearance page
+ * ({@link Appearance}): theme, accent, text colour and menu opacity. It is computed from the config, so changes show immediately.
  */
-public enum CirrusTheme {
-    DARK(0x4D000000, 0xCC14161A, 0x1AFFFFFF, 0x1FFFFFFF, Brand.MAIN, Brand.LIGHT, Brand.DARK, 0xFFFFFFFF, 0xFFB9BDC4, 0xFF35D49A,
+public final class CirrusTheme {
+    public static final CirrusTheme DARK = new CirrusTheme(0x4D000000, 0xCC14161A, 0x1AFFFFFF, 0x1FFFFFFF, Brand.MAIN, Brand.LIGHT, Brand.DARK, 0xFFFFFFFF, 0xFFB9BDC4, 0xFF35D49A,
         0x2BFFFFFF, 0x40000000, 0x26FFFFFF, 0xF2181A1F);
+
     public final int overlay, panel, surface, border, accent, cyan, accentDark, text, muted, good, surfaceHover, field, fieldHover, popup;
     public final int accentLight;
-    CirrusTheme(int overlay, int panel, int surface, int border, int accent, int accentLight, int accentDark, int text, int muted, int good,
+    public CirrusTheme(int overlay, int panel, int surface, int border, int accent, int accentLight, int accentDark, int text, int muted, int good,
                 int surfaceHover, int field, int fieldHover, int popup) {
         this.overlay = overlay; this.panel = panel; this.surface = surface; this.border = border;
         this.accent = accent; this.accentLight = accentLight; this.cyan = accentLight; this.accentDark = accentDark;
         this.text = text; this.muted = muted; this.good = good;
         this.surfaceHover = surfaceHover; this.field = field; this.fieldHover = fieldHover; this.popup = popup;
     }
-    public static CirrusTheme current(CirrusConfig config) { return DARK; }
+    public static CirrusTheme current(CirrusConfig config) { return Appearance.theme(config); }
 }
