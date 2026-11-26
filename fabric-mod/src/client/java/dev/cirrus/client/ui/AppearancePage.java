@@ -22,8 +22,8 @@ public final class AppearancePage {
         this.x = x; this.y = y; this.w = w; this.h = h;
         int pad = 8, cy = y + pad + 30;
         previewRect = null;
-        boolean room = h >= 190 && w >= 240;
-        if (room) { previewRect = new ClickGuiLayout.Rect(x + pad, cy, w - pad * 2, 44); cy += 50; }
+        boolean room = h >= 230 && w >= 240;
+        if (room) { previewRect = new ClickGuiLayout.Rect(x + pad, cy, w - pad * 2, 56); cy += 62; }
         int by = y + h - pad - 20;
         resetBtn = new ClickGuiLayout.Rect(x + pad, by, w - pad * 2, 20);
         settingsRect = new ClickGuiLayout.Rect(x + pad, cy, w - pad * 2, Math.max(0, by - 6 - cy));
@@ -49,17 +49,17 @@ public final class AppearancePage {
     /** A miniature of what the settings change: a panel with a row, a switch, a button, an accent bar and a widget. */
     private void drawPreview(GuiGraphics g, Font font, CirrusTheme t) {
         var r = previewRect;
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 8, 0xFF3B7A3B);       // stands in for the game behind the menu
+        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 8, 0xFF4F6B86);       // stands in for the game behind the menu
         Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 8, t.overlay);
         int px = r.x() + 6, py = r.y() + 6, pw = Math.min(190, r.w() * 60 / 100), ph = r.h() - 12;
         Gfx.fillRound(g, px, py, pw, ph, 6, t.panel);
-        Gfx.fillRound(g, px + 5, py + 5, pw - 10, 14, 5, t.surface);
-        CirrusUi.smallText(g, font, "Fly speed", px + 10, py + 8, 0xFFFFFFFF, false);
-        CirrusUi.toggle(g, px + pw - 31, py + 6, true, 1f, t);
-        Gfx.fillRound(g, px + 5, py + ph - 17, 52, 12, 5, t.accent);
-        CirrusUi.centeredSmall(g, font, "Apply", px + 31, py + ph - 15, 0xFFFFFFFF);
-        Gfx.fillRound(g, px + 62, py + ph - 17, pw - 67, 12, 5, t.surfaceHover);
-        CirrusUi.smallText(g, font, "Cancel", px + 68, py + ph - 15, t.muted, false);
+        Gfx.fillRound(g, px + 5, py + 5, pw - 10, 16, 5, t.surface);
+        CirrusUi.smallText(g, font, "Fly speed", px + 10, py + 9, 0xFFFFFFFF, false);
+        CirrusUi.toggle(g, px + pw - 31, py + 7, true, 1f, t);
+        Gfx.fillRound(g, px + 5, py + ph - 20, 52, 15, 5, t.accent);
+        CirrusUi.centeredSmall(g, font, "Apply", px + 31, py + ph - 17, 0xFFFFFFFF);
+        Gfx.fillRound(g, px + 62, py + ph - 20, pw - 67, 15, 5, t.surfaceHover);
+        CirrusUi.smallText(g, font, "Cancel", px + 68, py + ph - 17, t.muted, false);
         int wx = px + pw + 12, wy = r.y() + (r.h() - 18) / 2;
         Gfx.fillRound(g, wx, wy, 52, 18, 5, Gfx.withAlpha(0xFF000000, 0xB0));
         CirrusUi.text(g, font, "(144)", wx + 8, wy + 4, 0xFFFFFFFF, true);

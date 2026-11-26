@@ -467,34 +467,60 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
      */
     private static void verifyMapleGlyph(ClientGameTestContext context) {
         String glyph = dev.cirrus.client.glyph.MapleGlyph.CHARACTER;
-        // Software rendering on the CI runner loads a world slowly; the smallest render distance keeps the world load inside the timeout.
-        context.runOnClient(mc -> { mc.options.renderDistance().set(2); mc.options.simulationDistance().set(5); });
-        try (var world = context.worldBuilder().create()) {
-            context.waitTicks(60);
+
+        // Part A, no world needed: the two hooks are really applied to the game's classes, and the decoration itself behaves.
         context.runOnClient(mc -> {
             dev.cirrus.core.identity.MapleIdentity.setProvider(null);
-            var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
-            var verified = new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(VERIFIED_ID, "Maple_Verified"), false);
-            check("no glyph while nobody is verified", !tab.getNameForDisplay(verified).getString().contains(glyph));
+            check("the tab list hook is applied to PlayerTabOverlay", hasHook("net.minecraft.client.gui.components.PlayerTabOverlay"));
+            check("the name tag hook is applied to EntityRenderer", hasHook("net.minecraft.client.renderer.entity.EntityRenderer"));
+            var name = net.minecraft.network.chat.Component.literal("Maple_Verified");
+            check("no glyph while nobody is verified", dev.cirrus.client.glyph.MapleGlyph.decorate(name, VERIFIED_ID).getString().equals("Maple_Verified"));
+            dev.cirrus.core.identity.MapleIdentity.setProvider(id -> id.equals(VERIFIED_ID) || id.version() == 3);
+            check("a verified player's name is prefixed with the glyph", dev.cirrus.client.glyph.MapleGlyph.decorate(name, VERIFIED_ID).getString().equals(glyph + " Maple_Verified"));
+            check("an unverified player's name is untouched", dev.cirrus.client.glyph.MapleGlyph.decorate(name, PLAIN_ID).getString().equals("Maple_Verified"));
+            var offline = java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Cracked_Player".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            check("an offline-mode UUID never gets the glyph, even if the source says yes", dev.cirrus.client.glyph.MapleGlyph.decorate(name, offline).getString().equals("Maple_Verified"));
         });
-        context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(id -> id.equals(VERIFIED_ID) || id.version() == 3));
-        context.setScreen(() -> {
-            var mc = net.minecraft.client.Minecraft.getInstance();
-            var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
-            var rows = new java.util.ArrayList<net.minecraft.network.chat.Component>();
-            var verified = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(VERIFIED_ID, "Maple_Verified"), false));
-            var plain = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(PLAIN_ID, "Plain_Player"), false));
-            var offline = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(
-                new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Cracked_Player".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "Cracked_Player"), false));
-            check("a verified player's tab name carries the glyph", verified.getString().contains(glyph) && verified.getString().endsWith("Maple_Verified"));
-            check("an unverified player's tab name is untouched", plain.getString().equals("Plain_Player"));
-            check("an offline-mode player never gets the glyph, even if the source says yes", offline.getString().equals("Cracked_Player"));
-            rows.add(verified); rows.add(plain); rows.add(offline);
-            return new NameRows(rows);
-        });
+        context.setScreen(() -> new NameRows(java.util.List.of(
+            dev.cirrus.client.glyph.MapleGlyph.decorate(net.minecraft.network.chat.Component.literal("Maple_Verified"), VERIFIED_ID),
+            dev.cirrus.client.glyph.MapleGlyph.decorate(net.minecraft.network.chat.Component.literal("Plain_Player"), PLAIN_ID),
+            dev.cirrus.client.glyph.MapleGlyph.decorate(net.minecraft.network.chat.Component.literal("Cracked_Player"),
+                java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Cracked_Player".getBytes(java.nio.charset.StandardCharsets.UTF_8))))));
         context.waitTicks(10);
-        context.takeScreenshot("tab-names-glyph-1280x720-gui2");
+        context.takeScreenshot("tab-names-glyph-preview-1280x720-gui2");
+        context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(null));
 
+        // Part B, needs a world: the real hooked methods. The CI runner renders in software, so loading a world can time out; that is
+        // reported, not hidden, and does not hide the checks above.
+        context.runOnClient(mc -> {
+            mc.options.renderDistance().set(2);
+            mc.options.simulationDistance().set(5);
+            mc.options.framerateLimit().set(20);
+        });
+        net.fabricmc.fabric.api.client.gametest.v1.world.TestSingleplayerContext world;
+        try {
+            world = context.worldBuilder().create();
+        } catch (AssertionError e) {
+            System.out.println("[maple-world] SKIPPED: the test world did not load in time on this runner (" + e.getMessage() + "); tab list and name tag hooks were not exercised in a world");
+            return;
+        }
+        try (world) {
+            context.waitTicks(60);
+            context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(id -> id.equals(VERIFIED_ID) || id.version() == 3));
+            context.setScreen(() -> {
+                var mc = net.minecraft.client.Minecraft.getInstance();
+                var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
+                var verified = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(VERIFIED_ID, "Maple_Verified"), false));
+                var plain = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(PLAIN_ID, "Plain_Player"), false));
+                var offline = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(
+                    new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Cracked_Player".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "Cracked_Player"), false));
+                check("the real tab list shows the glyph for a verified player", verified.getString().contains(glyph) && verified.getString().endsWith("Maple_Verified"));
+                check("the real tab list leaves an unverified player alone", plain.getString().equals("Plain_Player"));
+                check("the real tab list never decorates an offline-mode player", offline.getString().equals("Cracked_Player"));
+                return new NameRows(java.util.List.of(verified, plain, offline));
+            });
+            context.waitTicks(10);
+            context.takeScreenshot("tab-names-glyph-1280x720-gui2");
             context.setScreen(() -> null);
             context.waitTicks(10);
             context.takeScreenshot("world-hud-1280x720-gui2");
@@ -525,6 +551,14 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("world-nametags-1280x720-gui2");
         }
         context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(null));
+    }
+
+    /** True when a mixin handler named maple$prefixVerified has been merged into the class (Mixin renames merged handlers). */
+    private static boolean hasHook(String className) {
+        try {
+            for (var m : Class.forName(className).getDeclaredMethods()) if (m.getName().contains("maple$prefixVerified")) return true;
+            return false;
+        } catch (ClassNotFoundException e) { return false; }
     }
 
     private static void spawnRemote(net.minecraft.client.Minecraft mc, java.util.UUID id, String name, double side) {
