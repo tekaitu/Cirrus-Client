@@ -42,6 +42,20 @@ The HUD model is separate from gameplay code: `HudLayout` (active/removed lists,
 clamped and persisted on every step). A removed widget keeps its saved position and returns to it. For widgets that are also modules (all four today) removing
 a widget switches its module off, as before; storage keys are unchanged (`enabled.<id>`, `hud.x/y/anchor.<id>`).
 
+### Widgets editor (Phase 3)
+
+All editing behaviour is Core and unit-tested; `HudEditorScreen` only draws and forwards input.
+
+- `SnapEngine`: while a widget is dragged, its left/centre/right and top/middle/bottom lines snap to the screen's edges and centre and to the same lines of every
+  other active widget within 4 GUI units; the line snapped to is reported (`HudDrag.guideX/guideY`) so the editor can draw a guide. Holding Alt turns snapping off.
+- `HudLayout.nudge` (arrow keys, Shift = 10 units) and `HudLayout.filter` (the editor's search). `HudElement.setPosition` now also clears a legacy `TOP_RIGHT`
+  anchor so a moved or nudged widget really moves.
+- `FormatTemplate`: informational widgets (FPS, Ping) write their value through a named style (`Parentheses` default, `Plain`, `Label`, `Suffix`, `Brackets`),
+  so the default reads "(400)" with no forced label. The stored value is only ever a style name, never free text, so configs and share codes cannot inject a template.
+  `HudColors` is the matching text-colour option (named colours, white default). Both are ordinary `mod.<id>.format` / `mod.<id>.color` keys and travel with profiles.
+- Editor views: a searchable widget list with Remove/Add, and, once a widget is selected, its options (scale, colour, format, background...) with Reset position.
+  Delete removes the selected widget. A floating "Mods" tab returns to the Click GUI. The in-game HUD loop skips drawing while the editor is open (the editor draws the live widgets itself).
+
 ## Rules (enforced by `CoreBoundaryTest`)
 
 1. Core never references `net.minecraft`, `com.mojang`, `net.fabricmc`, Forge/NeoForge, `org.lwjgl`, `org.slf4j`, `com.google` or `dev.cirrus.client`.

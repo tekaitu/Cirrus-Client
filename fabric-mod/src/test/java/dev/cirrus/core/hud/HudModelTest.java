@@ -30,6 +30,59 @@ class HudModelTest {
         };
     }
 
+    @Test void disablingKeepsAWidgetInTheLayoutButOffTheHud() {
+        CirrusConfig c = ctx.config();
+        HudElement e = box("a", 40, 16);
+        e.setPosition(c, 100, 60, 427, 240);
+        HudLayout.disable(e, c);
+        assertFalse(HudLayout.isActive(e, c), "not drawn in the game");
+        assertTrue(HudLayout.isDisabled(e, c));
+        assertTrue(HudLayout.isPresent(e, c), "still part of the layout, so the editor can show it dimmed");
+        assertFalse(HudLayout.isRemoved(e, c));
+        assertTrue(HudLayout.removed(Arrays.asList(e), c).isEmpty(), "a disabled widget is not in the restore list");
+        assertEquals(Arrays.asList(e), HudLayout.present(Arrays.asList(e), c));
+        assertSame(e, HudLayout.hit(Arrays.asList(e), c, 427, 240, 110, 66, 0), "it can still be grabbed and moved");
+        HudLayout.enable(e, c);
+        assertTrue(HudLayout.isActive(e, c));
+        assertEquals(100, e.x(c, 427));
+        assertEquals(60, e.y(c, 240));
+    }
+
+    @Test void removedWidgetsLeaveTheLayoutAndRestoreFromTheList() {
+        CirrusConfig c = ctx.config();
+        HudElement e = box("a", 40, 16);
+        List<HudElement> all = Arrays.asList(e);
+        HudLayout.remove(e, c);
+        assertTrue(HudLayout.isRemoved(e, c));
+        assertFalse(HudLayout.isPresent(e, c));
+        assertFalse(HudLayout.isActive(e, c));
+        assertTrue(HudLayout.present(all, c).isEmpty());
+        assertEquals(all, HudLayout.removed(all, c));
+        assertNull(HudLayout.hit(all, c, 427, 240, e.x(c, 427) + 1, e.y(c, 240) + 1, 0));
+    }
+
+    @Test void restoringARemovedWidgetSwitchesItBackOnEvenIfItWasDisabledBeforeRemoval() {
+        CirrusConfig c = ctx.config();
+        HudElement e = box("a", 40, 16);
+        HudLayout.disable(e, c);
+        HudLayout.remove(e, c);
+        HudLayout.restore(e, c);
+        assertTrue(HudLayout.isActive(e, c));
+        assertTrue(HudLayout.isPresent(e, c));
+    }
+
+    @Test void removedAndDisabledAreIndependentPerWidgetAndStoredInTheConfig() {
+        CirrusConfig c = ctx.config();
+        HudElement a = box("a", 40, 16), b = box("b", 40, 16);
+        HudLayout.remove(a, c);
+        HudLayout.disable(b, c);
+        assertEquals("true", c.getString("hud.removed.a", ""));
+        assertEquals("false", c.getString("hud.enabled.b", "true"));
+        assertFalse(HudLayout.isRemoved(b, c));
+        assertFalse(HudLayout.isActive(a, c));
+        assertTrue(HudLayout.isDisabled(b, c));
+    }
+
     @Test void removedWidgetsKeepTheirPositionAndComeBackWhereTheyWere() {
         CirrusConfig c = ctx.config();
         HudElement e = box("a", 40, 16);
@@ -123,9 +176,9 @@ class HudModelTest {
         ctx.fps = 87;
         TestContext.Rec canvas = new TestContext.Rec();
         fps.render(canvas, 10, 10, 0, ctx);
-        assertEquals(Arrays.asList("FPS: 87"), canvas.texts);
+        assertEquals(Arrays.asList("(87)"), canvas.texts, "the default format has no forced label");
         assertEquals(0, canvas.fills + canvas.masks, "plain text by default: no background drawn");
-        assertEquals(("FPS: 000".length() * 5) + 10, fps.width());
+        assertEquals(("(000)".length() * 5) + 10, fps.width());
         assertEquals(16, fps.height());
     }
 
@@ -148,7 +201,7 @@ class HudModelTest {
         ping.render(canvas, 0, 0, 0, ctx);
         ctx.ping = 57;
         ping.render(canvas, 0, 0, 0, ctx);
-        assertEquals(Arrays.asList("Ping: 42 ms", "Ping: --", "Ping: 57 ms"), canvas.texts);
+        assertEquals(Arrays.asList("(42)", "(--)", "(57)"), canvas.texts);
     }
 
     @Test void scaleIsAppliedAsABalancedTransformAndChangesTheSize() {
@@ -193,12 +246,17 @@ class HudModelTest {
         ModRegistry.register(m);
         CirrusConfig c = ctx.config();
         assertTrue(HudLayout.isActive(m, c), "HUD modules are on by default");
-        HudLayout.remove(m, c);
-        HudLayout.remove(m, c);
+        HudLayout.disable(m, c);
+        HudLayout.disable(m, c);
         assertFalse(HudLayout.isActive(m, c));
-        assertEquals(1, disabled[0]);
-        HudLayout.restore(m, c);
+        assertEquals(1, disabled[0], "switching a module off twice runs its shutdown once");
+        HudLayout.enable(m, c);
         assertEquals(1, enabled[0]);
         assertTrue(((CirrusMod) m).enabled(c));
+        HudLayout.remove(m, c);
+        assertFalse(HudLayout.isActive(m, c), "removed widgets are not drawn");
+        assertEquals(1, disabled[0], "removing only takes it out of the layout; the module's switch is untouched");
+        HudLayout.restore(m, c);
+        assertTrue(HudLayout.isActive(m, c));
     }
 }

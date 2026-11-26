@@ -36,6 +36,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         screens.put("menu-planned", () -> new CirrusMenuScreen(null).withModule("zoom"));
         screens.put("dashboard", () -> new CirrusDashboardScreen(null));
         screens.put("hud-editor", () -> new HudEditorScreen(null));
+        screens.put("hud-editor-fps", () -> new HudEditorScreen(null, "fps"));
         for (String id : new String[] {"armor_status", "keystrokes", "fps", "ping"})
             screens.put("settings-" + id, () -> new dev.cirrus.client.ModSettingsScreen(null, dev.cirrus.core.module.ModRegistry.find(id).orElseThrow()));
 
@@ -152,7 +153,10 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.waitTicks(20);
             context.takeScreenshot(shot + "-with-profiles-1280x720-gui2");
         }
+        dumpSignatures(context);
         verifyArchitecture(context);
+        verifyHudEditor(context, screens);
+        verifyMapleGlyph(context);
         measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
@@ -199,6 +203,324 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             dev.cirrus.client.render.McInput.INSTANCE.events().removeListener(counter);
             check("a real key press reaches the Core input listeners", pressed[0] >= 1);
         });
+    }
+
+    /**
+     * Logs the real method signatures of the 1.21.11 classes the Maple glyph hooks into, as "[maple-dump]" lines. The hooks are written
+     * against these names; this keeps them checkable on every run instead of guessed.
+     */
+    private static void dumpSignatures(ClientGameTestContext context) {
+        context.runOnClient(mc -> {
+            String[] names = {"net.minecraft.client.gui.components.PlayerTabOverlay", "net.minecraft.client.renderer.entity.EntityRenderer",
+                "net.minecraft.client.renderer.entity.player.AvatarRenderer", "net.minecraft.client.renderer.entity.player.PlayerRenderer",
+                "net.minecraft.client.renderer.entity.LivingEntityRenderer", "net.minecraft.client.renderer.entity.state.EntityRenderState",
+                "net.minecraft.client.renderer.entity.state.AvatarRenderState", "net.minecraft.client.renderer.entity.state.PlayerRenderState",
+                "net.minecraft.client.multiplayer.PlayerInfo", "com.mojang.authlib.GameProfile", "net.minecraft.client.player.RemotePlayer",
+                "net.minecraft.client.multiplayer.ClientLevel"};
+            for (String n : names) {
+                try {
+                    Class<?> c = Class.forName(n);
+                    System.out.println("[maple-dump] class " + n + " extends " + c.getSuperclass().getName());
+                    for (var f : c.getDeclaredFields()) if (n.contains("State")) System.out.println("[maple-dump]   field " + f.getType().getName() + " " + f.getName());
+                    for (var ctor : c.getDeclaredConstructors()) System.out.println("[maple-dump]   ctor " + java.util.Arrays.toString(ctor.getParameterTypes()));
+                    for (var me : c.getDeclaredMethods()) {
+                        String name = me.getName().toLowerCase(java.util.Locale.ROOT);
+                        if (name.contains("name") || name.equals("id") || name.contains("profile") || name.contains("addentity") || name.contains("addplayer") || name.contains("display") || name.contains("extract") || name.contains("tag") || name.contains("render") && n.endsWith("TabOverlay"))
+                            System.out.println("[maple-dump]   method " + me.getReturnType().getName() + " " + me.getName() + java.util.Arrays.toString(me.getParameterTypes()));
+                    }
+                } catch (Throwable t) { System.out.println("[maple-dump] missing " + n + " (" + t.getClass().getSimpleName() + ")"); }
+            }
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T onEditor(ClientGameTestContext context, java.util.function.Function<HudEditorScreen, T> fn) {
+        Object[] out = new Object[1];
+        context.runOnClient(mc -> out[0] = fn.apply((HudEditorScreen) mc.screen));
+        return (T) out[0];
+    }
+
+    /** Moves the real cursor to a GUI-unit point and presses a real mouse button there (0 = left, 1 = right). */
+    private static void clickGui(ClientGameTestContext context, int[] gui, int button) {
+        moveGui(context, gui);
+        context.getInput().pressMouse(button);
+        context.waitTick();
+    }
+
+    private static void moveGui(ClientGameTestContext context, int[] gui) {
+        double[] px = new double[2];
+        context.runOnClient(mc -> { double scale = mc.getWindow().getGuiScale(); px[0] = gui[0] * scale; px[1] = gui[1] * scale; });
+        context.getInput().setCursorPos(px[0], px[1]);
+        context.waitTick();
+    }
+
+    private static boolean hideGui(ClientGameTestContext context) {
+        boolean[] out = new boolean[1];
+        context.runOnClient(mc -> out[0] = mc.options.hideGui);
+        return out[0];
+    }
+
+    /**
+     * Redesign checks on the real game, driven with real mouse and keyboard input: the editor hides the vanilla HUD, the right-click menu
+     * disables, enables and removes a widget, the Widgets list restores it where it was, Customize changes and resets options, dragging
+     * moves and persists, Mods opens the Click GUI and Esc returns to the same editor, and Done restores the vanilla HUD.
+     */
+    private static void verifyHudEditor(ClientGameTestContext context, Map<String, Supplier<Screen>> screens) {
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var cfg = ctx.config();
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("FPS format defaults to parentheses with no label", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", ((dev.cirrus.core.module.CirrusMod) fps).settings(), "format").equals("Parentheses"));
+            for (var e : dev.cirrus.core.hud.HudElementRegistry.all()) dev.cirrus.core.hud.HudLayout.restore(e, cfg);
+            fps.setPosition(cfg, 520, 200, ctx.screenWidth(), ctx.screenHeight());
+        });
+        boolean hiddenBefore = hideGui(context);
+        context.setScreen(screens.get("hud-editor-fps"));
+        context.waitTicks(15);
+        check("the editor hides the vanilla HUD", hideGui(context));
+        context.takeScreenshot("hud-editor-fps-1280x720-gui2");
+        context.getInput().pressKey(Keys.RIGHT);
+        context.getInput().pressKey(Keys.DOWN);
+        context.waitTicks(5);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("arrow keys nudge the selected widget by one unit", fps.x(ctx.config(), ctx.screenWidth()) == 521 && fps.y(ctx.config(), ctx.screenHeight()) == 201);
+            fps.setPosition(ctx.config(), 520, 200, ctx.screenWidth(), ctx.screenHeight());
+        });
+
+        // Right-click -> compact menu.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        context.waitTicks(3);
+        check("right-click opens the context menu", onEditor(context, HudEditorScreen::openPopup).equals("MENU"));
+        check("the menu offers Disable, Remove and Customize", onEditor(context, HudEditorScreen::menuLabels).equals(java.util.List.of("Disable widget", "Remove widget", "Customize")));
+        context.takeScreenshot("hud-editor-context-menu-1280x720-gui2");
+
+        // Disable: stays configured and in the layout, off the HUD.
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(0)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("Disable switches the widget off but keeps it in the layout", dev.cirrus.core.hud.HudLayout.isDisabled(fps, cfg) && !dev.cirrus.core.hud.HudLayout.isActive(fps, cfg));
+        });
+        context.takeScreenshot("hud-editor-disabled-1280x720-gui2");
+
+        // Enable it again from the same menu.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        check("a disabled widget offers Enable", onEditor(context, HudEditorScreen::menuLabels).get(0).equals("Enable widget"));
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(0)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            check("Enable puts it back on the HUD", dev.cirrus.core.hud.HudLayout.isActive(dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow(), cfg));
+        });
+
+        // Remove: leaves the layout.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(1)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("Remove takes the widget out of the layout", dev.cirrus.core.hud.HudLayout.isRemoved(fps, cfg) && !dev.cirrus.core.hud.HudLayout.isPresent(fps, cfg));
+        });
+        context.takeScreenshot("hud-editor-removed-1280x720-gui2");
+
+        // Restore from the Widgets list, back where it was.
+        clickGui(context, onEditor(context, e -> e.clusterButtonCentre(1)), 0);
+        context.waitTicks(3);
+        check("Widgets opens the list", onEditor(context, HudEditorScreen::openPopup).equals("LIST"));
+        context.takeScreenshot("hud-editor-widgets-list-1280x720-gui2");
+        int fpsIndex = dev.cirrus.core.hud.HudElementRegistry.all().indexOf(dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow());
+        clickGui(context, onEditor(context, e -> e.listChipCentre(fpsIndex)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("the list restores a removed widget where it was", dev.cirrus.core.hud.HudLayout.isActive(fps, ctx.config())
+                && fps.x(ctx.config(), ctx.screenWidth()) == 520 && fps.y(ctx.config(), ctx.screenHeight()) == 200);
+        });
+        context.getInput().pressKey(Keys.ESCAPE);
+        context.waitTicks(2);
+        check("Esc closes the list before leaving the editor", onEditor(context, HudEditorScreen::openPopup).equals("NONE"));
+
+        // Customize: popover with the widget's options; change, then reset with a real click.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(2)), 0);
+        context.waitTicks(3);
+        check("Customize opens the options popover", onEditor(context, HudEditorScreen::openPopup).equals("CUSTOMIZE"));
+        context.takeScreenshot("hud-editor-customize-1280x720-gui2");
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = (dev.cirrus.core.module.CirrusMod) dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            for (var st : fps.settings()) {
+                String v = switch (st.key()) { case "color" -> "Maple"; case "background" -> "true"; case "bgcolor" -> "Navy"; case "opacity" -> "55"; case "scale" -> "130"; default -> st.defaultValue(); };
+                dev.cirrus.core.settings.ModSettings.set(cfg, "fps", st, v);
+            }
+        });
+        context.waitTicks(3);
+        context.takeScreenshot("hud-editor-customize-styled-1280x720-gui2");
+        clickGui(context, onEditor(context, e -> e.customizeChipCentre(0)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = (dev.cirrus.core.module.CirrusMod) dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("Reset options restores the defaults", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "color").equals("White")
+                && dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "opacity").equals("80")
+                && dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("100"));
+        });
+        context.getInput().pressKey(Keys.ESCAPE);
+        context.waitTicks(2);
+
+        // Drag with the left button: moves and persists.
+        int[] from = onEditor(context, e -> e.widgetCentre("fps"));
+        moveGui(context, from);
+        context.getInput().holdMouse(0);
+        context.waitTick();
+        moveGui(context, new int[] {from[0] + 90, from[1] + 50});
+        context.waitTicks(2);
+        context.takeScreenshot("hud-editor-dragging-1280x720-gui2");
+        context.getInput().releaseMouse(0);
+        context.waitTicks(2);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("left-drag moves the widget and keeps the new position", fps.x(ctx.config(), ctx.screenWidth()) >= 590 && fps.y(ctx.config(), ctx.screenHeight()) >= 240);
+        });
+
+        // Mods opens the Click GUI; Esc comes back to the very same editor with its state.
+        HudEditorScreen[] editor = new HudEditorScreen[1];
+        context.runOnClient(mc -> editor[0] = (HudEditorScreen) mc.screen);
+        clickGui(context, onEditor(context, e -> e.clusterButtonCentre(0)), 0);
+        context.waitTicks(10);
+        context.runOnClient(mc -> check("the floating Mods button opens the Click GUI", mc.screen instanceof CirrusMenuScreen));
+        context.takeScreenshot("hud-editor-to-mods-1280x720-gui2");
+        context.getInput().pressKey(Keys.ESCAPE);
+        context.waitTicks(10);
+        context.runOnClient(mc -> check("closing Mods returns to the same editor, vanilla HUD still hidden", mc.screen == editor[0] && mc.options.hideGui));
+
+        // Done leaves the editor and brings the vanilla HUD back.
+        clickGui(context, onEditor(context, e -> e.clusterButtonCentre(2)), 0);
+        context.waitTicks(5);
+        check("leaving the editor restores the vanilla HUD", hideGui(context) == hiddenBefore);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            dev.cirrus.core.hud.HudLayout.resetPosition(dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow(), ctx.config(), ctx.screenWidth(), ctx.screenHeight());
+        });
+        context.setScreen(screens.get("hud-editor"));
+        context.waitTicks(10);
+        context.takeScreenshot("hud-editor-1280x720-gui2");
+    }
+
+    private static final java.util.UUID VERIFIED_ID = java.util.UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+    private static final java.util.UUID PLAIN_ID = java.util.UUID.fromString("8667ba71-b85a-4004-af54-457a9734eed7");
+
+    /** A plain screen that draws name components the way the tab list does, to photograph the real hooked output. */
+    private static final class NameRows extends Screen {
+        private final java.util.List<net.minecraft.network.chat.Component> rows;
+        NameRows(java.util.List<net.minecraft.network.chat.Component> rows) { super(net.minecraft.network.chat.Component.literal("names")); this.rows = rows; }
+        @Override public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float delta) {
+            g.fill(0, 0, width, height, 0xFF3B7A3B);
+            int w = 140, x = (width - w) / 2, y = height / 2 - rows.size() * 5 - 4;
+            g.fill(x - 4, y - 4, x + w + 4, y + rows.size() * 10 + 2, 0x80000000);
+            for (int i = 0; i < rows.size(); i++) g.drawString(font, rows.get(i), x, y + i * 10, 0xFFFFFFFF);
+        }
+    }
+
+    /**
+     * Maple glyph checks on the real game. The verified-identity source is a test double installed only here: this client has no real
+     * source yet, so with nothing installed nobody is verified (also checked). Tab list: the real PlayerTabOverlay#getNameForDisplay runs
+     * through the mixin for crafted PlayerInfo entries (it needs a world for team lookups). Name tag: the real EntityRenderer#getNameTag runs for real remote players in a world.
+     */
+    private static void verifyMapleGlyph(ClientGameTestContext context) {
+        String glyph = dev.cirrus.client.glyph.MapleGlyph.CHARACTER;
+        try (var world = context.worldBuilder().create()) {
+            context.waitTicks(60);
+        context.runOnClient(mc -> {
+            dev.cirrus.core.identity.MapleIdentity.setProvider(null);
+            var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
+            var verified = new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(VERIFIED_ID, "Maple_Verified"), false);
+            check("no glyph while nobody is verified", !tab.getNameForDisplay(verified).getString().contains(glyph));
+        });
+        context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(id -> id.equals(VERIFIED_ID) || id.version() == 3));
+        context.setScreen(() -> {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
+            var rows = new java.util.ArrayList<net.minecraft.network.chat.Component>();
+            var verified = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(VERIFIED_ID, "Maple_Verified"), false));
+            var plain = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(PLAIN_ID, "Plain_Player"), false));
+            var offline = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(
+                new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Cracked_Player".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "Cracked_Player"), false));
+            check("a verified player's tab name carries the glyph", verified.getString().contains(glyph) && verified.getString().endsWith("Maple_Verified"));
+            check("an unverified player's tab name is untouched", plain.getString().equals("Plain_Player"));
+            check("an offline-mode player never gets the glyph, even if the source says yes", offline.getString().equals("Cracked_Player"));
+            rows.add(verified); rows.add(plain); rows.add(offline);
+            return new NameRows(rows);
+        });
+        context.waitTicks(10);
+        context.takeScreenshot("tab-names-glyph-1280x720-gui2");
+
+            context.setScreen(() -> null);
+            context.waitTicks(10);
+            context.takeScreenshot("world-hud-1280x720-gui2");
+            context.setScreen(() -> new HudEditorScreen(null, "fps"));
+            context.waitTicks(10);
+            context.takeScreenshot("world-hud-editor-1280x720-gui2");
+            clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+            context.waitTicks(3);
+            context.takeScreenshot("world-hud-editor-menu-1280x720-gui2");
+            context.getInput().pressKey(Keys.ESCAPE);
+            context.getInput().pressKey(Keys.ESCAPE);
+            context.setScreen(() -> null);
+            context.waitTicks(5);
+            context.runOnClient(mc -> {
+                spawnRemote(mc, VERIFIED_ID, "Maple_Verified", -0.9);
+                spawnRemote(mc, PLAIN_ID, "Plain_Player", 0.9);
+            });
+            context.waitTicks(20);
+            context.runOnClient(mc -> {
+                for (var p : mc.level.players()) {
+                    if (p == mc.player) continue;
+                    String tag = nameTagOf(mc, p);
+                    System.out.println("[maple-nametag] " + p.getName().getString() + " -> '" + tag + "'");
+                    if (p.getUUID().equals(VERIFIED_ID)) check("a verified player's name tag carries the glyph", tag.contains(glyph));
+                    else check("an unverified player's name tag is untouched", !tag.contains(glyph));
+                }
+            });
+            context.takeScreenshot("world-nametags-1280x720-gui2");
+        }
+        context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(null));
+    }
+
+    private static void spawnRemote(net.minecraft.client.Minecraft mc, java.util.UUID id, String name, double side) {
+        try {
+            var profile = new com.mojang.authlib.GameProfile(id, name);
+            Class<?> type = Class.forName("net.minecraft.client.player.RemotePlayer");
+            var remote = (net.minecraft.world.entity.Entity) type.getConstructor(net.minecraft.client.multiplayer.ClientLevel.class, com.mojang.authlib.GameProfile.class).newInstance(mc.level, profile);
+            var look = mc.player.getLookAngle();
+            var forward = new net.minecraft.world.phys.Vec3(look.x, 0, look.z).normalize();
+            var right = new net.minecraft.world.phys.Vec3(-forward.z, 0, forward.x);
+            var pos = mc.player.position().add(forward.scale(4)).add(right.scale(side * 1.5));
+            remote.setPos(pos.x, pos.y, pos.z);
+            boolean added = false;
+            for (var m : mc.level.getClass().getMethods()) {
+                var p = m.getParameterTypes();
+                if (!m.getName().equals("addEntity") && !m.getName().equals("addPlayer")) continue;
+                if (p.length == 1 && p[0].isAssignableFrom(remote.getClass())) { m.invoke(mc.level, remote); added = true; break; }
+                if (p.length == 2 && p[0] == int.class && p[1].isAssignableFrom(remote.getClass())) { m.invoke(mc.level, 9000 + (int) (side * 10), remote); added = true; break; }
+            }
+            check("a remote player could be added to the test world", added);
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
+    }
+
+    private static String nameTagOf(net.minecraft.client.Minecraft mc, net.minecraft.world.entity.Entity entity) {
+        try {
+            var renderer = mc.getEntityRenderDispatcher().getRenderer(entity);
+            var method = net.minecraft.client.renderer.entity.EntityRenderer.class.getDeclaredMethod("getNameTag", net.minecraft.world.entity.Entity.class);
+            method.setAccessible(true);
+            return ((net.minecraft.network.chat.Component) method.invoke(renderer, entity)).getString();
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
     }
 
     /**

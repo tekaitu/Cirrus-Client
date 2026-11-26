@@ -50,10 +50,16 @@ public final class CirrusUi {
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 
+    /** A small floating surface (context menu, popover, tooltip): near-opaque so text stays readable over the game. */
+    public static void popup(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
+        if (w <= 0 || h <= 0) return;
+        Gfx.fillRound(g, x, y, w, h, radius, t.popup);
+        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
+    }
+
     /** Light-weight surface for always-on HUD elements: no shadow stack, so it stays cheap every frame. */
     public static void hudPanel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
         Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(t.panel, 0xFF000000, 0.15f));
-        Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 
     /** A flatter inset surface used inside panels (cards, fields, chips). */
@@ -70,10 +76,9 @@ public final class CirrusUi {
     /** Toggle switch with an animated knob (progress 0..1). */
     public static void toggle(GuiGraphics g, int x, int y, boolean on, float progress, CirrusTheme t) {
         int w = 24, h = 12;
-        Gfx.fillRound(g, x, y, w, h, h / 2f, Gfx.mix(0xFF000000, t.accent, progress));
-        Gfx.strokeRound(g, x, y, w, h, h / 2f, 0.5f, Gfx.mix(t.border, t.accent, progress));
+        Gfx.fillRound(g, x, y, w, h, h / 2f, Gfx.mix(0x45FFFFFF, t.accent, progress));
         float kx = x + 2 + (w - h) * progress;
-        Gfx.fillRound(g, kx, y + 2, h - 4, h - 4, (h - 4) / 2f, Gfx.mix(0xFF8A8A8A, 0xFFFFFFFF, progress));
+        Gfx.fillRound(g, kx, y + 2, h - 4, h - 4, (h - 4) / 2f, Gfx.mix(0xFFD0D3D8, 0xFFFFFFFF, progress));
     }
 
     public static void scrollbar(GuiGraphics g, int x, int y, int h, float offset, float visible, CirrusTheme t) {

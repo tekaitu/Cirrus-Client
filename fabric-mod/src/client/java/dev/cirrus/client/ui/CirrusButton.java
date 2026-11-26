@@ -47,15 +47,15 @@ public final class CirrusButton extends Button {
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         float radius = Math.min(6f, h / 2f);
         selectedBlend = Anim.approach(selectedBlend, selected ? 1f : 0f, dt, 16f);
-        boolean primary = style == Style.PRIMARY || selectedBlend > 0.5f;
-        // Flat black. Hover lifts the fill slightly and turns the outline light orange; primary and selected buttons get an orange outline.
-        int fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
-        int edge = Gfx.mix(primary ? t.accent : t.border, t.accentLight, hover);
-        if (!active) { fill = 0xFF000000; edge = Gfx.scaleAlpha(t.border, 0.6f); }
+        boolean primary = style == Style.PRIMARY;
+        // Faint tint that lifts on hover and press (keyboard focus looks like hover); only the primary action is orange. No outlines.
+        int fill = Gfx.mix(Gfx.mix(t.surface, t.surfaceHover, hover), 0x3DFFFFFF, press);
+        if (primary) fill = Gfx.mix(Gfx.mix(Gfx.withAlpha(t.accent, 0xE6), t.accentLight, hover * 0.5f), t.accentDark, press);
+        else if (style == Style.TAB) fill = Gfx.mix(fill, t.surfaceHover, selectedBlend);
+        if (!active) fill = Gfx.scaleAlpha(t.surface, 0.6f);
 
         Gfx.fillRound(g, x, y, w, h, radius, fill);
-        Gfx.strokeRound(g, x, y, w, h, radius, primary ? 1f : 0.5f, edge);
-        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.accentLight);
+        if (style == Style.TAB && selectedBlend > 0.01f) Gfx.fillRound(g, x + 8, y + h - 3, w - 16, 2, 1, Gfx.scaleAlpha(t.accent, selectedBlend));
 
         Font font = mc.font;
         int textColor = active ? 0xFFFFFFFF : 0xFF7A7A7A;

@@ -13,7 +13,7 @@ public final class HudPreview {
     private HudPreview() { }
 
     public static void draw(GuiGraphics g, HudElement e, CirrusConfig cfg, CirrusTheme t, int x, int y, int w, int h) {
-        Gfx.fillRound(g, x, y, w, h, 8, 0xFF050505);
+        Gfx.fillRound(g, x, y, w, h, 8, Look.FIELD);
         McCanvas.of(g).pushClip(x + 1, y + 1, (x + w - 1) - (x + 1), (y + h - 1) - (y + 1));
         for (int cy = 0; cy < h; cy += 10) for (int cx = 0; cx < w; cx += 10)
             if (((cx / 10) + (cy / 10)) % 2 == 0) McCanvas.of(g).fill(x + cx, y + cy, x + cx + 10, y + cy + 10, 0xFF141414);

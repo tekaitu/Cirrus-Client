@@ -46,6 +46,7 @@ final class TestContext implements ModContext {
     /** Records what a widget draws. */
     static final class Rec implements Canvas {
         final List<String> texts = new ArrayList<String>();
+        final List<Integer> textColors = new ArrayList<Integer>();
         final List<String> transforms = new ArrayList<String>();
         int fills, masks, depth;
         @Override public int scale() { return 2; }
@@ -54,7 +55,7 @@ final class TestContext implements ModContext {
         @Override public void fill(int x0, int y0, int x1, int y1, int argb) { fills++; }
         @Override public void cornerMask(int r, int t, int qx, int qy, int x, int y, int argb) { masks++; }
         @Override public void icon(int index, int x, int y, int size, int argb) { }
-        @Override public void text(String text, TextStyle style, int x, int y, int argb, boolean shadow) { texts.add(text); }
+        @Override public void text(String text, TextStyle style, int x, int y, int argb, boolean shadow) { texts.add(text); textColors.add(argb); }
         @Override public void pushTransform(float x, float y, float scale) { depth++; transforms.add(x + "," + y + "," + scale); }
         @Override public void popTransform() { depth--; }
         @Override public void pushClip(int x, int y, int w, int h) { }

@@ -7,6 +7,7 @@ import dev.cirrus.core.hud.HudElement;
 import dev.cirrus.core.hud.HudElementRegistry;
 import dev.cirrus.core.perf.PerfMeter;
 import dev.cirrus.core.render.Canvas;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 
 import java.util.List;
@@ -16,6 +17,8 @@ final class CirrusHudSettings {
     private CirrusHudSettings() {}
 
     static void render(GuiGraphics g) {
+        // The HUD editor draws the widgets itself (with selection frames); drawing them here too would double every one.
+        if (Minecraft.getInstance().screen instanceof HudEditorScreen) return;
         ClientModContext ctx = ClientModContext.INSTANCE;
         CirrusConfig cfg = ctx.config();
         int w = ctx.screenWidth(), h = ctx.screenHeight();
@@ -24,7 +27,7 @@ final class CirrusHudSettings {
         List<HudElement> all = HudElementRegistry.all();
         for (int i = 0; i < all.size(); i++) {
             HudElement e = all.get(i);
-            if (e.enabled(cfg)) e.render(canvas, e.x(cfg, w), e.y(cfg, h), 0, ctx);
+            if (e.visible(cfg)) e.render(canvas, e.x(cfg, w), e.y(cfg, h), 0, ctx);
         }
         PerfMeter.HUD.end();
     }

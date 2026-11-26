@@ -267,8 +267,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
 
     private void iconButton(GuiGraphics g, ClickGuiLayout.Rect r, int glyph, int mx, int my, CirrusTheme t, String tip) {
         boolean hover = r.contains(mx, my);
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, hover ? 0xFF141414 : 0xFF000000);
-        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 6, 0.5f, hover ? WHITE : t.border);
+        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, hover ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE);
         Glyphs.draw(g, glyph, r.x() + (r.w() - 12) / 2, r.y() + (r.h() - 12) / 2, 12, WHITE);
         if (hover) tooltip = tip;
     }
@@ -276,7 +275,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
     private void drawHeader(GuiGraphics g, int mx, int my, CirrusTheme t) {
         var s = layout.search;
         boolean focus = search != null && search.isFocused();
-        CirrusUi.card(g, s.x(), s.y(), s.w(), s.h(), s.h() / 2f, 0xFF000000, focus ? WHITE : t.border);
+        CirrusUi.card(g, s.x(), s.y(), s.w(), s.h(), s.h() / 2f, dev.cirrus.client.ui.Look.FIELD, focus ? Gfx.withAlpha(t.accent, 0xB0) : 0);
         Glyphs.draw(g, Icons.SEARCH, s.x() + 6, s.y() + (s.h() - 10) / 2, 10, focus ? WHITE : t.muted);
         if (searching()) {
             boolean hover = clearRect().contains(mx, my);
@@ -302,8 +301,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
 
     private void headerButton(GuiGraphics g, ClickGuiLayout.Rect r, int glyph, String label, int mx, int my, CirrusTheme t, String tip) {
         boolean hover = r.contains(mx, my);
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, hover ? 0xFF141414 : 0xFF000000);
-        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 6, 0.5f, hover ? WHITE : t.border);
+        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, hover ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE);
         if (label == null) Glyphs.draw(g, glyph, r.x() + (r.w() - 12) / 2, r.y() + (r.h() - 12) / 2, 12, WHITE);
         else {
             Glyphs.draw(g, glyph, r.x() + 6, r.y() + (r.h() - 12) / 2, 12, WHITE);
@@ -323,15 +321,16 @@ public final class CirrusMenuScreen extends CirrusScreen {
             if (i == 2 || i == 3) McCanvas.of(g).fill(sb.x() + 10, y - 5, sb.right() - 10, y - 4, t.border);
             int x = sb.x() + 6, w = sb.w() - 12;
             boolean on = sideSelected(s), hover = mx >= x && mx < x + w && my >= y && my < y + ih && sb.contains(mx, my);
-            Gfx.fillRound(g, x, y, w, ih, 6, on ? WHITE : (hover ? 0xFF141414 : 0xFF000000));
-            int fg = on ? 0xFF000000 : (hover ? WHITE : t.muted);
+            if (on || hover) Gfx.fillRound(g, x, y, w, ih, 6, on ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE);
+            if (on) Gfx.fillRound(g, x, y + 5, 2, ih - 10, 1, t.accent);
+            int fg = on || hover ? WHITE : t.muted;
             if (layout.rail) {
                 Glyphs.draw(g, s.glyph(), x + (w - 12) / 2, y + (ih - 12) / 2, 12, fg);
                 if (hover) tooltip = s.label() + (s.count() >= 0 ? " (" + s.count() + ")" : "");
             } else {
                 Glyphs.draw(g, s.glyph(), x + 6, y + (ih - 12) / 2, 12, fg);
                 CirrusUi.smallText(g, font, s.label(), x + 23, y + (ih - CirrusUi.LINE) / 2, fg, false);
-                if (s.count() >= 0) CirrusUi.rightSmall(g, font, Integer.toString(s.count()), x + w - 6, y + (ih - CirrusUi.LINE) / 2, on ? 0xFF000000 : GRAY);
+                if (s.count() >= 0) CirrusUi.rightSmall(g, font, Integer.toString(s.count()), x + w - 6, y + (ih - CirrusUi.LINE) / 2, GRAY);
             }
         }
         McCanvas.of(g).popClip();
@@ -368,8 +367,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + h && layout.list.contains(mx, my);
         float prog = Anim.approach(switches.getOrDefault(m.id(), on ? 1f : 0f), on ? 1f : 0f, dt, 14f);
         switches.put(m.id(), prog);
-        Gfx.fillRound(g, x, y, w, h, 8, hover ? 0xFF0F0F0F : 0xFF000000);
-        Gfx.strokeRound(g, x, y, w, h, 8, 0.5f, sel ? WHITE : (hover ? 0xFF5A5A5A : t.border));
+        Gfx.fillRound(g, x, y, w, h, 8, sel || hover ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE);
         int tile = h >= 34 ? 22 : 18;
         ModTile.draw(g, m, on, x + 6, y + (h - tile) / 2, tile);
         int tx = x + 6 + tile + 8;
@@ -422,14 +420,13 @@ public final class CirrusMenuScreen extends CirrusScreen {
     private void drawProfileMenu(GuiGraphics g, int mx, int my, CirrusTheme t) {
         List<PItem> items = profileItems();
         var r = profilePopup(items.size());
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 8, 0xFF000000);
-        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 8, 0.5f, 0xFF6A6A6A);
+        CirrusUi.popup(g, r.x(), r.y(), r.w(), r.h(), 8, t);
         for (int i = 0; i < items.size(); i++) {
             PItem it = items.get(i);
             int y = r.y() + 4 + i * P_ROW;
             boolean hover = mx >= r.x() + 4 && mx < r.right() - 4 && my >= y && my < y + P_ROW;
             if (it.kind() != P_LOAD && i > 0 && items.get(i - 1).kind() == P_LOAD) McCanvas.of(g).fill(r.x() + 8, y - 1, r.right() - 8, y, t.border);
-            if (hover) Gfx.fillRound(g, r.x() + 4, y, r.w() - 8, P_ROW, 5, 0xFF1A1A1A);
+            if (hover) Gfx.fillRound(g, r.x() + 4, y, r.w() - 8, P_ROW, 5, dev.cirrus.client.ui.Look.SURFACE_HOVER);
             if (it.kind() == P_LOAD) {
                 if (it.active()) Glyphs.draw(g, Icons.CHECK, r.x() + 9, y + (P_ROW - 10) / 2, 10, WHITE);
             } else Glyphs.draw(g, it.glyph(), r.x() + 9, y + (P_ROW - 10) / 2, 10, t.muted);
@@ -461,8 +458,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
             int tw = CirrusUi.smallWidth(font, text) + 20, th = 20;
             int tx = layout.window.x() + (layout.window.w() - tw) / 2, ty = layout.window.bottom() - th - 14;
             float a = Math.min(1f, left / 400f);
-            Gfx.fillRound(g, tx, ty, tw, th, 10, Gfx.withAlpha(0xFF000000, Math.round(255 * a)));
-            Gfx.strokeRound(g, tx, ty, tw, th, 10, 0.5f, Gfx.withAlpha(WHITE, Math.round(255 * a)));
+            Gfx.fillRound(g, tx, ty, tw, th, 10, Gfx.scaleAlpha(t.popup, a));
             CirrusUi.centeredSmall(g, font, text, tx + tw / 2, ty + (th - CirrusUi.LINE) / 2, Gfx.withAlpha(WHITE, Math.round(255 * a)));
         }
         if (tooltip == null || tooltip.isEmpty()) return;
@@ -474,8 +470,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         int bx = mx + 10, by = my + 12;
         if (bx + bw > width - 2) bx = Math.max(2, mx - bw - 6);
         if (by + bh > height - 2) by = Math.max(2, my - bh - 6);
-        Gfx.fillRound(g, bx, by, bw, bh, 5, 0xFF000000);
-        Gfx.strokeRound(g, bx, by, bw, bh, 5, 0.5f, 0xFF6A6A6A);
+        CirrusUi.popup(g, bx, by, bw, bh, 5, t);
         for (int i = 0; i < lines.size(); i++) CirrusUi.smallText(g, font, lines.get(i), bx + 6, by + 4 + i * 10, WHITE, false);
     }
 
