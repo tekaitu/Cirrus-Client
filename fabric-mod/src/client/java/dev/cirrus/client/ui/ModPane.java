@@ -95,7 +95,7 @@ public final class ModPane {
     public void render(GuiGraphics g, int mx, int my, float dt, CirrusTheme t) {
         Font font = Minecraft.getInstance().font;
         CirrusConfig cfg = CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());
-        CirrusUi.card(g, x, y, w, h, 10, 0xFF000000, t.border);
+        CirrusUi.card(g, x, y, w, h, 10, dev.cirrus.client.ui.Look.FIELD, t.border);
         boolean on = mod.enabled(cfg);
         if (progress < 0) progress = on ? 1f : 0f;
         progress = Anim.approach(progress, on ? 1f : 0f, dt, 14f);
@@ -126,10 +126,9 @@ public final class ModPane {
         if (keyRow != null) {
             CirrusUi.text(g, font, "Toggle key", keyRow.x() + 2, keyRow.y() + (ROW - CirrusUi.LINE) / 2, 0xFFFFFFFF, false);
             boolean hover = keyBtn.contains(mx, my);
-            Gfx.fillRound(g, keyBtn.x(), keyBtn.y(), keyBtn.w(), keyBtn.h(), 5, listening ? t.accentDark : (hover ? 0xFF141414 : 0xFF000000));
-            Gfx.strokeRound(g, keyBtn.x(), keyBtn.y(), keyBtn.w(), keyBtn.h(), 5, 0.5f, listening || hover ? t.accent : t.border);
+            Gfx.fillRound(g, keyBtn.x(), keyBtn.y(), keyBtn.w(), keyBtn.h(), 5, listening ? t.accentDark : (hover ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE));
             String label = listening ? "Press a key" : ModKeys.label(mod.id());
-            CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, label, keyBtn.w() - 8), keyBtn.x() + keyBtn.w() / 2, keyBtn.y() + (keyBtn.h() - CirrusUi.LINE) / 2, listening ? 0xFF000000 : 0xFFFFFFFF);
+            CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, label, keyBtn.w() - 8), keyBtn.x() + keyBtn.w() / 2, keyBtn.y() + (keyBtn.h() - CirrusUi.LINE) / 2, 0xFFFFFFFF);
         }
         if (settingsRect != null) {
             if (twoCol) McCanvas.of(g).fill(dividerX, y + pad, dividerX + 1, y + h - pad, t.border);
@@ -141,8 +140,7 @@ public final class ModPane {
 
     private static void button(GuiGraphics g, Font font, ClickGuiLayout.Rect r, String label, int mx, int my, CirrusTheme t) {
         boolean hover = r.contains(mx, my);
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, hover ? 0xFF141414 : 0xFF000000);
-        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 6, 0.5f, hover ? t.accent : t.border);
+        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, hover ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE);
         CirrusUi.centered(g, font, CirrusUi.fitBody(font, label, r.w() - 8), r.x() + r.w() / 2, r.y() + (r.h() - CirrusUi.LINE) / 2, 0xFFFFFFFF);
     }
 

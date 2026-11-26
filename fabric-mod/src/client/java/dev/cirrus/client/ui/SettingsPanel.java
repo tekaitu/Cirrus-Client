@@ -90,8 +90,7 @@ public final class SettingsPanel {
         boolean active = active(s);
         int rh = rowH(), r = right();
         boolean hover = mx >= x && mx < r && my >= top && my < top + rh && my >= y && my < y + h;
-        if (sel || hover) Gfx.fillRound(g, x, top + 1, r - x, rh - 2, 6, sel ? 0xFF0D0D0D : 0xFF080808);
-        if (sel) Gfx.strokeRound(g, x, top + 1, r - x, rh - 2, 6, 0.5f, t.accent);
+        if (sel || hover) Gfx.fillRound(g, x, top + 1, r - x, rh - 2, 6, sel ? Look.SURFACE_HOVER : Look.SURFACE);
         int textColor = active ? t.text : Gfx.scaleAlpha(t.muted, 0.6f);
         String v = value(s);
         int cy = stacked ? top + rh - 10 : top + rh / 2;

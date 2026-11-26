@@ -153,6 +153,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.waitTicks(20);
             context.takeScreenshot(shot + "-with-profiles-1280x720-gui2");
         }
+        dumpSignatures(context);
         verifyArchitecture(context);
         verifyHudEditor(context, screens);
         measurePerformance(context, screens);
@@ -203,18 +204,78 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         });
     }
 
-    /** Phase 3 checks on the real game: the widgets editor opens in both views, nudges with real key presses, and the format option works. */
+    /**
+     * Logs the real method signatures of the 1.21.11 classes the Maple glyph hooks into, as "[maple-dump]" lines. The hooks are written
+     * against these names; this keeps them checkable on every run instead of guessed.
+     */
+    private static void dumpSignatures(ClientGameTestContext context) {
+        context.runOnClient(mc -> {
+            String[] names = {"net.minecraft.client.gui.components.PlayerTabOverlay", "net.minecraft.client.renderer.entity.EntityRenderer",
+                "net.minecraft.client.renderer.entity.player.AvatarRenderer", "net.minecraft.client.renderer.entity.player.PlayerRenderer",
+                "net.minecraft.client.renderer.entity.LivingEntityRenderer", "net.minecraft.client.renderer.entity.state.EntityRenderState",
+                "net.minecraft.client.renderer.entity.state.AvatarRenderState", "net.minecraft.client.renderer.entity.state.PlayerRenderState",
+                "net.minecraft.client.multiplayer.PlayerInfo"};
+            for (String n : names) {
+                try {
+                    Class<?> c = Class.forName(n);
+                    System.out.println("[maple-dump] class " + n + " extends " + c.getSuperclass().getName());
+                    for (var f : c.getDeclaredFields()) if (n.contains("State")) System.out.println("[maple-dump]   field " + f.getType().getName() + " " + f.getName());
+                    for (var ctor : c.getDeclaredConstructors()) System.out.println("[maple-dump]   ctor " + java.util.Arrays.toString(ctor.getParameterTypes()));
+                    for (var me : c.getDeclaredMethods()) {
+                        String name = me.getName().toLowerCase(java.util.Locale.ROOT);
+                        if (name.contains("name") || name.contains("display") || name.contains("extract") || name.contains("tag") || name.contains("render") && n.endsWith("TabOverlay"))
+                            System.out.println("[maple-dump]   method " + me.getReturnType().getName() + " " + me.getName() + java.util.Arrays.toString(me.getParameterTypes()));
+                    }
+                } catch (Throwable t) { System.out.println("[maple-dump] missing " + n + " (" + t.getClass().getSimpleName() + ")"); }
+            }
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T onEditor(ClientGameTestContext context, java.util.function.Function<HudEditorScreen, T> fn) {
+        Object[] out = new Object[1];
+        context.runOnClient(mc -> out[0] = fn.apply((HudEditorScreen) mc.screen));
+        return (T) out[0];
+    }
+
+    /** Moves the real cursor to a GUI-unit point and presses a real mouse button there (0 = left, 1 = right). */
+    private static void clickGui(ClientGameTestContext context, int[] gui, int button) {
+        moveGui(context, gui);
+        context.getInput().pressMouse(button);
+        context.waitTick();
+    }
+
+    private static void moveGui(ClientGameTestContext context, int[] gui) {
+        double[] px = new double[2];
+        context.runOnClient(mc -> { double scale = mc.getWindow().getGuiScale(); px[0] = gui[0] * scale; px[1] = gui[1] * scale; });
+        context.getInput().setCursorPos(px[0], px[1]);
+        context.waitTick();
+    }
+
+    private static boolean hideGui(ClientGameTestContext context) {
+        boolean[] out = new boolean[1];
+        context.runOnClient(mc -> out[0] = mc.options.hideGui);
+        return out[0];
+    }
+
+    /**
+     * Redesign checks on the real game, driven with real mouse and keyboard input: the editor hides the vanilla HUD, the right-click menu
+     * disables, enables and removes a widget, the Widgets list restores it where it was, Customize changes and resets options, dragging
+     * moves and persists, Mods opens the Click GUI and Esc returns to the same editor, and Done restores the vanilla HUD.
+     */
     private static void verifyHudEditor(ClientGameTestContext context, Map<String, Supplier<Screen>> screens) {
         context.runOnClient(mc -> {
             var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
             var cfg = ctx.config();
             var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
             check("FPS format defaults to parentheses with no label", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", ((dev.cirrus.core.module.CirrusMod) fps).settings(), "format").equals("Parentheses"));
-            dev.cirrus.core.hud.HudLayout.restore(fps, cfg);
+            for (var e : dev.cirrus.core.hud.HudElementRegistry.all()) dev.cirrus.core.hud.HudLayout.restore(e, cfg);
             fps.setPosition(cfg, 100, 60, ctx.screenWidth(), ctx.screenHeight());
         });
+        boolean hiddenBefore = hideGui(context);
         context.setScreen(screens.get("hud-editor-fps"));
         context.waitTicks(15);
+        check("the editor hides the vanilla HUD", hideGui(context));
         context.takeScreenshot("hud-editor-fps-1280x720-gui2");
         context.getInput().pressKey(Keys.RIGHT);
         context.getInput().pressKey(Keys.DOWN);
@@ -223,11 +284,131 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
             var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
             check("arrow keys nudge the selected widget by one unit", fps.x(ctx.config(), ctx.screenWidth()) == 101 && fps.y(ctx.config(), ctx.screenHeight()) == 61);
-            dev.cirrus.core.hud.HudLayout.resetPosition(fps, ctx.config(), ctx.screenWidth(), ctx.screenHeight());
+            fps.setPosition(ctx.config(), 100, 60, ctx.screenWidth(), ctx.screenHeight());
+        });
+
+        // Right-click -> compact menu.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        context.waitTicks(3);
+        check("right-click opens the context menu", onEditor(context, HudEditorScreen::openPopup).equals("MENU"));
+        check("the menu offers Disable, Remove and Customize", onEditor(context, HudEditorScreen::menuLabels).equals(java.util.List.of("Disable widget", "Remove widget", "Customize")));
+        context.takeScreenshot("hud-editor-context-menu-1280x720-gui2");
+
+        // Disable: stays configured and in the layout, off the HUD.
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(0)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("Disable switches the widget off but keeps it in the layout", dev.cirrus.core.hud.HudLayout.isDisabled(fps, cfg) && !dev.cirrus.core.hud.HudLayout.isActive(fps, cfg));
+        });
+        context.takeScreenshot("hud-editor-disabled-1280x720-gui2");
+
+        // Enable it again from the same menu.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        check("a disabled widget offers Enable", onEditor(context, HudEditorScreen::menuLabels).get(0).equals("Enable widget"));
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(0)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            check("Enable puts it back on the HUD", dev.cirrus.core.hud.HudLayout.isActive(dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow(), cfg));
+        });
+
+        // Remove: leaves the layout.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(1)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("Remove takes the widget out of the layout", dev.cirrus.core.hud.HudLayout.isRemoved(fps, cfg) && !dev.cirrus.core.hud.HudLayout.isPresent(fps, cfg));
+        });
+        context.takeScreenshot("hud-editor-removed-1280x720-gui2");
+
+        // Restore from the Widgets list, back where it was.
+        clickGui(context, onEditor(context, e -> e.clusterButtonCentre(1)), 0);
+        context.waitTicks(3);
+        check("Widgets opens the list", onEditor(context, HudEditorScreen::openPopup).equals("LIST"));
+        context.takeScreenshot("hud-editor-widgets-list-1280x720-gui2");
+        int fpsIndex = dev.cirrus.core.hud.HudElementRegistry.all().indexOf(dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow());
+        clickGui(context, onEditor(context, e -> e.listChipCentre(fpsIndex)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("the list restores a removed widget where it was", dev.cirrus.core.hud.HudLayout.isActive(fps, ctx.config())
+                && fps.x(ctx.config(), ctx.screenWidth()) == 100 && fps.y(ctx.config(), ctx.screenHeight()) == 60);
+        });
+        context.getInput().pressKey(Keys.ESCAPE);
+        context.waitTicks(2);
+        check("Esc closes the list before leaving the editor", onEditor(context, HudEditorScreen::openPopup).equals("NONE"));
+
+        // Customize: popover with the widget's options; change, then reset with a real click.
+        clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+        clickGui(context, onEditor(context, e -> e.menuRowCentre(2)), 0);
+        context.waitTicks(3);
+        check("Customize opens the options popover", onEditor(context, HudEditorScreen::openPopup).equals("CUSTOMIZE"));
+        context.takeScreenshot("hud-editor-customize-1280x720-gui2");
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = (dev.cirrus.core.module.CirrusMod) dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            for (var st : fps.settings()) {
+                String v = switch (st.key()) { case "color" -> "Maple"; case "background" -> "true"; case "bgcolor" -> "Navy"; case "opacity" -> "55"; case "scale" -> "130"; default -> st.defaultValue(); };
+                dev.cirrus.core.settings.ModSettings.set(cfg, "fps", st, v);
+            }
+        });
+        context.waitTicks(3);
+        context.takeScreenshot("hud-editor-customize-styled-1280x720-gui2");
+        clickGui(context, onEditor(context, e -> e.customizeChipCentre(0)), 0);
+        context.waitTicks(3);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            var fps = (dev.cirrus.core.module.CirrusMod) dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("Reset options restores the defaults", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "color").equals("White")
+                && dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "opacity").equals("80")
+                && dev.cirrus.core.settings.ModSettings.get(cfg, "fps", fps.settings(), "scale").equals("100"));
+        });
+        context.getInput().pressKey(Keys.ESCAPE);
+        context.waitTicks(2);
+
+        // Drag with the left button: moves and persists.
+        int[] from = onEditor(context, e -> e.widgetCentre("fps"));
+        moveGui(context, from);
+        context.getInput().holdMouse(0);
+        context.waitTick();
+        moveGui(context, new int[] {from[0] + 90, from[1] + 50});
+        context.waitTicks(2);
+        context.takeScreenshot("hud-editor-dragging-1280x720-gui2");
+        context.getInput().releaseMouse(0);
+        context.waitTicks(2);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
+            check("left-drag moves the widget and keeps the new position", fps.x(ctx.config(), ctx.screenWidth()) >= 170 && fps.y(ctx.config(), ctx.screenHeight()) >= 100);
+        });
+
+        // Mods opens the Click GUI; Esc comes back to the very same editor with its state.
+        HudEditorScreen[] editor = new HudEditorScreen[1];
+        context.runOnClient(mc -> editor[0] = (HudEditorScreen) mc.screen);
+        clickGui(context, onEditor(context, e -> e.clusterButtonCentre(0)), 0);
+        context.waitTicks(10);
+        context.runOnClient(mc -> check("the floating Mods button opens the Click GUI", mc.screen instanceof CirrusMenuScreen));
+        context.takeScreenshot("hud-editor-to-mods-1280x720-gui2");
+        context.getInput().pressKey(Keys.ESCAPE);
+        context.waitTicks(10);
+        context.runOnClient(mc -> check("closing Mods returns to the same editor, vanilla HUD still hidden", mc.screen == editor[0] && mc.options.hideGui));
+
+        // Done leaves the editor and brings the vanilla HUD back.
+        clickGui(context, onEditor(context, e -> e.clusterButtonCentre(2)), 0);
+        context.waitTicks(5);
+        check("leaving the editor restores the vanilla HUD", hideGui(context) == hiddenBefore);
+        context.runOnClient(mc -> {
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            dev.cirrus.core.hud.HudLayout.resetPosition(dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow(), ctx.config(), ctx.screenWidth(), ctx.screenHeight());
         });
         context.setScreen(screens.get("hud-editor"));
         context.waitTicks(10);
-        context.takeScreenshot("hud-editor-list-1280x720-gui2");
+        context.takeScreenshot("hud-editor-1280x720-gui2");
     }
 
     /**

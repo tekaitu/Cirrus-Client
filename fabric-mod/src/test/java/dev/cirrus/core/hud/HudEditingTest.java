@@ -192,7 +192,9 @@ class HudEditingTest {
             assertEquals("format", m.settings().get(0).key());
             assertEquals("color", m.settings().get(1).key());
             assertEquals("background", m.settings().get(2).key());
-            assertEquals("scale", m.settings().get(3).key());
+            assertEquals("bgcolor", m.settings().get(3).key());
+            assertEquals("opacity", m.settings().get(4).key());
+            assertEquals("scale", m.settings().get(5).key());
         }
     }
 

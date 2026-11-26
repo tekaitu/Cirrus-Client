@@ -102,8 +102,9 @@ class SettingTest {
 
     @Test void commonHudAppearanceOptionsAreConsistent() {
         List<String> keys = HudMod.APPEARANCE.stream().map(Setting::key).toList();
-        assertEquals(List.of("scale", "background", "opacity", "border", "shadow"), keys);
+        assertEquals(List.of("scale", "background", "bgcolor", "opacity", "border", "shadow"), keys);
         for (Setting s : HudMod.APPEARANCE) assertEquals(s.defaultValue(), s.normalize(s.defaultValue()));
         assertEquals("background", HudMod.APPEARANCE.get(2).requiresKey());
+        assertEquals("background", HudMod.APPEARANCE.get(3).requiresKey());
     }
 }

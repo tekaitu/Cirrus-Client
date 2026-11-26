@@ -158,7 +158,7 @@ public final class ModSettingsScreen extends CirrusScreen {
     }
 
     private void drawPreview(GuiGraphics g, CirrusTheme t) {
-        Gfx.fillRound(g, previewX, previewY, PREVIEW_W, previewH, 8, 0xFF050505);
+        Gfx.fillRound(g, previewX, previewY, PREVIEW_W, previewH, 8, dev.cirrus.client.ui.Look.FIELD);
         McCanvas.of(g).pushClip(previewX + 1, previewY + 1, (previewX + PREVIEW_W - 1) - (previewX + 1), (previewY + previewH - 1) - (previewY + 1));
         // A checker backdrop so a transparent or low-opacity background is visible as such.
         for (int cy = 0; cy < previewH; cy += 10) for (int cx = 0; cx < PREVIEW_W; cx += 10) {

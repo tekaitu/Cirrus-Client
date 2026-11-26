@@ -52,7 +52,7 @@ public final class HudDrag {
             others = new ArrayList<int[]>();
             for (int i = 0; i < all.size(); i++) {
                 HudElement e = all.get(i);
-                if (e == target || !e.enabled(c)) continue;
+                if (e == target || e.removed(c)) continue;
                 others.add(new int[] {e.x(c, screenWidth), e.y(c, screenHeight), e.width(), e.height()});
             }
         }

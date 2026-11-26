@@ -83,7 +83,7 @@ public abstract class CirrusScreen extends Screen {
     private void openTab(Tab tab) {
         minecraft.setScreen(switch (tab) {
             case MODS -> new dev.cirrus.client.CirrusMenuScreen(parent);
-            case HUD -> new dev.cirrus.client.HudEditorScreen(this);
+            case HUD -> parent instanceof dev.cirrus.client.HudEditorScreen editor ? editor : new dev.cirrus.client.HudEditorScreen(this);
             case HOME -> new dev.cirrus.client.CirrusDashboardScreen(parent);
         });
     }
@@ -117,9 +117,8 @@ public abstract class CirrusScreen extends Screen {
 
     /** The darkened game when in a world, the Cirrus artwork otherwise. */
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {
-        // Flat black: solid over the menu, a heavy black veil over the game when opened in a world.
-        if (minecraft.level != null) McCanvas.of(g).fill(0, 0, width, height, 0xE6000000);
-        else CirrusUi.backdrop(g, width, height, theme());
+        // A light dim: the world (or the vanilla panorama behind the menu) stays visible.
+        CirrusUi.backdrop(g, width, height, theme());
     }
 
     @Override public final void render(GuiGraphics g, int mx, int my, float delta) {

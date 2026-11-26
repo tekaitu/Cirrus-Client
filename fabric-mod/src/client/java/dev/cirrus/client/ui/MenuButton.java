@@ -50,8 +50,8 @@ public final class MenuButton extends Button {
         int fill, edge, text, icon;
         switch (kind) {
             case PRIMARY -> {
-                fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
-                edge = Gfx.mix(t.accent, t.accentLight, hover);
+                fill = Gfx.mix(Gfx.mix(Gfx.withAlpha(t.accent, 0xE6), t.accentLight, hover * 0.5f), t.accentDark, press);
+                edge = 0;
                 text = 0xFFFFFFFF; icon = 0xFFFFFFFF;
             }
             case QUIT -> {
@@ -60,8 +60,8 @@ public final class MenuButton extends Button {
                 text = Gfx.mix(t.muted, 0xFFFFFFFF, hover); icon = text;
             }
             default -> {
-                fill = Gfx.mix(Gfx.mix(0xFF000000, 0xFF1C1C1C, hover), 0xFF2C2C2C, press);
-                edge = Gfx.mix(t.border, t.accentLight, hover);
+                fill = Gfx.mix(Gfx.mix(0x66000000, 0x8C000000, hover), 0xA6000000, press);
+                edge = 0;
                 text = 0xFFFFFFFF; icon = 0xFFFFFFFF;
             }
         }
@@ -69,9 +69,8 @@ public final class MenuButton extends Button {
 
         if (kind != Kind.QUIT || hover > 0.01f) {
             Gfx.fillRound(g, x, y, w, h, radius, fill);
-            Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
+            if ((edge >>> 24) != 0) Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
         }
-        if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, t.accentLight);
 
         Font font = mc.font;
         if (kind == Kind.SQUARE) {

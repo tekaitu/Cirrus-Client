@@ -133,7 +133,7 @@ public final class CirrusTitleScreen extends TitleScreen {
     private void drawStrip(GuiGraphics g, CirrusTheme t) {
         MenuLayout.Rect s = layout.sidebar;
         if (s == null) return;
-        Gfx.fillRound(g, s.x(), s.y(), s.w(), s.h(), 7, 0xFF000000);
+        Gfx.fillRound(g, s.x(), s.y(), s.w(), s.h(), 7, dev.cirrus.client.ui.Look.SCENE);
         Gfx.strokeRound(g, s.x(), s.y(), s.w(), s.h(), 7, 0.5f, t.border);
     }
 
@@ -141,7 +141,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         MenuLayout.Rect p = layout.profile;
         if (p == null) return;
         float radius = Math.min(p.h() * 0.24f, 8f);
-        Gfx.fillRound(g, p.x(), p.y(), p.w(), p.h(), radius, 0xFF000000);
+        Gfx.fillRound(g, p.x(), p.y(), p.w(), p.h(), radius, dev.cirrus.client.ui.Look.SCENE);
         Gfx.strokeRound(g, p.x(), p.y(), p.w(), p.h(), radius, 0.5f, t.border);
         int face = Math.max(10, p.h() - 8), pad = Math.max(4, Math.round(layout.scale * 6));
         PlayerFaceRenderer.draw(g, skin.get(), p.x() + pad - 1, p.y() + (p.h() - face) / 2, face);
@@ -157,7 +157,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         DashboardConfig.Banner b = banners.get(index);
         float radius = Math.min(8f, r.h() * 0.1f);
         // Flat black card with a thin outline; the dashboard's colours are deliberately not used for fills.
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), radius, 0xFF000000);
+        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), radius, dev.cirrus.client.ui.Look.SCENE);
         Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), radius, 0.5f, t.border);
         int pad = Math.max(6, Math.round(layout.scale * 8)), tw = r.w() - pad * 2;
         int y = r.y() + pad;
@@ -170,7 +170,7 @@ public final class CirrusTitleScreen extends TitleScreen {
         }
         if (!b.cta().isEmpty()) {
             int cw = CirrusUi.bodyWidth(font, b.cta()) + 14, ch = 13, cy = r.bottom() - pad - ch + 3;
-            Gfx.fillRound(g, r.x() + pad, cy, cw, ch, ch / 2f, 0xFF000000);
+            Gfx.fillRound(g, r.x() + pad, cy, cw, ch, ch / 2f, dev.cirrus.client.ui.Look.SCENE);
             Gfx.strokeRound(g, r.x() + pad, cy, cw, ch, ch / 2f, 0.5f, 0xFFFFFFFF);
             CirrusUi.text(g, font, b.cta(), r.x() + pad + 7, cy + 2, 0xFFFFFFFF, false);
         }

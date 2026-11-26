@@ -49,7 +49,7 @@ public final class PartnerTile extends Button {
         hover = Anim.approach(hover, isHoveredOrFocused() ? 1f : 0f, clock.tick(), 16f);
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         float radius = Math.min(6f, h * 0.24f);
-        Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(0xFF000000, 0xFF1C1C1C, hover));
+        Gfx.fillRound(g, x, y, w, h, radius, Gfx.mix(dev.cirrus.client.ui.Look.SCENE, 0x99000000, hover));
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, Gfx.mix(t.border, 0xFFFFFFFF, hover));
         if (isFocused()) Gfx.strokeRound(g, x - 1, y - 1, w + 2, h + 2, radius + 1, 1f, 0xFFFFFFFF);
 
@@ -60,7 +60,7 @@ public final class PartnerTile extends Button {
         int dot = state == ServerStatus.State.ONLINE ? t.good : state == ServerStatus.State.CHECKING ? 0xFFE0A93B : 0xFF566176;
         int d = Math.max(5, Math.round(h * 0.28f));
         int dx = x + w - d + 1, dy = y + h - d + 1;
-        Gfx.fillRound(g, dx - 1, dy - 1, d + 2, d + 2, (d + 2) / 2f, 0xFF000000);
+        Gfx.fillRound(g, dx - 1, dy - 1, d + 2, d + 2, (d + 2) / 2f, dev.cirrus.client.ui.Look.SURFACE);
         Gfx.fillRound(g, dx, dy, d, d, d / 2f, dot);
     }
 

@@ -82,7 +82,7 @@ public final class ProfilesPage {
         CirrusUi.text(g, font, "Profiles", x, y, 0xFFFFFFFF, false);
         var lines = CirrusUi.wrapSmall(font, "Save your module settings, switch between setups and share them as a code. Key bindings are not included.", w, 2);
         for (int i = 0; i < lines.size(); i++) CirrusUi.smallText(g, font, lines.get(i), x, y + 13 + i * 10, t.muted, false);
-        CirrusUi.card(g, nameRect.x(), nameRect.y(), nameRect.w(), nameRect.h(), 7, 0xFF000000, nameBox.isFocused() ? 0xFFFFFFFF : t.border);
+        CirrusUi.card(g, nameRect.x(), nameRect.y(), nameRect.w(), nameRect.h(), 7, dev.cirrus.client.ui.Look.FIELD, nameBox.isFocused() ? Gfx.withAlpha(t.accent, 0xB0) : 0);
         button(g, font, createBtn, "Create", Icons.ADD, false, mx, my, t, true);
         button(g, font, shareBtn, "Share current settings", Icons.EXTERNAL, false, mx, my, t, false);
         button(g, font, importBtn, "Import from clipboard", Icons.LIST, false, mx, my, t, false);
@@ -93,16 +93,15 @@ public final class ProfilesPage {
             String name = names.get(i);
             boolean isActive = name.equalsIgnoreCase(active);
             boolean hover = r.contains(mx, my) && listRect.contains(mx, my);
-            Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 8, hover ? 0xFF0F0F0F : 0xFF000000);
-            Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 8, 0.5f, isActive ? 0xFFFFFFFF : t.border);
+            Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 8, hover ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE);
             int tx = r.x() + 10;
             int reserved = compactButtons ? 4 * 24 + 8 : 50 + 44 * 3 + 4 * 4 + 8;
             int tagW = isActive ? CirrusUi.smallWidth(font, "Active") + 12 : 0;
             CirrusUi.text(g, font, CirrusUi.fitBody(font, name, r.w() - reserved - tagW - 20), tx, r.y() + (r.h() - CirrusUi.LINE) / 2, 0xFFFFFFFF, false);
             if (isActive) {
                 int nx = tx + CirrusUi.bodyWidth(font, CirrusUi.fitBody(font, name, r.w() - reserved - tagW - 20)) + 8;
-                Gfx.fillRound(g, nx, r.y() + (r.h() - 12) / 2, tagW, 12, 6, 0xFFFFFFFF);
-                CirrusUi.smallText(g, font, "Active", nx + 6, r.y() + (r.h() - CirrusUi.LINE) / 2, 0xFF000000, false);
+                Gfx.fillRound(g, nx, r.y() + (r.h() - 12) / 2, tagW, 12, 6, t.accent);
+                CirrusUi.smallText(g, font, "Active", nx + 6, r.y() + (r.h() - CirrusUi.LINE) / 2, 0xFFFFFFFF, false);
             }
             for (int s = 0; s < 4; s++) {
                 var b = action(r, s);
@@ -118,9 +117,8 @@ public final class ProfilesPage {
 
     private void button(GuiGraphics g, Font font, ClickGuiLayout.Rect r, String label, int glyph, boolean iconOnly, int mx, int my, CirrusTheme t, boolean primary) {
         boolean hover = r.contains(mx, my);
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, primary ? (hover ? 0xFFDDDDDD : 0xFFFFFFFF) : (hover ? 0xFF141414 : 0xFF000000));
-        if (!primary) Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), 6, 0.5f, hover ? 0xFFFFFFFF : t.border);
-        int fg = primary ? 0xFF000000 : 0xFFFFFFFF;
+        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), 6, primary ? (hover ? t.accentLight : t.accent) : (hover ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE));
+        int fg = 0xFFFFFFFF;
         if (iconOnly || r.w() < 30) { Glyphs.draw(g, glyph, r.x() + (r.w() - 12) / 2, r.y() + (r.h() - 12) / 2, 12, fg); return; }
         boolean small = r.w() < 60;
         int tw = small ? CirrusUi.smallWidth(font, label) : CirrusUi.bodyWidth(font, label);
