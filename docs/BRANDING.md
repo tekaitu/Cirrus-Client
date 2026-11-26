@@ -1,31 +1,36 @@
 # Branding
 
 **Maple Client** is named after its mark: a single orange maple leaf on a
-transparent background. The primary brand colour is `#E25303`.
+transparent background. The leaf art is `#E25303`; the interface accent that
+carries it is the warmer `#ff7a45` ember.
 
-The mark is drawn once, as an SVG path, and every other asset is generated from
-the same outline so the leaf never drifts between sizes:
+The owner's client icon is the single source of the mark and every shipped asset
+is cut from it, so the leaf never drifts between sizes:
 
-- `src/components/Logo.tsx` holds the outline (`MAPLE_LEAF_POINTS`) and renders
-  `LogoMark`, `Wordmark` and `CloudMark` for the running launcher.
-- `public/brand/maple.svg` is the standalone vector mark.
-- `python3 branding/make_maple_icons.py` (no third-party dependencies) rasterises
-  the outline into `public/brand/mark.png`, `public/brand/icon.png`,
-  `public/favicon.png`, `src-tauri/icons/*.png` (16–512 px) and a multi-size
-  `src-tauri/icons/icon.ico`.
+- `src/assets/brand/maple-mark.png` is the transparent, tightly cropped mark.
+  `src/components/Logo.tsx` renders it through `LogoMark`, `Wordmark` and
+  `CloudMark` for the running launcher.
+- The same art is composed on a warm squircle tile for `public/favicon.png`,
+  `src-tauri/icons/*.png` (32–512 px) and the multi-size
+  `src-tauri/icons/icon.ico`; `src-tauri/icons/maple-mark.png` keeps the bare
+  transparent mark.
 
-The generated files are committed, so building the app never needs Python.
+The generated files are committed, so building the app never needs an image tool.
+`branding/make_maple_icons.py` is the older outline-based generator and is kept
+for reference only — its polygon is no longer the shipped mark.
 
 ## Colours
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--brand` / `--accent` | `#E25303` | selected navigation, primary buttons, progress, focus rings |
-| surfaces | neutral near-black | chrome, cards, dialogs |
-| `--danger` | red | delete and other destructive actions |
+| `--brand` / `--accent` | `#ff7a45` | selected navigation, progress, focus rings, active controls |
+| `--accent-2` | `#ffb547` | the amber end of progress and highlight gradients |
+| `--accent-3` | `#ff4d6d` | destructive and error states |
+| surfaces | `#0b0908`, `#121010`, `#191514`, `#211b19` | page, surface, raised, raised-2 |
+| `--text` | `#f3ede8` | body and headings |
 
-Orange is an accent, not a surface colour: only one or two elements per screen
-carry it. Danger actions use red, never the brand orange.
+Orange is an accent, not a surface colour: primary buttons are near-white with
+dark type, and only one or two elements per screen carry the ember.
 
 ## Themes
 

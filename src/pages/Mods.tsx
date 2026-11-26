@@ -2,13 +2,25 @@ import { notify } from "../core/notifications";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import type { InstalledMod, ModHit, ModProvider } from "../api/types";
-import { CompassIcon, DownloadIcon, GridIcon, ListIcon, ModsIcon, SearchIcon, SparkIcon, TrashIcon } from "../components/Icons";
+import {
+  CompassIcon,
+  DownloadIcon,
+  GridIcon,
+  ListIcon,
+  ModsIcon,
+  PackageIcon,
+  PlusIcon,
+  SearchIcon,
+  SparkIcon,
+  TrashIcon,
+} from "../components/Icons";
 import { ModUpload } from "../components/ModUpload";
 import { PackBrowser } from "../components/PackBrowser";
 import { Pagination } from "../components/Pagination";
 import type { PageId } from "../components/Navigation";
 import { Banner, Card, Spinner } from "../components/ui";
 import { MOD_CATEGORIES, MOD_PACKS, MOD_SORTS, PAGE_SIZE, formatDownloads, formatFileSize, type ModPack } from "../core/mods";
+import { iconGlyph, lastPlayedText, sortInstances } from "../core/instances";
 import type { AppData } from "../hooks/useAppData";
 
 const PROVIDERS: Array<{ id: ModProvider; label: string }> = [
@@ -207,6 +219,9 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const versionLabel = `${version} · ${selection.loader === "fabric" ? "Fabric" : "Vanilla"}`;
+  // Every instance is a modpack: it owns a mods folder, so choosing one here is
+  // how a mod ends up in that pack and nowhere else.
+  const packs = sortInstances(data.instances.status === "ready" ? data.instances.data : [], "recent");
 
   return (
     <div className={`page mods-page ${view === "browse" ? "browse-page" : ""}`}>
@@ -307,6 +322,55 @@ export function ModsPage({ data, mode, onNavigate }: { data: AppData; mode: "man
 
       {view === "manage" && (
         <>
+          <Card
+            id="modpacks"
+            title="Modpacks"
+            icon={<PackageIcon />}
+            description="An instance is a modpack: pick one, then install mods into it."
+            action={
+              <button type="button" className="btn btn-small" onClick={() => onNavigate("versions")}>
+                <PlusIcon /> New modpack
+              </button>
+            }
+          >
+            {packs.length === 0 ? (
+              <p className="muted small">
+                No instance yet. Install a version and it becomes a modpack you can add mods to.
+              </p>
+            ) : (
+              <ul className="pack-picker" aria-label="Modpacks">
+                {packs.map((pack) => {
+                  const active = profileId === pack.id;
+                  return (
+                    <li key={pack.id}>
+                      <button
+                        type="button"
+                        className={`pack-pick ${active ? "is-on" : ""}`.trim()}
+                        aria-pressed={active}
+                        onClick={() => selection.selectInstance(pack)}
+                      >
+                        <span className="pack-pick-icon" aria-hidden="true">
+                          {iconGlyph(pack.icon)}
+                        </span>
+                        <span className="pack-pick-main">
+                          <strong>{pack.name}</strong>
+                          <small>
+                            {pack.minecraft} · {pack.loader === "fabric" ? "Fabric" : "Vanilla"} · {pack.modCount}{" "}
+                            {pack.modCount === 1 ? "mod" : "mods"}
+                          </small>
+                        </span>
+                        <span className="pack-pick-last muted small">{lastPlayedText(pack.lastPlayed)}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p className="muted small">
+              Mods you install below go into the pack you pick here, in its own mods folder.
+            </p>
+          </Card>
+
           <Card id="mod-manager" title="Installed mods" icon={<ModsIcon />}>
             {installed.length === 0 ? (
               <div className="empty empty-big">

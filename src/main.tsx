@@ -15,6 +15,8 @@ import "./styles/ui.css";
 import "./styles/classic.css";
 import "./styles/buttons.css";
 import "./styles/maple.css";
+import "./styles/ember.css";
+import "./styles/versions.css";
 
 initTheme();
 initWindowFrame();

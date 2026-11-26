@@ -70,6 +70,9 @@ pub struct InstanceConfig {
     /// The instance this one was cloned from, for the interface to explain.
     #[serde(default)]
     pub cloned_from: Option<String>,
+    /// The OptiFine edition this instance starts with, when its jar was added.
+    #[serde(default)]
+    pub optifine: Option<String>,
 }
 
 /// What the Library shows: the saved preferences plus what is on disk.
@@ -93,6 +96,8 @@ pub struct InstanceView {
     /// Java major the Minecraft version asks for, when the install marker knows.
     pub java_major: Option<u32>,
     pub cloned_from: Option<String>,
+    /// e.g. `1.8.9_HD_U_M5`, or `None` when the instance is plain Vanilla/Fabric.
+    pub optifine: Option<String>,
 }
 
 /// A mod or world the person would lose if the folder were deleted.
@@ -174,6 +179,7 @@ pub fn default_for(info: &InstallInfo) -> InstanceConfig {
         jvm_args: String::new(),
         last_played: 0,
         cloned_from: None,
+        optifine: None,
     }
 }
 
@@ -210,6 +216,14 @@ fn sanitise(mut cfg: InstanceConfig) -> Option<InstanceConfig> {
     }
     if cfg.loader == "vanilla" {
         cfg.loader_version = None;
+    }
+    // The edition becomes a folder name, so a bad one is dropped instead of used.
+    if cfg.optifine.as_deref().is_some_and(|e| !crate::optifine::valid_edition(e)) {
+        cfg.optifine = None;
+    }
+    if cfg.loader == "fabric" {
+        // OptiFine replaces the game's own launcher, which Fabric already does.
+        cfg.optifine = None;
     }
     Some(cfg)
 }
@@ -358,6 +372,7 @@ pub fn view(root: &Path, cfg: &InstanceConfig, info: Option<&InstallInfo>) -> In
         mod_count: count_dir(&dir.join("mods"), Some("jar")),
         java_major: info.and_then(|i| i.java_major),
         cloned_from: cfg.cloned_from.clone(),
+        optifine: cfg.optifine.clone(),
     }
 }
 
@@ -427,6 +442,7 @@ pub fn clone_instance(root: &Path, id: &str, name: &str, copy_data: bool) -> Res
         jvm_args: source.jvm_args.clone(),
         last_played: 0,
         cloned_from: Some(source.id),
+        optifine: source.optifine.clone(),
     };
     let saved = upsert(root, cloned)?;
     Ok(saved)

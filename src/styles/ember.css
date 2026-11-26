@@ -1,0 +1,1008 @@
+/* ==========================================================================
+   Maple warm-ember surface layer. Loaded last.
+
+   This is the layer that makes the launcher feel like a designed product page
+   rather than a pile of panels:
+
+   - Every rounded rectangle is a squircle, and its edge is drawn on an ::after
+     overlay: a warm hairline plus a one-pixel top highlight, so surfaces read
+     as lit from above. No card, button, input or segmented control paints a
+     plain border.
+   - One button system: primary is a near-white pill with dark type and a soft
+     white glow, secondary is a wash with the depth edge, ghost is type only.
+   - Warm ambient light: a masked 56px grid, a faint noise grain and three
+     slow ember gradients behind the window.
+   - Motion is short and soft: out-expo reveals, a sidebar drop, a hero
+     choreography, and quiet ambient drift. Everything collapses to 0.01ms
+     when the person asks for reduced motion.
+   ========================================================================== */
+
+:root {
+  --depth-edge: rgba(255, 236, 224, 0.08);
+  --depth-edge-strong: rgba(255, 236, 224, 0.14);
+  --depth-edge-hover: rgba(255, 236, 224, 0.24);
+  --depth-edge-accent: rgba(255, 122, 69, 0.7);
+  --depth-highlight: inset 0 2px 0 rgba(255, 255, 255, 0.1);
+  --depth-highlight-soft: inset 0 2px 0 rgba(255, 255, 255, 0.06);
+  --grid-line: rgba(255, 236, 224, 0.05);
+  --ember-a: rgba(255, 122, 69, 0.34);
+  --ember-b: rgba(255, 77, 109, 0.26);
+  --ember-c: rgba(255, 181, 71, 0.26);
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root[data-theme="light"] {
+  --depth-edge: rgba(74, 40, 22, 0.1);
+  --depth-edge-strong: rgba(74, 40, 22, 0.18);
+  --depth-edge-hover: rgba(74, 40, 22, 0.3);
+  --depth-edge-accent: rgba(210, 77, 15, 0.6);
+  --depth-highlight: inset 0 2px 0 rgba(255, 255, 255, 0.9);
+  --depth-highlight-soft: inset 0 2px 0 rgba(255, 255, 255, 0.7);
+  --grid-line: rgba(74, 40, 22, 0.06);
+  --ember-a: rgba(255, 140, 80, 0.3);
+  --ember-b: rgba(255, 120, 110, 0.2);
+  --ember-c: rgba(255, 190, 90, 0.28);
+}
+
+/* ---------------------------------------------------------------- base type */
+.logo-mark { display: block; object-fit: contain; }
+:root #root .boot .logo-mark { width: 88px; height: 88px; }
+body {
+  font-size: 14.5px;
+  letter-spacing: -0.011em;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+}
+h1, h2, h3, h4, .home-title, .page-head h1 {
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+.page-head h1 { font-weight: 750; letter-spacing: -0.035em; }
+.eyebrow { color: var(--accent-2); letter-spacing: 0.18em; }
+::selection { background: rgb(var(--accent-rgb) / 0.34); color: var(--text); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+* { scrollbar-color: var(--border-strong) transparent; }
+
+/* ---------------------------------------------------------------- the depth edge
+   One overlay for every raised surface. `border-radius: inherit` keeps the
+   squircle; the top highlight is what makes it read as lit from above. */
+.card,
+.ui-btn,
+.btn,
+.btn-pill,
+.chip,
+.seg,
+.ic,
+.sv-card,
+.mod-card,
+.pack-card,
+.account-card,
+.install-card,
+.offline-card,
+.home-section,
+.quick-join,
+.quick-recent,
+.welcome-card,
+.welcome-preview,
+.create-type,
+.cape-card,
+.discord-status,
+.stat,
+.sv-status,
+.theme-card,
+.account-profile-card,
+.modal,
+.welcome,
+.create-instance,
+.popover,
+.acct-drawer,
+.side,
+.search-box,
+.mode-switch,
+.hdr-account {
+  position: relative;
+  corner-shape: squircle;
+}
+.card::after,
+.ui-btn::after,
+.btn::after,
+.btn-pill::after,
+.chip::after,
+.seg::after,
+.ic::after,
+.sv-card::after,
+.mod-card::after,
+.pack-card::after,
+.account-card::after,
+.install-card::after,
+.offline-card::after,
+.home-section::after,
+.quick-join::after,
+.quick-recent::after,
+.welcome-card::after,
+.welcome-preview::after,
+.create-type::after,
+.cape-card::after,
+.discord-status::after,
+.stat::after,
+.sv-status::after,
+.theme-card::after,
+.account-profile-card::after,
+.modal::after,
+.welcome::after,
+.create-instance::after,
+.popover::after,
+.acct-drawer::after,
+.side::after,
+.search-box::after,
+.mode-switch::after,
+.hdr-account::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--depth-edge), var(--depth-highlight);
+  transition: box-shadow 250ms var(--ease);
+}
+:root[data-theme="light"] .card::after,
+:root[data-theme="light"] .ui-btn::after,
+:root[data-theme="light"] .btn::after,
+:root[data-theme="light"] .btn-pill::after,
+:root[data-theme="light"] .seg::after,
+:root[data-theme="light"] .search-box::after,
+:root[data-theme="light"] .side::after { box-shadow: inset 0 0 0 1px var(--depth-edge), var(--depth-highlight-soft); }
+
+/* Hover raises the edge on things that can be pressed. */
+.ui-btn:hover:not(:disabled)::after,
+.btn:hover:not(:disabled)::after,
+.btn-pill:hover:not(:disabled)::after,
+.ic:hover::after,
+.sv-card:hover::after,
+.mod-card:hover::after,
+.pack-card:hover::after,
+.quick-recent:hover::after,
+.create-type:hover:not(.is-unavailable)::after,
+.theme-card:hover::after,
+.hdr-account:hover::after,
+.hdr-account[aria-expanded="true"]::after,
+.quick-join:focus-within::after,
+.search-box:focus-within::after {
+  box-shadow: inset 0 0 0 1px var(--depth-edge-hover), var(--depth-highlight);
+}
+.search-box:focus-within::after {
+  box-shadow: inset 0 0 0 1px var(--depth-edge-accent), 0 0 0 4px rgb(var(--accent-rgb) / 0.12), var(--depth-highlight);
+}
+.chip-on::after,
+.chip-accent::after,
+.welcome-card.is-on::after,
+.quick-recent.is-on::after {
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb) / 0.45), var(--depth-highlight);
+}
+/* Ghost controls keep no edge at all. */
+.ui-btn-ghost::after,
+.btn-quiet::after,
+.icon-btn::after,
+.ui-btn-icon::after,
+.side-brand::after { display: none; }
+
+/* True circles opt back out of the squircle. */
+.dot,
+.sv-dot,
+.skin-head,
+.toggle,
+.switch input,
+.pill,
+.badge,
+.avatar,
+.bell-dot {
+  border-radius: 999px;
+  corner-shape: round;
+}
+
+/* ---------------------------------------------------------------- buttons */
+:root #root .ui-btn,
+:root #root .btn,
+:root #root .btn-pill {
+  --ui-btn-height: 44px;
+  --ui-btn-pad: 20px;
+  --ui-btn-bg: rgba(255, 255, 255, 0.04);
+  --ui-btn-bg-hover: rgba(255, 255, 255, 0.08);
+  --ui-btn-bg-active: rgba(255, 255, 255, 0.11);
+  --ui-btn-border: transparent;
+  --ui-btn-border-hover: transparent;
+  --ui-btn-fg: var(--text);
+  height: var(--ui-btn-height);
+  min-width: 44px;
+  padding: 0 var(--ui-btn-pad);
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--ui-btn-bg);
+  color: var(--ui-btn-fg);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.011em;
+  box-shadow: none;
+  transition:
+    background-color 200ms var(--ease),
+    color 200ms var(--ease),
+    transform 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    opacity 200ms var(--ease);
+}
+:root #root .ui-btn:hover:not(:disabled),
+:root #root .btn:hover:not(:disabled),
+:root #root .btn-pill:hover:not(:disabled) {
+  background: var(--ui-btn-bg-hover);
+}
+:root #root .ui-btn:active:not(:disabled),
+:root #root .btn:active:not(:disabled),
+:root #root .btn-pill:active:not(:disabled) {
+  background: var(--ui-btn-bg-active);
+  transform: scale(0.985);
+  transition-duration: 90ms;
+}
+:root #root .ui-btn:focus-visible,
+:root #root .btn:focus-visible,
+:root #root .btn-pill:focus-visible,
+:root #root .icon-btn:focus-visible,
+:root #root .side-item:focus-visible,
+:root #root .seg > button:focus-visible {
+  outline: 2px solid var(--depth-edge-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+:root #root .ui-btn:disabled,
+:root #root .btn:disabled,
+:root #root .btn-pill:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* primary: near-white fill, dark type, a sheen and a soft white glow */
+:root #root .ui-btn-primary,
+:root #root .btn-primary {
+  --ui-btn-bg: #f7f2ec;
+  --ui-btn-bg-hover: #ffffff;
+  --ui-btn-bg-active: #efe6dc;
+  --ui-btn-border: transparent;
+  --ui-btn-border-hover: transparent;
+  --ui-btn-fg: #1b100a;
+  color: #1b100a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 12px 34px -14px rgba(255, 231, 214, 0.5);
+}
+:root #root .ui-btn-primary:hover:not(:disabled),
+:root #root .btn-primary:hover:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 16px 40px -14px rgba(255, 235, 220, 0.6);
+}
+:root #root .ui-btn-primary::after,
+:root #root .btn-primary::after {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 2px 0 rgba(255, 255, 255, 0.65);
+}
+
+/* secondary / ghost / danger */
+:root #root .ui-btn-secondary { --ui-btn-bg: rgba(255, 255, 255, 0.04); }
+:root #root .ui-btn-ghost,
+:root #root .btn-quiet {
+  --ui-btn-bg: transparent;
+  --ui-btn-bg-hover: rgba(255, 255, 255, 0.06);
+  --ui-btn-bg-active: rgba(255, 255, 255, 0.09);
+  --ui-btn-fg: var(--muted);
+  color: var(--muted);
+}
+:root #root .ui-btn-ghost:hover:not(:disabled),
+:root #root .btn-quiet:hover:not(:disabled) { color: var(--text); }
+:root #root .ui-btn-danger,
+:root #root .btn-danger {
+  --ui-btn-bg: #d6334e;
+  --ui-btn-bg-hover: #e2455f;
+  --ui-btn-bg-active: #b9243c;
+  --ui-btn-fg: #ffffff;
+  color: #ffffff;
+  box-shadow: none;
+}
+:root #root .btn-signin {
+  background: #f7f2ec;
+  color: #1b100a;
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+:root #root .btn-signin .signin-text small { color: #6b5a4e; }
+:root #root .btn-signin .signin-icons { border-right-color: rgba(27, 16, 10, 0.16); }
+
+/* sizes */
+:root #root .ui-btn-sm,
+:root #root .btn-small {
+  --ui-btn-height: 32px;
+  --ui-btn-pad: 13px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+:root #root .ui-btn-lg {
+  --ui-btn-height: 52px;
+  --ui-btn-pad: 24px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: var(--radius-control-lg);
+  font-size: 15px;
+  font-weight: 600;
+}
+:root #root .ui-btn-icon,
+:root #root .icon-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+}
+:root #root .icon-btn:hover:not(:disabled),
+:root #root .ui-btn-icon:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+:root #root .ui-btn-danger.ui-btn-icon,
+:root #root .icon-btn-danger:hover:not(:disabled) {
+  background: rgba(255, 77, 109, 0.14);
+  color: #ff8398;
+}
+
+/* the nav's own height override: 36px / 12px corners */
+:root #root .side-item { border-radius: 12px; }
+
+/* ---------------------------------------------------------------- fields */
+:root :where(
+  input[type="text"],
+  input[type="search"],
+  input[type="number"],
+  input[type="url"],
+  input[type="password"],
+  input[type="email"],
+  input:not([type]),
+  select,
+  textarea
+) {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--depth-edge), var(--depth-highlight-soft);
+  transition: box-shadow 200ms var(--ease), background-color 200ms var(--ease), color 200ms var(--ease);
+}
+:root textarea { height: auto; padding: 12px 14px; border-radius: var(--radius-control); }
+:root :where(
+  input[type="text"],
+  input[type="search"],
+  input[type="number"],
+  input[type="url"],
+  input[type="password"],
+  input[type="email"],
+  input:not([type]),
+  select,
+  textarea
+):hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--depth-edge-hover), var(--depth-highlight-soft);
+}
+:root :where(
+  input[type="text"],
+  input[type="search"],
+  input[type="number"],
+  input[type="url"],
+  input[type="password"],
+  input[type="email"],
+  input:not([type]),
+  select,
+  textarea
+):focus {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--depth-edge-accent), 0 0 0 4px rgb(var(--accent-rgb) / 0.14);
+  outline: none;
+}
+:root select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23a89e97' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+:root input::placeholder { color: var(--faint); opacity: 1; }
+/* Search boxes carry the edge themselves; the field inside stays invisible. */
+:root .search-box {
+  height: 44px;
+  padding: 0 6px 0 14px;
+  border-color: transparent;
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+:root .search-box:focus-within { border-color: transparent; box-shadow: none; }
+:root #root .search-box input,
+:root #root .search-box input:focus {
+  border: 0;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.pick > span, .pick > label, .field-label, .name-field > label, .offline-form > label {
+  color: var(--faint);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+:root progress { height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 999px; }
+:root progress::-webkit-progress-bar { background: rgba(255, 255, 255, 0.08); }
+:root progress::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--accent-2), var(--accent) 55%, var(--accent-3));
+  border-radius: 999px;
+}
+
+/* segmented control: depth-edged surface with an 8px inner pill */
+:root #root .seg {
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control-lg);
+  background: rgba(255, 255, 255, 0.03);
+}
+:root #root .seg > button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 11px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 550;
+  transition: background-color 200ms var(--ease), color 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+:root #root .seg > button:hover:not(:disabled):not(.seg-on) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+:root #root .seg > button.seg-on,
+:root #root .create-instance .seg > button.seg-on {
+  color: #1b100a;
+  background: #f4eee7;
+  box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+:root #root .create-instance .seg {
+  border-color: transparent;
+  border-radius: var(--radius-control-lg);
+  background: rgba(255, 255, 255, 0.03);
+}
+:root #root .toggle,
+:root #root .switch input {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px var(--depth-edge);
+}
+:root #root .toggle[aria-checked="true"],
+:root #root .switch input:checked {
+  background: linear-gradient(180deg, #ff8f61, #ff6a30);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 6px 16px -8px rgba(255, 122, 69, 0.8);
+}
+:root #root .toggle::after,
+:root #root .switch input::after { background: #fff7f1; }
+
+/* ---------------------------------------------------------------- chips, badges */
+:root #root .chip {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-size: 12.5px;
+  font-weight: 550;
+}
+:root #root button.chip:hover {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+:root #root .chip-on,
+:root #root .chip-accent {
+  color: var(--accent-bright);
+  background: rgb(var(--accent-rgb) / 0.14);
+}
+:root #root .badge {
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+:root #root .badge-good { color: var(--good); background: rgba(99, 214, 160, 0.14); }
+:root #root .badge-warn { color: var(--warn); background: rgba(255, 181, 71, 0.14); }
+:root #root .badge-bad { color: var(--bad); background: rgba(255, 95, 120, 0.14); }
+:root #root .badge-info { color: var(--accent-bright); background: rgb(var(--accent-rgb) / 0.14); }
+
+/* ---------------------------------------------------------------- cards and surfaces */
+.card {
+  padding: 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card-sm);
+  background: rgba(255, 255, 255, 0.028);
+  box-shadow: none;
+  backdrop-filter: blur(16px) saturate(1.05);
+  -webkit-backdrop-filter: blur(16px) saturate(1.05);
+}
+.card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgb(var(--accent-rgb) / 0.12);
+  color: var(--accent-bright);
+  corner-shape: squircle;
+}
+.home-section,
+.quick-join {
+  padding: 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(18px) saturate(1.05);
+}
+.quick-recent {
+  border-color: transparent;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+}
+.quick-recent:hover { border-color: transparent; background: rgba(255, 255, 255, 0.07); }
+.quick-recent.is-on { border-color: transparent; background: rgb(var(--accent-rgb) / 0.12); }
+.ic {
+  border-color: transparent;
+  border-radius: var(--radius-card);
+  background: var(--surface-solid);
+}
+.ic:hover { border-color: transparent; transform: translateY(-2px); }
+.ic-selected { border-color: transparent; box-shadow: none; }
+.ic-selected::after { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb) / 0.55), var(--depth-highlight); }
+.ic-actions { border-top: 0; background: transparent; }
+.sv-card {
+  border-color: transparent;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: var(--shadow);
+}
+.sv-status { border-color: transparent; background: rgba(0, 0, 0, 0.22); border-radius: 12px; }
+.sv-address { border-style: solid; border-color: transparent; border-radius: 12px; background: rgba(255, 255, 255, 0.04); }
+.sv-address:hover { border-color: transparent; background: rgb(var(--accent-rgb) / 0.12); color: var(--text); }
+.mod-card,
+.pack-card,
+.account-card,
+.install-card {
+  border-color: transparent;
+  border-radius: var(--radius-card-sm);
+  background: rgba(255, 255, 255, 0.032);
+  box-shadow: none;
+}
+.mod-card:hover { border-color: transparent; transform: translateY(-2px); }
+.cape-card { border-color: transparent; border-radius: 14px; background: rgba(255, 255, 255, 0.035); }
+.cape-card.is-equipped::after { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb) / 0.45), var(--depth-highlight); }
+.discord-status { border-color: transparent; border-radius: 14px; background: rgba(255, 255, 255, 0.03); }
+.stat { padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.025); }
+.stat dt { color: var(--faint); letter-spacing: 0.08em; }
+.banner {
+  border-color: transparent;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow);
+}
+.banner-good { background: linear-gradient(90deg, rgba(99, 214, 160, 0.14), rgba(255, 255, 255, 0.03) 72%); }
+.banner-warn { background: linear-gradient(90deg, rgba(255, 181, 71, 0.14), rgba(255, 255, 255, 0.03) 72%); }
+.banner-bad { background: linear-gradient(90deg, rgba(255, 95, 120, 0.16), rgba(255, 255, 255, 0.03) 72%); }
+.banner-info { background: linear-gradient(90deg, rgb(var(--accent-rgb) / 0.14), rgba(255, 255, 255, 0.03) 72%); }
+.empty { color: var(--muted); }
+.empty > svg { color: var(--accent); opacity: 0.85; }
+.link-inline { color: var(--accent-bright); font-weight: 550; text-underline-offset: 4px; }
+
+/* A dense row keeps its name readable: when there is no room beside it, the
+   badges and their 44px-sized neighbours drop under the name instead of
+   squeezing it to a sliver. */
+.java-row { flex-wrap: wrap; }
+.java-row > div { flex: 1 1 180px; }
+
+/* ---------------------------------------------------------------- overlays */
+.modal-backdrop { background: var(--scrim); backdrop-filter: blur(10px); }
+.modal,
+.welcome,
+.create-instance,
+.acct-drawer {
+  border: 1px solid transparent;
+  border-radius: var(--radius-window);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(30px) saturate(1.1);
+  -webkit-backdrop-filter: blur(30px) saturate(1.1);
+}
+.modal { padding: 26px; }
+.popover {
+  border: 1px solid transparent;
+  border-radius: var(--radius-window);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+}
+.popover .card { border-radius: 0; }
+.popover .card::after { display: none; }
+.acct-drawer { border-left: 0; border-radius: var(--radius-window) 0 0 var(--radius-window); }
+.acct-body .card { background: rgba(255, 255, 255, 0.035); }
+.welcome-card {
+  border-color: transparent;
+  border-radius: var(--radius-card-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+.welcome-card:hover { border-color: transparent; transform: translateY(-2px); }
+.welcome-card.is-on { border-color: transparent; background: rgb(var(--accent-rgb) / 0.1); }
+.welcome-preview { border-color: transparent; border-radius: 14px; }
+.welcome-check { background: var(--accent); color: var(--on-accent); }
+.create-type { border-color: transparent; border-radius: 16px; background: rgba(255, 255, 255, 0.032); }
+.create-type:hover:not(.is-unavailable) { border-color: transparent; background: rgba(255, 255, 255, 0.06); }
+.create-type-icon { border-radius: 12px; background: rgb(var(--accent-rgb) / 0.12); color: var(--accent); }
+.create-image { border-color: transparent; border-radius: 16px; }
+.theme-card { border-color: transparent; border-radius: 16px; background: rgba(255, 255, 255, 0.03); }
+.theme-card:hover { border-color: transparent; }
+.theme-card.theme-on { border-color: transparent; box-shadow: none; }
+.theme-card.theme-on::after { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb) / 0.55), var(--depth-highlight); }
+
+/* ---------------------------------------------------------------- shell */
+.workspace { flex-direction: row; }
+.side {
+  width: 88px;
+  margin: 12px 0 12px 12px;
+  height: calc(100% - 24px);
+  padding: 12px 8px 10px;
+  border-right: 0;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(26, 21, 19, 0.92), rgba(13, 11, 10, 0.95));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px) saturate(1.1);
+  -webkit-backdrop-filter: blur(22px) saturate(1.1);
+  animation: ember-drop 600ms var(--ease) both;
+}
+:root[data-theme="light"] .side { background: linear-gradient(180deg, rgba(255, 252, 249, 0.94), rgba(249, 242, 236, 0.96)); }
+.side-brand { gap: 7px; padding: 6px 4px 12px; border-radius: 14px; }
+.side-brand:hover { background: rgba(255, 255, 255, 0.05); }
+.side-brand .logo-mark { width: 30px; height: 30px; object-fit: contain; }
+.side-brand-name {
+  font-size: 0.6rem;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  color: var(--text-soft);
+  font-weight: 700;
+}
+.side-nav ul, .side-foot { gap: 4px; }
+.side-foot { border-top-color: var(--depth-edge); }
+.side-item {
+  padding: 10px 4px;
+  border-radius: 12px;
+  color: var(--muted);
+  transition: color 200ms var(--ease), background-color 200ms var(--ease);
+}
+.side-item:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+.side-item.active { color: var(--text); background: rgb(var(--accent-rgb) / 0.1); }
+.side-item.active .side-icon { color: var(--accent-2); }
+.side-item .side-marker {
+  left: 3px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+}
+.side-item.active .side-marker { height: 24px; }
+.side-label { font-size: 0.66rem; font-weight: 550; letter-spacing: 0.01em; color: inherit; }
+.side-icon svg { width: 19px; height: 19px; }
+
+.hdr-lite {
+  height: 62px;
+  padding: 0 clamp(16px, 2vw, 28px);
+  background: linear-gradient(180deg, rgba(11, 9, 8, 0.46), rgba(11, 9, 8, 0));
+}
+.hdr-account {
+  height: 40px;
+  padding: 0 12px 0 5px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  corner-shape: round;
+}
+.hdr-account:hover,
+.hdr-account[aria-expanded="true"] { background: rgba(255, 255, 255, 0.08); }
+.hdr-account-text small { color: var(--faint); font-size: 0.64rem; letter-spacing: 0.08em; }
+.hdr-account-text strong { font-size: 0.84rem; font-weight: 600; }
+.hdr-win button { border-radius: 10px; }
+.hdr-tool { border-radius: 12px; }
+.hdr-tool:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); }
+
+/* The play-mode switch reads as one small segmented control. */
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 3px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: rgba(255, 255, 255, 0.04);
+}
+.mode-switch button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background-color 200ms var(--ease), color 200ms var(--ease);
+}
+.mode-switch button:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+.mode-switch button.is-on {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.footbar {
+  padding: 8px clamp(16px, 2vw, 28px);
+  background: linear-gradient(0deg, rgba(11, 9, 8, 0.5), rgba(11, 9, 8, 0));
+  border-top: 0;
+}
+.footbar .pill { color: var(--faint); font-weight: 550; }
+.footbar .pill-button:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+
+.page { gap: 20px; }
+.page-head p { color: var(--muted); }
+.content { padding: 6px clamp(18px, 3vw, 46px) 32px; }
+
+/* ---------------------------------------------------------------- home hero */
+.home { gap: 18px; }
+.home .home-hero { padding: 14px 16px 18px; }
+.home .home-hero::before {
+  background:
+    radial-gradient(50% 52% at 50% 46%, rgba(255, 122, 69, 0.12) 0%, rgba(12, 9, 7, 0.5) 46%, transparent 78%);
+}
+.home-lockup { gap: 11px; }
+.home-lockup .logo-mark { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 8px 20px rgba(255, 122, 69, 0.28)); }
+.home-lockup-name { font-size: 0.8rem; letter-spacing: 0.32em; text-indent: 0.32em; }
+.home .home-title {
+  margin: 10px 0 0;
+  font-size: clamp(2.2rem, 4vw, 3.35rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  background-image: linear-gradient(180deg, #ffffff 6%, #ffd2bd 58%, #ffb547 108%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 16px 40px rgba(255, 122, 69, 0.18));
+}
+.home-version { font-size: clamp(1.2rem, 2vw, 1.55rem); font-weight: 600; letter-spacing: -0.025em; }
+.home-version-name {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.home-sub { font-size: 0.84rem; color: var(--text-soft); }
+.home .home-identity { border-color: transparent; background: rgba(255, 255, 255, 0.05); border-radius: 999px; }
+.home .home-identity:hover { border-color: transparent; background: rgba(255, 255, 255, 0.08); }
+:root #root .home-id-actions .ui-btn {
+  height: 30px;
+  min-width: 0;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+}
+.home-hero-links .link-inline { color: var(--muted); }
+.home-hero-links .link-inline:hover { color: var(--text); }
+.home-hero-play .play-panel.lp-quick .hero-note { color: var(--muted); }
+
+/* the one loud control on the page */
+:root #root .home-hero-play .ui-btn.lp-go {
+  height: 56px;
+  min-width: min(340px, 100%);
+  padding: 0 34px;
+  gap: 10px;
+  border-radius: var(--radius-control-lg);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+:root #root .home-hero-play .ui-btn.lp-go .ui-btn-icon-slot,
+:root #root .home-hero-play .ui-btn.lp-go .ui-btn-icon-slot svg { width: 18px; height: 18px; }
+
+/* ---------------------------------------------------------------- ambient light behind the window */
+.app-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 92% 68% at 50% 0%, #000 0%, rgba(0, 0, 0, 0.5) 52%, transparent 80%);
+  mask-image: radial-gradient(ellipse 92% 68% at 50% 0%, #000 0%, rgba(0, 0, 0, 0.5) 52%, transparent 80%);
+}
+.app-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.app-bg-ember {
+  position: absolute;
+  inset: -20%;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+.app-bg-ember i {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+.app-bg-ember i:nth-child(1) {
+  width: 52%;
+  height: 54%;
+  left: 6%;
+  top: 4%;
+  background: radial-gradient(circle, var(--ember-a), transparent 68%);
+  animation: ember-drift-a 18s ease-in-out infinite alternate;
+}
+.app-bg-ember i:nth-child(2) {
+  width: 44%;
+  height: 46%;
+  right: 8%;
+  top: 18%;
+  background: radial-gradient(circle, var(--ember-b), transparent 68%);
+  animation: ember-drift-b 22s ease-in-out infinite alternate;
+}
+.app-bg-ember i:nth-child(3) {
+  width: 48%;
+  height: 44%;
+  left: 28%;
+  bottom: 2%;
+  background: radial-gradient(circle, var(--ember-c), transparent 70%);
+  animation: ember-drift-c 26s ease-in-out infinite alternate;
+}
+:root[data-bg-ember="off"] .app-bg-ember { display: none; }
+@media (max-width: 880px) {
+  .app-bg-ember { opacity: 0.6; }
+}
+
+/* ---------------------------------------------------------------- motion */
+@keyframes ember-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ember-drop {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ember-panel {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ember-drift-a {
+  0% { transform: translate3d(-4%, -2%, 0) scale(1); }
+  100% { transform: translate3d(5%, 3%, 0) scale(1.12); }
+}
+@keyframes ember-drift-b {
+  0% { transform: translate3d(3%, 2%, 0) scale(1.05); }
+  100% { transform: translate3d(-5%, 5%, 0) scale(0.96); }
+}
+@keyframes ember-drift-c {
+  0% { transform: translate3d(0, 4%, 0) scale(0.98); }
+  100% { transform: translate3d(3%, -5%, 0) scale(1.1); }
+}
+
+.page-enter { animation: ember-rise 620ms var(--ease) both; }
+.page-enter .page > *,
+.page-enter .home > *,
+.page-enter .home .home-top > *,
+.page-enter .sv-section,
+.page-enter .instance-grid > li,
+.page-enter .mods-layout > * {
+  animation: ember-rise 700ms var(--ease) both;
+}
+.page-enter .page > *:nth-child(2),
+.page-enter .home > *:nth-child(2),
+.page-enter .sv-section:nth-child(2),
+.page-enter .instance-grid > li:nth-child(2) { animation-delay: 80ms; }
+.page-enter .page > *:nth-child(3),
+.page-enter .home > *:nth-child(3),
+.page-enter .sv-section:nth-child(3),
+.page-enter .instance-grid > li:nth-child(3) { animation-delay: 160ms; }
+.page-enter .page > *:nth-child(4),
+.page-enter .home > *:nth-child(4),
+.page-enter .instance-grid > li:nth-child(4) { animation-delay: 240ms; }
+.page-enter .page > *:nth-child(5),
+.page-enter .home > *:nth-child(5) { animation-delay: 320ms; }
+.page-enter .page > *:nth-child(6),
+.page-enter .home > *:nth-child(6) { animation-delay: 400ms; }
+
+/* the hero enters in order: mark, headline, version, paragraph, action, note */
+.enter-sequence { animation: ember-rise 700ms var(--ease) both; }
+.page-enter .home .home-lockup { animation-delay: 0ms; }
+.page-enter .home .home-title { animation-delay: 100ms; }
+.page-enter .home .home-version { animation-delay: 200ms; }
+.page-enter .home .home-sub { animation-delay: 280ms; }
+.page-enter .home .home-hero-play { animation-delay: 360ms; }
+.page-enter .home .home-hero-links { animation-delay: 460ms; }
+.page-enter .home .home-identity { animation-delay: 520ms; }
+
+.modal, .welcome, .create-instance, .acct-drawer { animation: ember-panel 350ms var(--ease) both; }
+.toast, .popover { animation: ember-panel 300ms var(--ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+:root[data-reduce-motion="true"] *, :root[data-reduce-motion="true"] *::before, :root[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ---------------------------------------------------------------- light appearance */
+:root[data-theme="light"] #root .ui-btn-primary,
+:root[data-theme="light"] #root .btn-primary {
+  --ui-btn-bg: #1d1410;
+  --ui-btn-bg-hover: #2a1d17;
+  --ui-btn-bg-active: #150e0a;
+  --ui-btn-fg: #fff8f2;
+  color: #fff8f2;
+  box-shadow: 0 12px 30px -14px rgba(29, 20, 16, 0.6);
+}
+:root[data-theme="light"] #root .ui-btn-primary::after,
+:root[data-theme="light"] #root .btn-primary::after {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 2px 0 rgba(255, 255, 255, 0.22);
+}
+:root[data-theme="light"] :where(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="password"], input[type="email"], input:not([type]), select, textarea) {
+  background: rgba(255, 255, 255, 0.72);
+}
+:root[data-theme="light"] #root .seg > button.seg-on { background: #fffaf6; color: #1d1410; }
+:root[data-theme="light"] .app-bg::after { opacity: 0.03; mix-blend-mode: multiply; }
+:root[data-theme="light"] .app-bg-ember { mix-blend-mode: multiply; opacity: 0.5; }
+:root[data-theme="light"] .side { animation: none; }
+:root[data-theme="light"] .home .home-title {
+  background-image: linear-gradient(180deg, #1d1410 6%, #7a4327 58%, #c25a1e 108%);
+  filter: none;
+}
+:root[data-theme="light"] .hdr-lite { background: linear-gradient(180deg, rgba(244, 237, 231, 0.6), rgba(244, 237, 231, 0)); }
+:root[data-theme="light"] .footbar { background: linear-gradient(0deg, rgba(244, 237, 231, 0.6), rgba(244, 237, 231, 0)); }
+:root[data-theme="light"] .hdr-account { background: rgba(255, 255, 255, 0.6); }
+:root[data-theme="light"] .mode-switch { background: rgba(255, 255, 255, 0.6); }
+:root[data-theme="light"] .mode-switch button.is-on { background: #fffaf6; color: #1d1410; }
+:root[data-theme="light"] #root .chip { background: rgba(74, 40, 22, 0.05); }
+:root[data-theme="light"] #root .chip-on,
+:root[data-theme="light"] #root .chip-accent { background: rgb(var(--accent-rgb) / 0.12); }
+:root[data-theme="light"] .sv-status { background: rgba(74, 40, 22, 0.05); }

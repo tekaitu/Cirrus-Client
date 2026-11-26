@@ -22,29 +22,29 @@ export interface ThemeInfo {
   accent: string;
 }
 
-export const BRAND_ORANGE = "#e25303";
+export const BRAND_ORANGE = "#ff7a45";
 
 export const THEMES: readonly ThemeInfo[] = [
   {
     id: "classic",
     label: "Classic",
-    blurb: "Deep neutral surfaces, full-bleed instance art and one maple-orange accent",
-    swatch: ["#080706", "#141110", "#221d1a"],
-    accent: "#e25303",
+    blurb: "Warm near-black surfaces, full-bleed instance art and one ember accent",
+    swatch: ["#0b0908", "#191514", "#211b19"],
+    accent: "#ff7a45",
   },
   {
     id: "colorful",
     label: "Colorful",
-    blurb: "The bright Minecraft key art fills the window, with translucent panels and maple orange",
-    swatch: ["#0b1524", "#16233a", "#22344f"],
-    accent: "#e25303",
+    blurb: "The bright Minecraft key art fills the window, with translucent panels and ember accents",
+    swatch: ["#141010", "#221b18", "#2f2521"],
+    accent: "#ff7a45",
   },
   {
     id: "light",
     label: "Light",
     blurb: "Bright and clean",
-    swatch: ["#eef1f6", "#ffffff", "#e4e8f0"],
-    accent: "#c94803",
+    swatch: ["#f4ede7", "#fffaf6", "#efe4da"],
+    accent: "#d24d0f",
   },
 ];
 

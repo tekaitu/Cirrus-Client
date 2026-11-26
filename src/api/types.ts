@@ -392,6 +392,8 @@ export interface InstanceView {
   /** The Java major this Minecraft version needs, when known. */
   javaMajor: number | null;
   clonedFrom: string | null;
+  /** The OptiFine edition this instance starts with, e.g. `1.8.9_HD_U_M5`. */
+  optifine: string | null;
 }
 
 /** What a delete would remove, so the confirmation can say it honestly. */
@@ -448,4 +450,21 @@ export interface DiscordPresence {
   state?: string | null;
   /** Unix time in seconds; Discord shows elapsed time from it. */
   startedAt?: number | null;
+}
+
+/**
+ * One Minecraft server's answer to the game's own Server List Ping. Fields the
+ * server did not send stay null, and `online` is only true when it answered.
+ */
+export interface ServerStatus {
+  address: string;
+  online: boolean;
+  latencyMs: number | null;
+  version: string | null;
+  playersOnline: number | null;
+  playersMax: number | null;
+  motd: string | null;
+  icon: string | null;
+  /** Set only when `online` is false: the reason the check failed. */
+  error: string | null;
 }

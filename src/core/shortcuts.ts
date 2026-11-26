@@ -7,7 +7,7 @@ export const PAGE_SHORTCUTS: Array<{ key: string; page: PageId; label: string }>
   { key: "3", page: "browse", label: "Go to Browse" },
   { key: "4", page: "mods", label: "Go to Mods" },
   { key: "5", page: "modpacks", label: "Go to Modpacks" },
-  { key: "6", page: "skins", label: "Go to Character" },
+  { key: "6", page: "skins", label: "Go to Skins" },
   { key: "7", page: "servers", label: "Go to Servers" },
   { key: "8", page: "settings", label: "Go to Settings" },
   { key: "9", page: "about", label: "Go to About" },

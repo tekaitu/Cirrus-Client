@@ -2,12 +2,10 @@ import {
   CloseIcon,
   CubeIcon,
   HomeIcon,
-  LibraryIcon,
   MaximizeIcon,
   MinimizeIcon,
   ModsIcon,
   NewsIcon,
-  PackageIcon,
   ServerIcon,
   SettingsIcon,
   ShirtIcon,
@@ -34,12 +32,12 @@ export type PageId =
 
 export const PAGE_TITLES: Record<PageId, string> = {
   home: "Play",
-  versions: "Add version",
+  versions: "Versions",
   library: "Instances",
   browse: "Mods",
   mods: "Mods",
   modpacks: "Modpacks",
-  skins: "Character",
+  skins: "Skins",
   servers: "Servers",
   accounts: "Accounts",
   settings: "Settings",
@@ -56,17 +54,17 @@ interface NavItem {
 }
 
 /**
- * The main destinations, in the order the sidebar shows them. Chat and Media
- * have no page or backend in this build, so no placeholder is listed for them.
+ * The main destinations, in the order the sidebar shows them. Versions holds the
+ * release grid and the instances built from it, and Mods holds the modpacks and
+ * the mods inside the chosen one: one section each, two lists each. Chat and
+ * Media have no page or backend in this build, so no placeholder is listed.
  */
 export const NAV_ITEMS: NavItem[] = [
   { id: "home", label: "Play", icon: <HomeIcon /> },
-  { id: "library", label: "Instances", icon: <LibraryIcon /> },
   { id: "versions", label: "Versions", icon: <CubeIcon /> },
-  { id: "servers", label: "Servers", icon: <ServerIcon /> },
   { id: "mods", label: "Mods", icon: <ModsIcon /> },
-  { id: "modpacks", label: "Modpacks", icon: <PackageIcon /> },
-  { id: "skins", label: "Character", icon: <ShirtIcon /> },
+  { id: "servers", label: "Servers", icon: <ServerIcon /> },
+  { id: "skins", label: "Skins", icon: <ShirtIcon /> },
   { id: "home", label: "News", icon: <NewsIcon />, section: "news" },
 ];
 

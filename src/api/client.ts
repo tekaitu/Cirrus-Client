@@ -35,6 +35,7 @@ import type {
   SettingsState,
   SystemInfo,
   VersionEntry,
+  ServerStatus,
 } from "./types";
 
 export function errorMessage(e: unknown): string {
@@ -112,6 +113,15 @@ export const api = {
     lastPlayed: number;
     clonedFrom: string | null;
   }) => call<InstanceView>("save_instance", { config }),
+  /**
+   * Installs an OptiFine jar the person downloaded from optifine.net into one
+   * Vanilla instance. The jar is checked on the Rust side before anything is
+   * written, so a wrong file is refused with a message.
+   */
+  installOptifine: (id: string, fileName: string, dataBase64: string) =>
+    call<InstanceView>("install_optifine", { id, fileName, dataBase64 }),
+  /** Stops starting an instance through OptiFine; its jar is kept. */
+  removeOptifine: (id: string) => call<InstanceView>("remove_optifine", { id }),
   cloneInstance: (id: string, name: string, copyData: boolean) =>
     call<InstanceView>("clone_instance", { id, name, copyData }),
   deleteInstance: (id: string, deleteFiles: boolean) =>
@@ -136,6 +146,8 @@ export const api = {
     loader: string,
     profile?: string,
     instanceId?: string,
+    /** Opens this server on start; the Servers page's Join uses it. */
+    server?: string,
   ) =>
     call<LaunchResult>("launch_game", {
       javaPath,
@@ -145,7 +157,10 @@ export const api = {
       loader,
       profile: profile ?? null,
       instanceId: instanceId ?? null,
+      server: server ?? null,
     }),
+  /** The game's own Server List Ping, run by the launcher. */
+  serverStatus: (address: string) => call<ServerStatus>("server_status", { address }),
   listProfiles: () => call<Profile[]>("list_profiles"),
   createProfile: (name: string, version: string, loader: string) =>
     call<Profile>("create_profile", { name, version, loader }),

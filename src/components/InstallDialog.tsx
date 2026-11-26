@@ -196,8 +196,9 @@ export function InstallDialog({
             )}
 
             <p className="install-optifine muted small">
-              <OptifineIcon /> <strong>OptiFine</strong> is not offered for {version}: Maple could not verify a compatible
-              release this build can install safely. On Fabric, Sodium and Lithium give the same kind of boost.
+              <OptifineIcon /> <strong>OptiFine</strong> is added after the install, not during it: it belongs to an
+              instance. Once {version} is installed, open Versions, pick the instance and choose the OptiFine jar you
+              downloaded. On Fabric, Sodium and Lithium give the same kind of boost.
             </p>
 
             {job.phase === "error" && (

@@ -255,7 +255,7 @@ pub fn is_allowed_url(url: &Url) -> bool {
     url.scheme() == "https" && url.host_str().map(|h| ALLOWED_HOSTS.contains(&h)).unwrap_or(false)
 }
 
-fn client() -> Result<reqwest::blocking::Client, String> {
+pub(crate) fn client() -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
         .user_agent(concat!("MapleClient/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(20))
@@ -334,6 +334,15 @@ fn fetch_text(c: &reqwest::blocking::Client, url: &str) -> Result<String, GameEr
 
 fn parse_json(text: &str, what: &str) -> Result<Value, GameError> {
     serde_json::from_str(text).map_err(|e| GameError::failed(format!("The {what} could not be read: {e}")))
+}
+
+/// Download one file with its hash checked, for modules outside this one.
+pub(crate) fn download_one(
+    c: &reqwest::blocking::Client,
+    dl: &Download,
+    cancel: &AtomicBool,
+) -> Result<(), GameError> {
+    download_file(c, dl, cancel)
 }
 
 /// Download one file to `dl.path` through a `.part` file, checking SHA-1 and size.
@@ -1186,6 +1195,8 @@ pub struct LaunchOptions {
     pub window_width: u32,
     pub window_height: u32,
     pub jvm_args: Vec<String>,
+    /// A server the game opens on start (`--quickPlayMultiplayer`), from the Servers page.
+    pub quick_play: Option<String>,
 }
 
 impl Default for LaunchOptions {
@@ -1195,6 +1206,7 @@ impl Default for LaunchOptions {
             window_width: 1280,
             window_height: 720,
             jvm_args: Vec::new(),
+            quick_play: None,
         }
     }
 }
@@ -1202,6 +1214,15 @@ impl Default for LaunchOptions {
 fn read_json(path: &Path, what: &str) -> Result<Value, String> {
     let text = fs::read_to_string(path).map_err(|e| format!("Could not read the {what}: {e}. Try installing the game files again."))?;
     serde_json::from_str(&text).map_err(|e| format!("The {what} is damaged ({e}). Try installing the game files again."))
+}
+
+/// `--quickPlayMultiplayer` exists from 1.20 on. Older clients would ignore it and
+/// open the title screen, so the launcher asks for a newer game instead of pretending.
+pub fn quick_play_supported(version: &str) -> bool {
+    let mut parts = version.split('.');
+    let major = parts.next().and_then(|p| p.parse::<u32>().ok());
+    let minor = parts.next().and_then(|p| p.parse::<u32>().ok());
+    matches!((major, minor), (Some(1), Some(m)) if m >= 20)
 }
 
 /// Build the exact command that starts the game. Nothing is run here.
@@ -1214,6 +1235,8 @@ pub fn build_launch(
     launcher_version: &str,
     instance_id: Option<&str>,
     game_dir: Option<&Path>,
+    // The OptiFine edition this instance starts with, when the person added its jar.
+    optifine: Option<&str>,
 ) -> Result<LaunchSpec, String> {
     let vanilla = read_json(&vanilla_json_path(root, &info.minecraft), "Minecraft version file")?;
     let fabric = if info.loader.is_some() {
@@ -1235,14 +1258,26 @@ pub fn build_launch(
         }
         classpath.push(path.display().to_string());
     }
+    // OptiFine is a vanilla-only add-on: it brings its own launcher and tweak.
+    let optifine = optifine.filter(|edition| !edition.is_empty() && info.loader.is_none());
+    if let Some(edition) = optifine {
+        for jar in crate::optifine::classpath(root, edition)? {
+            classpath.push(jar.display().to_string());
+        }
+    }
     classpath.push(client_jar_path(root, &info.minecraft).display().to_string());
 
-    let main_class = fabric
-        .get("mainClass")
-        .and_then(Value::as_str)
-        .or_else(|| vanilla.get("mainClass").and_then(Value::as_str))
-        .ok_or("The version files do not name a main class.")?
-        .to_string();
+    // OptiFine starts the game through launchwrapper, which then applies its tweak.
+    let main_class = if optifine.is_some() {
+        "net.minecraft.launchwrapper.Launch".to_string()
+    } else {
+        fabric
+            .get("mainClass")
+            .and_then(Value::as_str)
+            .or_else(|| vanilla.get("mainClass").and_then(Value::as_str))
+            .ok_or("The version files do not name a main class.")?
+            .to_string()
+    };
     let index_id = vanilla
         .get("assetIndex")
         .and_then(|a| a.get("id"))
@@ -1285,6 +1320,12 @@ pub fn build_launch(
             game = legacy.split_whitespace().map(str::to_string).collect();
         }
     }
+    // launchwrapper reads --tweakClass before handing over to Minecraft.
+    if optifine.is_some() {
+        let mut with_tweaker = vec!["--tweakClass".to_string(), "optifine.OptiFineTweaker".to_string()];
+        with_tweaker.extend(game);
+        game = with_tweaker;
+    }
     if jvm.is_empty() {
         jvm = vec![
             "-Djava.library.path=${natives_directory}".to_string(),
@@ -1310,6 +1351,20 @@ pub fn build_launch(
         args.push(options.window_width.to_string());
         args.push("--height".to_string());
         args.push(options.window_height.to_string());
+    }
+    if let Some(address) = options.quick_play.as_deref() {
+        let address = address.trim();
+        if !crate::servers::valid_address(address) {
+            return Err("That server address cannot be used to join a game.".to_string());
+        }
+        if !quick_play_supported(&info.minecraft) {
+            return Err(format!(
+                "Minecraft {} cannot open a server from the launcher. Use 1.20 or newer, or add {} in Multiplayer.",
+                info.minecraft, address
+            ));
+        }
+        args.push("--quickPlayMultiplayer".to_string());
+        args.push(address.to_string());
     }
 
     Ok(LaunchSpec { program: java.to_path_buf(), args, cwd: instance })
@@ -1575,6 +1630,7 @@ mod tests {
             "0.1.0",
             None,
             None,
+            None,
         )
         .unwrap();
         assert_eq!(spec.args[0], "-Xmx3072M");
@@ -1619,6 +1675,7 @@ mod tests {
             &LaunchOptions { memory_mb: 2048, ..LaunchOptions::default() },
             &player,
             "0.1.0",
+            None,
             None,
             None,
         )
@@ -1675,6 +1732,7 @@ mod tests {
             "0.3.3",
             None,
             None,
+            None,
         )
         .unwrap();
         assert!(spec.args.iter().any(|a| a.starts_with("-Djava.library.path=")));
@@ -1726,6 +1784,42 @@ mod tests {
     }
 
     #[test]
+    fn quick_play_joins_a_server_on_1_20_and_newer() {
+        assert!(quick_play_supported("1.20"));
+        assert!(quick_play_supported("1.20.4"));
+        assert!(quick_play_supported("1.21.11"));
+        assert!(!quick_play_supported("1.19.4"));
+        assert!(!quick_play_supported("1.8.9"));
+        assert!(!quick_play_supported(""));
+
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mc = "1.21.11";
+        let info = InstallInfo { minecraft: mc.into(), loader: None, profile_id: mc.into(), java_major: Some(21) };
+        let mut v = vanilla();
+        v["mainClass"] = json!("net.minecraft.client.main.Main");
+        v["assetIndex"] = json!({"id":"29"});
+        v["arguments"] = json!({"jvm":["-cp","${classpath}"],"game":["--username","${auth_player_name}"]});
+        write_atomic(&vanilla_json_path(root, mc), &v.to_string()).unwrap();
+        write_atomic(&client_jar_path(root, mc), "jar").unwrap();
+        for lib in libraries_of(&v) {
+            write_atomic(&root.join("libraries").join(&lib.rel_path), "x").unwrap();
+        }
+        let player = Player::offline("Steve").unwrap();
+        let options = LaunchOptions {
+            quick_play: Some("vanguards.ggwp.cc".to_string()),
+            ..LaunchOptions::default()
+        };
+        let spec = build_launch(root, &info, Path::new("java.exe"), &options, &player, "0.4.0", None, None, None).unwrap();
+        let at = spec.args.iter().position(|a| a == "--quickPlayMultiplayer").unwrap();
+        assert_eq!(spec.args[at + 1], "vanguards.ggwp.cc");
+
+        // An address that is not a host name is refused instead of being passed to Java.
+        let bad = LaunchOptions { quick_play: Some("host name; rm".to_string()), ..LaunchOptions::default() };
+        assert!(build_launch(root, &info, Path::new("java.exe"), &bad, &player, "0.4.0", None, None, None).is_err());
+    }
+
+    #[test]
     fn launch_reports_a_missing_library() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -1741,6 +1835,7 @@ mod tests {
             &LaunchOptions { memory_mb: 2048, ..LaunchOptions::default() },
             &player,
             "0.1.0",
+            None,
             None,
             None,
         )
@@ -1772,5 +1867,81 @@ mod tests {
         let result = install(dir.path(), "1.21.11", true, None, &cancel, &progress);
         assert_eq!(result, Err(GameError::Cancelled));
         assert!(installed(dir.path(), "1.21.11", true).is_none());
+    }
+
+    #[test]
+    fn optifine_starts_through_launchwrapper() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mc = "1.8.9";
+        let info = InstallInfo { minecraft: mc.into(), loader: None, profile_id: mc.into(), java_major: Some(8) };
+        let version = json!({
+            "mainClass": "net.minecraft.client.main.Main",
+            "minecraftArguments": "--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type}",
+            "libraries": [],
+            "assetIndex": {"id": "1.8"}
+        });
+        write_atomic(&vanilla_json_path(root, mc), &version.to_string()).unwrap();
+        write_atomic(&client_jar_path(root, mc), "jar").unwrap();
+        let edition = "1.8.9_HD_U_M5";
+        fs::create_dir_all(crate::optifine::jar_path(root, edition).parent().unwrap()).unwrap();
+        fs::write(crate::optifine::jar_path(root, edition), b"jar").unwrap();
+        fs::create_dir_all(crate::optifine::launchwrapper_path(root).parent().unwrap()).unwrap();
+        fs::write(crate::optifine::launchwrapper_path(root), b"lw").unwrap();
+
+        let player = Player::offline("Steve").unwrap();
+        let spec = build_launch(
+            root,
+            &info,
+            Path::new("java.exe"),
+            &LaunchOptions::default(),
+            &player,
+            "0.4.0",
+            None,
+            None,
+            Some(edition),
+        )
+        .unwrap();
+        let main_at = spec.args.iter().position(|a| a == "net.minecraft.launchwrapper.Launch").unwrap();
+        assert_eq!(spec.args[main_at + 1], "--tweakClass");
+        assert_eq!(spec.args[main_at + 2], "optifine.OptiFineTweaker");
+        let cp_at = spec.args.iter().position(|a| a == "-cp").unwrap();
+        let cp = &spec.args[cp_at + 1];
+        assert!(cp.contains("launchwrapper-1.12.jar"), "{cp}");
+        assert!(cp.contains("Optifine-1.8.9_HD_U_M5.jar"), "{cp}");
+        assert!(cp.ends_with("1.8.9.jar"), "the game jar comes last");
+        assert!(spec.args.iter().all(|a| !a.contains("${")));
+
+        // Without the jar the launch says why instead of starting without it.
+        fs::remove_file(crate::optifine::jar_path(root, edition)).unwrap();
+        let err = build_launch(
+            root,
+            &info,
+            Path::new("java.exe"),
+            &LaunchOptions::default(),
+            &player,
+            "0.4.0",
+            None,
+            None,
+            Some(edition),
+        )
+        .unwrap_err();
+        assert!(err.contains("OptiFine"), "{err}");
+
+        // Plain vanilla still uses the game's own main class.
+        let plain = build_launch(
+            root,
+            &info,
+            Path::new("java.exe"),
+            &LaunchOptions::default(),
+            &player,
+            "0.4.0",
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        assert!(plain.args.contains(&"net.minecraft.client.main.Main".to_string()));
+        assert!(!plain.args.iter().any(|a| a == "--tweakClass"));
     }
 }
