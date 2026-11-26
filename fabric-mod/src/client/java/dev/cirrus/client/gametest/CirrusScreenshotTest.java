@@ -431,10 +431,12 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
     /**
      * Maple glyph checks on the real game. The verified-identity source is a test double installed only here: this client has no real
      * source yet, so with nothing installed nobody is verified (also checked). Tab list: the real PlayerTabOverlay#getNameForDisplay runs
-     * through the mixin for crafted PlayerInfo entries. Name tag: the real EntityRenderer#getNameTag runs for real remote players in a world.
+     * through the mixin for crafted PlayerInfo entries (it needs a world for team lookups). Name tag: the real EntityRenderer#getNameTag runs for real remote players in a world.
      */
     private static void verifyMapleGlyph(ClientGameTestContext context) {
         String glyph = dev.cirrus.client.glyph.MapleGlyph.CHARACTER;
+        try (var world = context.worldBuilder().create()) {
+            context.waitTicks(60);
         context.runOnClient(mc -> {
             dev.cirrus.core.identity.MapleIdentity.setProvider(null);
             var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
@@ -459,8 +461,8 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.waitTicks(10);
         context.takeScreenshot("tab-names-glyph-1280x720-gui2");
 
-        try (var world = context.worldBuilder().create()) {
-            context.waitTicks(60);
+            context.setScreen(() -> null);
+            context.waitTicks(10);
             context.takeScreenshot("world-hud-1280x720-gui2");
             context.setScreen(() -> new HudEditorScreen(null, "fps"));
             context.waitTicks(10);
