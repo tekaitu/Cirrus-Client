@@ -1,15 +1,18 @@
 package dev.cirrus.client;
 
+import dev.cirrus.client.render.McCanvas;
+
+import dev.cirrus.core.render.Icons;
 import dev.cirrus.client.asset.CirrusAssetTextures;
 import dev.cirrus.client.dashboard.CirrusDashboard;
 import dev.cirrus.client.dashboard.DashboardConfig;
 import dev.cirrus.client.dashboard.ServerStatus;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Glyphs;
 import dev.cirrus.client.ui.Gfx;
 import dev.cirrus.client.ui.MenuButton;
-import dev.cirrus.client.ui.MenuLayout;
+import dev.cirrus.core.layout.MenuLayout;
 import dev.cirrus.client.ui.PartnerTile;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -59,32 +62,31 @@ public final class CirrusTitleScreen extends TitleScreen {
         Minecraft mc = minecraft;
         if (skin == null) skin = mc.getSkinManager().createLookup(mc.getGameProfile(), false);
         playerName = mc.getUser().getName();
-        versionLine = "Cirrus " + modVersion("cirrus_fabric") + "  ·  Minecraft " + modVersion("minecraft");
+        versionLine = dev.cirrus.core.theme.Brand.SHORT + " " + modVersion("cirrus_fabric") + "  ·  Minecraft " + modVersion("minecraft");
         if (openedAt == 0) openedAt = System.currentTimeMillis();
 
         int nameWidth = CirrusUi.bodyWidth(font, playerName);
-        layout = new MenuLayout(width, height, dashboard.partners().size(), CirrusUi.headingWidth(font, "CIRRUS CLIENT"), nameWidth);
+        layout = new MenuLayout(width, height, dashboard.partners().size(), CirrusUi.headingWidth(font, dev.cirrus.core.theme.Brand.NAME.toUpperCase(java.util.Locale.ROOT)), nameWidth);
         MenuLayout.Rect[] b = layout.buttons;
         DashboardConfig.Store store = dashboard.store();
 
-        add(MenuButton.list(b[0].x(), b[0].y(), b[0].w(), b[0].h(), "Singleplayer", Glyphs.SINGLEPLAYER, x -> minecraft.setScreen(new SelectWorldScreen(this))));
-        add(MenuButton.list(b[1].x(), b[1].y(), b[1].w(), b[1].h(), "Multiplayer", Glyphs.MULTIPLAYER, x -> minecraft.setScreen(new CirrusJoinMultiplayerScreen(this))));
-        add(MenuButton.list(b[2].x(), b[2].y(), b[2].w(), b[2].h(), "Cosmetics", Glyphs.COSMETICS, x -> minecraft.setScreen(new SkinCustomizationScreen(this, minecraft.options))));
-        add(MenuButton.list(b[3].x(), b[3].y(), b[3].w(), b[3].h(), "Screenshots", Glyphs.SCREENSHOTS, x -> PlatformOpen.folder(PlatformOpen.screenshots())));
-        MenuButton storeButton = MenuButton.primary(b[4].x(), b[4].y(), b[4].w(), b[4].h(), store.label(), Glyphs.STORE, x -> PlatformOpen.link(this, store.url()));
-        if (!store.enabled()) storeButton.setTooltip(Tooltip.create(Component.literal("The Cirrus store is not connected yet. It is configured from the Cirrus dashboard.")));
+        add(MenuButton.list(b[0].x(), b[0].y(), b[0].w(), b[0].h(), "Singleplayer", Icons.SINGLEPLAYER, x -> minecraft.setScreen(new SelectWorldScreen(this))));
+        add(MenuButton.list(b[1].x(), b[1].y(), b[1].w(), b[1].h(), "Multiplayer", Icons.MULTIPLAYER, x -> minecraft.setScreen(new CirrusJoinMultiplayerScreen(this))));
+        add(MenuButton.list(b[2].x(), b[2].y(), b[2].w(), b[2].h(), "Cosmetics", Icons.COSMETICS, x -> minecraft.setScreen(new SkinCustomizationScreen(this, minecraft.options))));
+        add(MenuButton.list(b[3].x(), b[3].y(), b[3].w(), b[3].h(), "Screenshots", Icons.SCREENSHOTS, x -> PlatformOpen.folder(PlatformOpen.screenshots())));
+        MenuButton storeButton = MenuButton.primary(b[4].x(), b[4].y(), b[4].w(), b[4].h(), store.label(), Icons.STORE, x -> PlatformOpen.link(this, store.url()));
+        if (!store.enabled()) storeButton.setTooltip(Tooltip.create(Component.literal("The Maple store is not connected yet. It is configured from the Cirrus dashboard.")));
         else if (!dashboard.storePromos().isEmpty()) storeButton.setTooltip(Tooltip.create(Component.literal(dashboard.storePromos().get(0).text())));
         add(storeButton);
         MenuLayout.Rect q = layout.quit;
         add(MenuButton.quit(q.x(), q.y(), q.w(), q.h(), "QUIT GAME", x -> minecraft.stop()));
 
         MenuLayout.Rect[] i = layout.icons;
-        add(MenuButton.square(i[0].x(), i[0].y(), i[0].w(), Glyphs.GRID, "Mod menu  (Right Shift)", x -> minecraft.setScreen(new CirrusMenuScreen(this))));
-        add(MenuButton.square(i[1].x(), i[1].y(), i[1].w(), Glyphs.CHAT, "Chat settings", x -> minecraft.setScreen(new ChatOptionsScreen(this, minecraft.options))));
-        add(MenuButton.square(i[2].x(), i[2].y(), i[2].w(), Glyphs.SETTINGS, "Game options", x -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))));
-        add(MenuButton.square(i[3].x(), i[3].y(), i[3].w(), Glyphs.GEM, "Themes", x -> minecraft.setScreen(new CirrusThemesScreen(this))));
-        add(MenuButton.square(i[4].x(), i[4].y(), i[4].w(), Glyphs.BOX, "Cirrus home", x -> minecraft.setScreen(new CirrusDashboardScreen(this))));
-        add(MenuButton.square(i[5].x(), i[5].y(), i[5].w(), Glyphs.LIST, "HUD editor", x -> minecraft.setScreen(new HudEditorScreen(this))));
+        add(MenuButton.square(i[0].x(), i[0].y(), i[0].w(), Icons.GRID, "Mod menu  (Right Shift)", x -> minecraft.setScreen(new CirrusMenuScreen(this))));
+        add(MenuButton.square(i[1].x(), i[1].y(), i[1].w(), Icons.CHAT, "Chat settings", x -> minecraft.setScreen(new ChatOptionsScreen(this, minecraft.options))));
+        add(MenuButton.square(i[2].x(), i[2].y(), i[2].w(), Icons.SETTINGS, "Game options", x -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))));
+        add(MenuButton.square(i[3].x(), i[3].y(), i[3].w(), Icons.BOX, "Maple home", x -> minecraft.setScreen(new CirrusDashboardScreen(this))));
+        add(MenuButton.square(i[4].x(), i[4].y(), i[4].w(), Icons.LIST, "HUD editor", x -> minecraft.setScreen(new HudEditorScreen(this))));
 
         for (int n = 0; n < layout.partnerTiles.length; n++) {
             DashboardConfig.Partner p = dashboard.partners().get(n);
@@ -119,29 +121,28 @@ public final class CirrusTitleScreen extends TitleScreen {
         CirrusUi.centeredSmall(g, font, versionLine, width / 2, layout.versionY, Gfx.scaleAlpha(t.muted, 0.8f));
         drawProfile(g, t);
         drawBanner(g, t);
-        if (fade < 1f) g.fill(0, 0, width, height, Gfx.withAlpha(0xFF04070D, Math.round((1f - fade) * 200)));
+        if (fade < 1f) McCanvas.of(g).fill(0, 0, width, height, Gfx.withAlpha(0xFF000000, Math.round((1f - fade) * 200)));
     }
 
     private void drawLogo(GuiGraphics g, CirrusTheme t) {
         MenuLayout.Rect m = layout.logoMark;
         CirrusAssetTextures.drawMark(g, m.x(), m.y(), m.w(), m.h(), 0xFFFFFFFF);
-        if (layout.logoText) CirrusUi.headingText(g, font, "CIRRUS CLIENT", layout.logoTextX, layout.logoTextY, t.text);
+        if (layout.logoText) CirrusUi.headingText(g, font, dev.cirrus.core.theme.Brand.NAME.toUpperCase(java.util.Locale.ROOT), layout.logoTextX, layout.logoTextY, t.text);
     }
 
     private void drawStrip(GuiGraphics g, CirrusTheme t) {
         MenuLayout.Rect s = layout.sidebar;
         if (s == null) return;
-        Gfx.fillRound(g, s.x(), s.y(), s.w(), s.h(), 7, Gfx.mix(0xD0070B14, t.accent, 0.05f));
-        Gfx.strokeRound(g, s.x(), s.y(), s.w(), s.h(), 7, 0.5f, Gfx.scaleAlpha(t.border, 0.8f));
+        Gfx.fillRound(g, s.x(), s.y(), s.w(), s.h(), 7, 0xFF000000);
+        Gfx.strokeRound(g, s.x(), s.y(), s.w(), s.h(), 7, 0.5f, t.border);
     }
 
     private void drawProfile(GuiGraphics g, CirrusTheme t) {
         MenuLayout.Rect p = layout.profile;
         if (p == null) return;
         float radius = Math.min(p.h() * 0.24f, 8f);
-        Gfx.fillRound(g, p.x(), p.y(), p.w(), p.h(), radius, 0xE60A0F1A);
-        Gfx.hairline(g, p.x() + radius, p.y() + 1, p.w() - radius * 2, Gfx.scaleAlpha(t.highlight, 1.6f));
-        Gfx.strokeRound(g, p.x(), p.y(), p.w(), p.h(), radius, 0.5f, Gfx.scaleAlpha(t.border, 0.7f));
+        Gfx.fillRound(g, p.x(), p.y(), p.w(), p.h(), radius, 0xFF000000);
+        Gfx.strokeRound(g, p.x(), p.y(), p.w(), p.h(), radius, 0.5f, t.border);
         int face = Math.max(10, p.h() - 8), pad = Math.max(4, Math.round(layout.scale * 6));
         PlayerFaceRenderer.draw(g, skin.get(), p.x() + pad - 1, p.y() + (p.h() - face) / 2, face);
         int tx = p.x() + pad - 1 + face + pad;
@@ -155,29 +156,22 @@ public final class CirrusTitleScreen extends TitleScreen {
         int index = (int) ((System.currentTimeMillis() / 9000L) % banners.size());
         DashboardConfig.Banner b = banners.get(index);
         float radius = Math.min(8f, r.h() * 0.1f);
-        int a = 0xFF000000 | b.colorA(), c = 0xFF000000 | b.colorB();
-        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), radius, Gfx.mix(a, 0xFF05080F, 0.35f));
-        g.enableScissor(r.x(), r.y(), r.right(), r.bottom());
-        int glow = Math.round(r.h() * 0.84f);                      // round glow at the right edge; sized to stay clear of the corners
-        Gfx.fillRound(g, r.right() - glow * 0.75f, r.y() + (r.h() - glow) / 2f, glow, glow, glow / 2f, Gfx.scaleAlpha(c, 0.30f));
-        Gfx.fillRound(g, r.right() - glow * 0.45f, r.y() + (r.h() - glow * 0.6f) / 2f, glow * 0.6f, glow * 0.6f, glow * 0.3f, Gfx.scaleAlpha(c, 0.25f));
-        g.disableScissor();
-        Gfx.hairline(g, r.x() + radius, r.y() + 1, r.w() - radius * 2, Gfx.scaleAlpha(t.highlight, 2.4f));
-        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), radius, 0.5f, Gfx.mix(t.border, c, 0.55f));
-        int mh = r.h() / 2, mw = (mh * 640 + 236) / 473;
-        CirrusAssetTextures.drawMark(g, r.right() - mw - 6, r.y() + 6, mw, mh, 0x1CFFFFFF);
+        // Flat black card with a thin outline; the dashboard's colours are deliberately not used for fills.
+        Gfx.fillRound(g, r.x(), r.y(), r.w(), r.h(), radius, 0xFF000000);
+        Gfx.strokeRound(g, r.x(), r.y(), r.w(), r.h(), radius, 0.5f, t.border);
         int pad = Math.max(6, Math.round(layout.scale * 8)), tw = r.w() - pad * 2;
         int y = r.y() + pad;
         CirrusUi.headingText(g, font, CirrusUi.fit(font, b.title(), tw, CirrusUi::heading), r.x() + pad, y, 0xFFFFFFFF);
         y += CirrusUi.LINE + 4;
         for (var line : font.split(CirrusUi.small(b.subtitle()), tw)) {
             if (y + 8 > r.bottom() - pad - (b.cta().isEmpty() ? 0 : 12)) break;
-            g.drawString(font, line, r.x() + pad, y + 1, Gfx.scaleAlpha(0xFFFFFFFF, 0.78f), false);
+            g.drawString(font, line, r.x() + pad, y + 1, 0xFFFFFFFF, false);
             y += 10;
         }
         if (!b.cta().isEmpty()) {
             int cw = CirrusUi.bodyWidth(font, b.cta()) + 14, ch = 13, cy = r.bottom() - pad - ch + 3;
-            Gfx.fillRound(g, r.x() + pad, cy, cw, ch, ch / 2f, Gfx.mix(t.accent, t.cyan, 0.3f));
+            Gfx.fillRound(g, r.x() + pad, cy, cw, ch, ch / 2f, 0xFF000000);
+            Gfx.strokeRound(g, r.x() + pad, cy, cw, ch, ch / 2f, 0.5f, 0xFFFFFFFF);
             CirrusUi.text(g, font, b.cta(), r.x() + pad + 7, cy + 2, 0xFFFFFFFF, false);
         }
         if (banners.size() > 1) {

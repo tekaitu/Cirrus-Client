@@ -1,6 +1,6 @@
 package dev.cirrus.client.dashboard;
 
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 
 /**

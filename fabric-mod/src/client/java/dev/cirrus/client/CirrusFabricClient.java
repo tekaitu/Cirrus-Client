@@ -10,13 +10,12 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import dev.cirrus.client.ui.CirrusButton;
 import net.minecraft.resources.Identifier;
-import dev.cirrus.client.mod.LocalStatusMod;
-import dev.cirrus.client.mod.ModRegistry;
-import dev.cirrus.client.config.CirrusConfig;
+import dev.cirrus.core.module.ModRegistry;
+import dev.cirrus.core.config.CirrusConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.asset.AssetManager;
 import dev.cirrus.client.asset.CirrusInitializationScreen;
@@ -24,17 +23,21 @@ import dev.cirrus.client.asset.CirrusInitializationScreen;
 public final class CirrusFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-        ModRegistry.register(new LocalStatusMod());
-        ModRegistry.register(new dev.cirrus.client.mod.FpsMod());
-        ModRegistry.register(new dev.cirrus.client.mod.PingMod());
+        final org.slf4j.Logger coreLog = org.slf4j.LoggerFactory.getLogger("Cirrus Client");
+        dev.cirrus.core.log.CoreLog.setSink((message, error) -> coreLog.warn(message, error));
+        ModRegistry.bind(dev.cirrus.client.mod.ClientModContext.INSTANCE);
+        ModRegistry.register(new dev.cirrus.core.hud.FpsMod());
+        ModRegistry.register(new dev.cirrus.core.hud.PingMod());
         ModRegistry.register(new dev.cirrus.client.mod.ArmorStatusMod());
-        ModRegistry.register(new dev.cirrus.client.mod.KeystrokesMod());
+        ModRegistry.register(new dev.cirrus.core.hud.KeystrokesMod());
+        dev.cirrus.core.module.PlannedCatalog.registerAll();
+        dev.cirrus.client.mod.ModKeys.registerAll();
         ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
         AssetManager assets = AssetManager.get(Minecraft.getInstance().gameDirectory.toPath());
         assets.initialize();
         CirrusKeyBindings.register();
-        for (String id : new String[] {"local_status", "fps", "ping", "armor_status", "keystrokes"})
-            dev.cirrus.client.mod.HudElementRegistry.register((dev.cirrus.client.mod.HudElement) ModRegistry.find(id).orElseThrow());
+        for (String id : new String[] {"fps", "ping", "armor_status", "keystrokes"})
+            dev.cirrus.core.hud.HudElementRegistry.register((dev.cirrus.core.hud.HudElement) ModRegistry.find(id).orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,
             Identifier.fromNamespaceAndPath("cirrus_fabric", "status"),
@@ -61,7 +64,7 @@ public final class CirrusFabricClient implements ClientModInitializer {
             int buttonWidth = Math.min(150,Math.max(112,screen.width/5));
             int x = Math.max(8, screen.width - buttonWidth - 8);
             int y = Math.max(8, screen.height - 30);
-            Component label = Component.literal("Cirrus  ·  Right Shift");
+            Component label = Component.literal("Maple  ·  Right Shift");
             Screens.getButtons(screen).add(CirrusButton.of(x,y,buttonWidth,22,label,button -> client.setScreen(new CirrusMenuScreen(screen))));
         });
     }

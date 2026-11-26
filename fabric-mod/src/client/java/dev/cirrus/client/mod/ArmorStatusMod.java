@@ -1,7 +1,12 @@
 package dev.cirrus.client.mod;
 
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.hud.HudMod;
+
+import dev.cirrus.core.render.Icons;
+import dev.cirrus.core.module.ModCategory;
+import dev.cirrus.core.settings.Setting;
+import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Gfx;
 import net.minecraft.client.Minecraft;
@@ -14,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Worn armor with remaining durability. The settings page and HUD editor show sample armor when you are not in a world. */
-public final class ArmorStatusMod extends HudMod {
+public final class ArmorStatusMod extends McHudMod {
     private static final EquipmentSlot[] SLOTS = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
     private static final int ROW = 20, CELL = 32;
     private static final List<Setting> OWN = List.of(
@@ -27,8 +32,8 @@ public final class ArmorStatusMod extends HudMod {
     public String id() { return "armor_status"; }
     public String name() { return "Armor Status"; }
     public String description() { return "Shows worn armor with its remaining durability."; }
-    public ModCategory category() { return ModCategory.PVP; }
-    @Override public int icon() { return dev.cirrus.client.ui.CirrusUi.ICON_PVP; }
+    public ModCategory category() { return ModCategory.HUD; }
+    @Override public int icon() { return dev.cirrus.core.render.Icons.SHIELD; }
     @Override protected List<Setting> featureSettings() { return OWN; }
     @Override public int defaultX() { return 8; }
     @Override public int defaultY(int screenHeight) { return 36; }
@@ -60,7 +65,7 @@ public final class ArmorStatusMod extends HudMod {
         return 6 + 16 + 2 + textH + (on(c, "bar") ? 6 : 0) + 4;
     }
 
-    @Override protected void draw(GuiGraphics g, int x, int y, float tick, CirrusConfig c) {
+    @Override protected void drawGui(GuiGraphics g, int x, int y, float tick, CirrusConfig c) {
         Minecraft mc = Minecraft.getInstance();
         CirrusTheme t = CirrusTheme.current(c);
         int w = baseWidth(c), h = baseHeight(c);

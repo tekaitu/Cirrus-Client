@@ -1,6 +1,6 @@
 # Cirrus Client roadmap and Phase Two preparation
 
-Phase Two (the in-game Fabric client) has started with an explicitly approved first slice. The initial companion module adds a Cirrus entry to the title and pause screens, a truthful minimal menu, and a local HUD status toggle/position setting. Account sync, cosmetics, full HUD layout editing, and launcher installation remain future work.
+Phase Two (the in-game Fabric client) has started with an explicitly approved first slice. The initial companion module adds a Cirrus entry to the title and pause screens, a truthful minimal menu, and HUD elements (FPS, ping, armor status, keystrokes) with per-feature settings. Account sync, cosmetics, full HUD layout editing, and launcher installation remain future work.
 
 ## Original Cirrus feature ideas (not built)
 | Idea | Feasibility | Priority |

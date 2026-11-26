@@ -1,16 +1,31 @@
 package dev.cirrus.client;
-import dev.cirrus.client.config.CirrusConfig;
-import dev.cirrus.client.mod.HudElement;
-import dev.cirrus.client.mod.HudElementRegistry;
-import dev.cirrus.client.mod.ModRegistry;
-import net.minecraft.client.Minecraft;
+
+import dev.cirrus.client.mod.ClientModContext;
+import dev.cirrus.client.render.McCanvas;
+import dev.cirrus.core.config.CirrusConfig;
+import dev.cirrus.core.hud.HudElement;
+import dev.cirrus.core.hud.HudElementRegistry;
+import dev.cirrus.core.perf.PerfMeter;
+import dev.cirrus.core.render.Canvas;
 import net.minecraft.client.gui.GuiGraphics;
+
+import java.util.List;
+
+/** Draws every widget that is on the HUD each frame. Allocation-free: registry snapshot, cached config, shared canvas. */
 final class CirrusHudSettings {
- private CirrusHudSettings() {}
- private static CirrusConfig config(){return CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath());}
- static boolean isEnabled(){return ModRegistry.find("local_status").map(m->m.enabled(config())).orElse(true);}
- static boolean isRightAligned(){return config().getString("hud.anchor.local_status","TOP_LEFT").equals("TOP_RIGHT");}
- static void toggleEnabled(){ModRegistry.find("local_status").ifPresent(m->m.setEnabled(config(),!m.enabled(config())));}
- static void toggleAlignment(){config().put("hud.anchor.local_status",isRightAligned()?"TOP_LEFT":"TOP_RIGHT");}
- static void render(GuiGraphics g){int w=Minecraft.getInstance().getWindow().getGuiScaledWidth(),h=Minecraft.getInstance().getWindow().getGuiScaledHeight();for(HudElement e:HudElementRegistry.all())if(e.enabled(config()))e.render(g,e.x(config(),w),e.y(config(),h),0,config());}
+    private CirrusHudSettings() {}
+
+    static void render(GuiGraphics g) {
+        ClientModContext ctx = ClientModContext.INSTANCE;
+        CirrusConfig cfg = ctx.config();
+        int w = ctx.screenWidth(), h = ctx.screenHeight();
+        Canvas canvas = McCanvas.of(g);
+        PerfMeter.HUD.begin();
+        List<HudElement> all = HudElementRegistry.all();
+        for (int i = 0; i < all.size(); i++) {
+            HudElement e = all.get(i);
+            if (e.enabled(cfg)) e.render(canvas, e.x(cfg, w), e.y(cfg, h), 0, ctx);
+        }
+        PerfMeter.HUD.end();
+    }
 }

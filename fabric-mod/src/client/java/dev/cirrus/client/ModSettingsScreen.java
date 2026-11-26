@@ -1,12 +1,15 @@
 package dev.cirrus.client;
 
-import dev.cirrus.client.mod.CirrusMod;
-import dev.cirrus.client.mod.HudElement;
-import dev.cirrus.client.mod.ModSettings;
-import dev.cirrus.client.mod.Setting;
+import dev.cirrus.client.render.McCanvas;
+
+import dev.cirrus.core.input.Keys;
+import dev.cirrus.core.module.CirrusMod;
+import dev.cirrus.core.hud.HudElement;
+import dev.cirrus.core.settings.ModSettings;
+import dev.cirrus.core.settings.Setting;
 import dev.cirrus.client.ui.CirrusButton;
 import dev.cirrus.client.ui.CirrusScreen;
-import dev.cirrus.client.ui.CirrusTheme;
+import dev.cirrus.core.theme.CirrusTheme;
 import dev.cirrus.client.ui.CirrusUi;
 import dev.cirrus.client.ui.Gfx;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,7 +17,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,9 +102,9 @@ public final class ModSettingsScreen extends CirrusScreen {
         CirrusUi.panel(g, px, py, pw, ph, 16, t);
         CirrusUi.headingText(g, font, mod.name().toUpperCase(java.util.Locale.ROOT), px + 18, py + 16, t.cyan);
         CirrusUi.smallText(g, font, CirrusUi.fitSmall(font, mod.description(), pw - 36), px + 18, py + 32, t.muted, false);
-        g.fill(px + 18, py + 46, px + pw - 18, py + 47, t.border);
+        McCanvas.of(g).fill(px + 18, py + 46, px + pw - 18, py + 47, t.border);
 
-        g.enableScissor(listX - 4, listTop, listRight + 4, viewBottom());
+        McCanvas.of(g).pushClip(listX - 4, listTop, (listRight + 4) - (listX - 4), (viewBottom()) - (listTop));
         for (int i = 0; i < rows.size(); i++) {
             Row r = rows.get(i);
             int y = rowTop(i);
@@ -113,7 +115,7 @@ public final class ModSettingsScreen extends CirrusScreen {
                 drawRow(g, r.setting(), y, i == selected, mx, my, t);
             }
         }
-        g.disableScissor();
+        McCanvas.of(g).popClip();
         if (maxScroll() > 0) CirrusUi.scrollbar(g, listRight + 6, listTop, viewBottom() - listTop, scroll / (float) maxScroll(), (viewBottom() - listTop) / (float) contentHeight(), t);
 
         Setting hintFor = hoveredSetting(mx, my);
@@ -156,23 +158,21 @@ public final class ModSettingsScreen extends CirrusScreen {
     }
 
     private void drawPreview(GuiGraphics g, CirrusTheme t) {
-        Gfx.fillRound(g, previewX, previewY, PREVIEW_W, previewH, 8, 0xFF0C1018);
-        g.enableScissor(previewX + 1, previewY + 1, previewX + PREVIEW_W - 1, previewY + previewH - 1);
+        Gfx.fillRound(g, previewX, previewY, PREVIEW_W, previewH, 8, 0xFF050505);
+        McCanvas.of(g).pushClip(previewX + 1, previewY + 1, (previewX + PREVIEW_W - 1) - (previewX + 1), (previewY + previewH - 1) - (previewY + 1));
         // A checker backdrop so a transparent or low-opacity background is visible as such.
         for (int cy = 0; cy < previewH; cy += 10) for (int cx = 0; cx < PREVIEW_W; cx += 10) {
-            if (((cx / 10) + (cy / 10)) % 2 == 0) g.fill(previewX + cx, previewY + cy, previewX + cx + 10, previewY + cy + 10, 0xFF141B27);
+            if (((cx / 10) + (cy / 10)) % 2 == 0) McCanvas.of(g).fill(previewX + cx, previewY + cy, previewX + cx + 10, previewY + cy + 10, 0xFF141414);
         }
         HudElement e = (HudElement) mod;
         // Shrink the preview (never the real element) when a large scale would not fit the card.
         float fit = Math.min(1f, Math.min((PREVIEW_W - 12f) / e.width(), (previewH - 12f) / e.height()));
         float cx = previewX + PREVIEW_W / 2f, cy = previewY + previewH / 2f;
-        var pose = g.pose();
-        pose.pushMatrix();
-        pose.translate(cx, cy);
-        pose.scale(fit, fit);
-        e.render(g, -e.width() / 2, -e.height() / 2, 0, config());
-        pose.popMatrix();
-        g.disableScissor();
+        dev.cirrus.core.render.Canvas canvas = dev.cirrus.client.render.McCanvas.of(g);
+        canvas.pushTransform(cx, cy, fit);
+        e.render(canvas, -e.width() / 2, -e.height() / 2, 0, dev.cirrus.client.mod.ClientModContext.INSTANCE);
+        canvas.popTransform();
+        McCanvas.of(g).popClip();
         Gfx.strokeRound(g, previewX, previewY, PREVIEW_W, previewH, 8, 0.5f, t.border);
         CirrusUi.centeredSmall(g, font, "Preview", previewX + PREVIEW_W / 2, previewY + previewH + 4, t.muted);
     }
@@ -187,8 +187,8 @@ public final class ModSettingsScreen extends CirrusScreen {
 
     private Setting hoveredSetting(int mx, int my) { int i = rowAt(mx, my); return i < 0 ? null : rows.get(i).setting(); }
 
-    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (super.mouseClicked(event, doubleClick)) return true;
+    @Override protected boolean onMouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (super.onMouseClicked(event, doubleClick)) return true;
         int i = rowAt(event.x(), event.y());
         if (i < 0 || rows.get(i).setting() == null) return false;
         Setting s = rows.get(i).setting();
@@ -208,29 +208,29 @@ public final class ModSettingsScreen extends CirrusScreen {
         set(s, s.fromFraction((mouseX - x) / track));
     }
 
-    @Override public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+    @Override protected boolean onMouseDragged(MouseButtonEvent event, double dx, double dy) {
         if (dragging != null) { slideTo(dragging, event.x()); return true; }
-        return super.mouseDragged(event, dx, dy);
+        return super.onMouseDragged(event, dx, dy);
     }
 
-    @Override public boolean mouseReleased(MouseButtonEvent event) { dragging = null; return super.mouseReleased(event); }
+    @Override protected boolean onMouseReleased(MouseButtonEvent event) { dragging = null; return super.onMouseReleased(event); }
 
-    @Override public boolean mouseScrolled(double x, double y, double h, double v) {
+    @Override protected boolean onMouseScrolled(double x, double y, double h, double v) {
         if (x < listRight + 8) { scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) (v * ROW_H))); return true; }
-        return super.mouseScrolled(x, y, h, v);
+        return super.onMouseScrolled(x, y, h, v);
     }
 
-    @Override public boolean keyPressed(KeyEvent event) {
+    @Override protected boolean onKeyPressed(KeyEvent event) {
         int key = event.key();
-        if (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN) { moveSelection(key == GLFW.GLFW_KEY_UP ? -1 : 1); return true; }
+        if (key == Keys.UP || key == Keys.DOWN) { moveSelection(key == Keys.UP ? -1 : 1); return true; }
         if (selected >= 0 && rows.get(selected).setting() != null) {
             Setting s = rows.get(selected).setting();
-            if (active(s) && (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_SPACE)) {
-                set(s, s.step(value(s), key == GLFW.GLFW_KEY_LEFT ? -1 : 1));
+            if (active(s) && (key == Keys.LEFT || key == Keys.RIGHT || key == Keys.ENTER || key == Keys.SPACE)) {
+                set(s, s.step(value(s), key == Keys.LEFT ? -1 : 1));
                 return true;
             }
         }
-        return super.keyPressed(event);
+        return super.onKeyPressed(event);
     }
 
     private void moveSelection(int dir) {

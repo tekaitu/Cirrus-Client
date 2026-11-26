@@ -1,7 +1,12 @@
 package dev.cirrus.client;
 
-import dev.cirrus.client.mod.HudElement;
-import dev.cirrus.client.mod.HudElementRegistry;
+import dev.cirrus.core.theme.CirrusTheme;
+import dev.cirrus.core.hud.HudElement;
+import dev.cirrus.client.mod.ClientModContext;
+import dev.cirrus.client.render.McCanvas;
+import dev.cirrus.core.hud.HudDrag;
+import dev.cirrus.core.hud.HudElementRegistry;
+import dev.cirrus.core.hud.HudLayout;
 import dev.cirrus.client.ui.*;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -11,11 +16,11 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Every registered HUD element can be selected, toggled and dragged on a live preview of the screen. */
+/** Every registered HUD widget can be selected and dragged on a live preview of the screen; widgets can be removed from the HUD and added back from the list. */
 public final class HudEditorScreen extends CirrusScreen {
     private String selected = "";
-    private boolean dragging;
-    private int dragDx, dragDy, railW, railX;
+    private final HudDrag drag = new HudDrag();
+    private int railW, railX;
     private final List<int[]> rows = new ArrayList<>();
     private final List<net.minecraft.client.gui.components.AbstractWidget[]> rowWidgets = new ArrayList<>();
     private int listTop, listBottom, scroll;
@@ -24,23 +29,26 @@ public final class HudEditorScreen extends CirrusScreen {
     public HudEditorScreen(Screen parent) { this(parent, ""); }
 
     public HudEditorScreen(Screen parent, String selectedId) {
-        super(Component.literal("Cirrus HUD Editor"), parent);
+        super(Component.literal("Maple HUD Editor"), parent);
         this.selected = selectedId;
     }
 
     @Override protected void init() {
         rows.clear();
         rowWidgets.clear();
-        railW = Math.max(compact() ? 110 : 130, Math.min(176, width / 3));
+        railW = Math.max(compact() ? 140 : 160, Math.min(200, width / 3));
         railX = width - 14 - railW;
         var cfg = config();
-        int w = railW - 16, toggleW = 40;
+        int w = railW - 16, toggleW = 60;
         listTop = 14 + 50;
         listBottom = height - 14 - 8 - 22 - 6;
         for (HudElement e : HudElementRegistry.all()) {
             int nameW = w - toggleW - 4;
             var name = CirrusButton.nav(railX + 8, listTop, nameW, 22, Component.literal(e.label()), CirrusUi.ICON_HUD, b -> selected = e.id());
-            var toggle = CirrusButton.of(railX + 8 + nameW + 4, listTop, toggleW, 22, Component.literal(e.enabled(cfg) ? "ON" : "OFF"), b -> { e.setEnabled(cfg, !e.enabled(cfg)); b.setMessage(Component.literal(e.enabled(cfg) ? "ON" : "OFF")); });
+            var toggle = CirrusButton.of(railX + 8 + nameW + 4, listTop, toggleW, 22, Component.literal(HudLayout.isActive(e, cfg) ? "Remove" : "Add"), b -> {
+                if (HudLayout.isActive(e, cfg)) HudLayout.remove(e, cfg); else HudLayout.restore(e, cfg);
+                b.setMessage(Component.literal(HudLayout.isActive(e, cfg) ? "Remove" : "Add"));
+            });
             addRenderableWidget(name);
             addRenderableWidget(toggle);
             rowWidgets.add(new net.minecraft.client.gui.components.AbstractWidget[] {name, toggle});
@@ -62,9 +70,9 @@ public final class HudEditorScreen extends CirrusScreen {
         }
     }
 
-    @Override public boolean mouseScrolled(double x, double y, double h, double v) {
+    @Override protected boolean onMouseScrolled(double x, double y, double h, double v) {
         if (x >= railX) { scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) (v * ROW_H))); layoutRows(); return true; }
-        return super.mouseScrolled(x, y, h, v);
+        return super.onMouseScrolled(x, y, h, v);
     }
 
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {
@@ -77,50 +85,49 @@ public final class HudEditorScreen extends CirrusScreen {
             i++;
         }
         var cfg = config();
+        var canvas = McCanvas.of(g);
         int sw = minecraft.getWindow().getGuiScaledWidth(), sh = minecraft.getWindow().getGuiScaledHeight();
         for (HudElement e : HudElementRegistry.all()) {
             if (!e.enabled(cfg)) continue;
             int x = e.x(cfg, sw), y = e.y(cfg, sh);
-            e.render(g, x, y, 0, cfg);
+            e.render(canvas, x, y, 0, ClientModContext.INSTANCE);
             Gfx.strokeRound(g, x - 3, y - 3, e.width() + 6, e.height() + 6, 6, e.id().equals(selected) ? 1f : 0.5f, e.id().equals(selected) ? t.cyan : t.border);
         }
         boolean any = false;
         for (HudElement e : HudElementRegistry.all()) any |= e.enabled(cfg);
-        if (!any) CirrusUi.centeredSmall(g, font, "Switch an element ON in the list to place it here.", (railX - 8) / 2, height / 2 - 4, t.muted);
+        if (!any) CirrusUi.centeredSmall(g, font, "Every widget is removed. Add one from the list to place it here.", (railX - 8) / 2, height / 2 - 4, t.muted);
         String hint = selected.isEmpty() ? "Click an element to select it, then drag it into place." : "Drag to move. Click the canvas to place the selected element.";
         int avail = railX - 24;
         CirrusUi.centeredSmall(g, font, CirrusUi.fitSmall(font, hint, avail), (railX - 8) / 2, height - 18, t.muted);
     }
 
-    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (super.mouseClicked(event, doubleClick)) return true;
+    @Override protected boolean onMouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (super.onMouseClicked(event, doubleClick)) return true;
         if (event.button() != 0) return false;
         var cfg = config();
         int sw = minecraft.getWindow().getGuiScaledWidth(), sh = minecraft.getWindow().getGuiScaledHeight();
-        for (HudElement e : HudElementRegistry.all()) {
-            if (!e.enabled(cfg)) continue;
-            int x = e.x(cfg, sw), y = e.y(cfg, sh);
-            if (event.x() >= x - 3 && event.x() <= x + e.width() + 3 && event.y() >= y - 3 && event.y() <= y + e.height() + 3) {
-                selected = e.id(); dragging = true; dragDx = (int) event.x() - x; dragDy = (int) event.y() - y; return true;
-            }
+        HudElement hit = HudLayout.hit(HudElementRegistry.all(), cfg, sw, sh, event.x(), event.y(), 3);
+        if (hit != null) {
+            selected = hit.id();
+            drag.begin(hit, cfg, sw, sh, event.x(), event.y());
+            return true;
         }
         if (!selected.isEmpty() && event.x() < railX - 10) {
             var chosen = HudElementRegistry.find(selected);
-            if (chosen.isPresent()) {
-                HudElement e = chosen.get();
-                dragging = true; dragDx = e.width() / 2; dragDy = e.height() / 2;
-                e.setPosition(cfg, (int) event.x() - dragDx, (int) event.y() - dragDy, sw, sh);
+            if (chosen.isPresent() && chosen.get().enabled(cfg)) {
+                drag.beginCentered(chosen.get());
+                drag.update(cfg, sw, sh, event.x(), event.y());
                 return true;
             }
         }
         return false;
     }
 
-    @Override public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (!dragging) return super.mouseDragged(event, dx, dy);
-        HudElementRegistry.find(selected).ifPresent(e -> e.setPosition(config(), (int) event.x() - dragDx, (int) event.y() - dragDy, minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight()));
+    @Override protected boolean onMouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (!drag.active()) return super.onMouseDragged(event, dx, dy);
+        drag.update(config(), minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight(), event.x(), event.y());
         return true;
     }
 
-    @Override public boolean mouseReleased(MouseButtonEvent event) { dragging = false; return super.mouseReleased(event); }
+    @Override protected boolean onMouseReleased(MouseButtonEvent event) { drag.end(); return super.onMouseReleased(event); }
 }
