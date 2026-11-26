@@ -272,7 +272,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
             check("FPS format defaults to parentheses with no label", dev.cirrus.core.settings.ModSettings.get(cfg, "fps", ((dev.cirrus.core.module.CirrusMod) fps).settings(), "format").equals("Parentheses"));
             for (var e : dev.cirrus.core.hud.HudElementRegistry.all()) dev.cirrus.core.hud.HudLayout.restore(e, cfg);
-            fps.setPosition(cfg, 100, 60, ctx.screenWidth(), ctx.screenHeight());
+            fps.setPosition(cfg, 520, 200, ctx.screenWidth(), ctx.screenHeight());
         });
         boolean hiddenBefore = hideGui(context);
         context.setScreen(screens.get("hud-editor-fps"));
@@ -285,8 +285,8 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> {
             var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
             var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
-            check("arrow keys nudge the selected widget by one unit", fps.x(ctx.config(), ctx.screenWidth()) == 101 && fps.y(ctx.config(), ctx.screenHeight()) == 61);
-            fps.setPosition(ctx.config(), 100, 60, ctx.screenWidth(), ctx.screenHeight());
+            check("arrow keys nudge the selected widget by one unit", fps.x(ctx.config(), ctx.screenWidth()) == 521 && fps.y(ctx.config(), ctx.screenHeight()) == 201);
+            fps.setPosition(ctx.config(), 520, 200, ctx.screenWidth(), ctx.screenHeight());
         });
 
         // Right-click -> compact menu.
@@ -339,7 +339,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
             var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
             check("the list restores a removed widget where it was", dev.cirrus.core.hud.HudLayout.isActive(fps, ctx.config())
-                && fps.x(ctx.config(), ctx.screenWidth()) == 100 && fps.y(ctx.config(), ctx.screenHeight()) == 60);
+                && fps.x(ctx.config(), ctx.screenWidth()) == 520 && fps.y(ctx.config(), ctx.screenHeight()) == 200);
         });
         context.getInput().pressKey(Keys.ESCAPE);
         context.waitTicks(2);
@@ -386,7 +386,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> {
             var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
             var fps = dev.cirrus.core.hud.HudElementRegistry.find("fps").orElseThrow();
-            check("left-drag moves the widget and keeps the new position", fps.x(ctx.config(), ctx.screenWidth()) >= 170 && fps.y(ctx.config(), ctx.screenHeight()) >= 100);
+            check("left-drag moves the widget and keeps the new position", fps.x(ctx.config(), ctx.screenWidth()) >= 590 && fps.y(ctx.config(), ctx.screenHeight()) >= 240);
         });
 
         // Mods opens the Click GUI; Esc comes back to the very same editor with its state.

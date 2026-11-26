@@ -222,7 +222,7 @@ public final class HudEditorScreen extends CirrusScreen {
             any = true;
             int x = e.x(cfg, width), y = e.y(cfg, height), w = e.width(), h = e.height();
             boolean sel = e.id().equals(selected);
-            if (sel || e == hover) Gfx.fillRound(g, x - 3, y - 3, w + 6, h + 6, 6, sel ? Gfx.withAlpha(t.accent, 0x40) : 0x26FFFFFF);
+            if (sel || e == hover) Gfx.fillRound(g, x - 3, y - 3, w + 6, h + 6, 6, sel ? Gfx.withAlpha(t.accent, 0x30) : 0x22FFFFFF);
             e.render(canvas, x, y, 0, ClientModContext.INSTANCE);
             if (!e.enabled(cfg)) {
                 Gfx.fillRound(g, x, y, w, h, 5, 0x80000000);
