@@ -156,6 +156,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         dumpSignatures(context);
         verifyArchitecture(context);
         verifyHudEditor(context, screens);
+        verifyMapleGlyph(context);
         measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
@@ -214,7 +215,8 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
                 "net.minecraft.client.renderer.entity.player.AvatarRenderer", "net.minecraft.client.renderer.entity.player.PlayerRenderer",
                 "net.minecraft.client.renderer.entity.LivingEntityRenderer", "net.minecraft.client.renderer.entity.state.EntityRenderState",
                 "net.minecraft.client.renderer.entity.state.AvatarRenderState", "net.minecraft.client.renderer.entity.state.PlayerRenderState",
-                "net.minecraft.client.multiplayer.PlayerInfo"};
+                "net.minecraft.client.multiplayer.PlayerInfo", "com.mojang.authlib.GameProfile", "net.minecraft.client.player.RemotePlayer",
+                "net.minecraft.client.multiplayer.ClientLevel"};
             for (String n : names) {
                 try {
                     Class<?> c = Class.forName(n);
@@ -223,7 +225,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
                     for (var ctor : c.getDeclaredConstructors()) System.out.println("[maple-dump]   ctor " + java.util.Arrays.toString(ctor.getParameterTypes()));
                     for (var me : c.getDeclaredMethods()) {
                         String name = me.getName().toLowerCase(java.util.Locale.ROOT);
-                        if (name.contains("name") || name.contains("display") || name.contains("extract") || name.contains("tag") || name.contains("render") && n.endsWith("TabOverlay"))
+                        if (name.contains("name") || name.equals("id") || name.contains("profile") || name.contains("addentity") || name.contains("addplayer") || name.contains("display") || name.contains("extract") || name.contains("tag") || name.contains("render") && n.endsWith("TabOverlay"))
                             System.out.println("[maple-dump]   method " + me.getReturnType().getName() + " " + me.getName() + java.util.Arrays.toString(me.getParameterTypes()));
                     }
                 } catch (Throwable t) { System.out.println("[maple-dump] missing " + n + " (" + t.getClass().getSimpleName() + ")"); }
@@ -409,6 +411,114 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         context.setScreen(screens.get("hud-editor"));
         context.waitTicks(10);
         context.takeScreenshot("hud-editor-1280x720-gui2");
+    }
+
+    private static final java.util.UUID VERIFIED_ID = java.util.UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+    private static final java.util.UUID PLAIN_ID = java.util.UUID.fromString("8667ba71-b85a-4004-af54-457a9734eed7");
+
+    /** A plain screen that draws name components the way the tab list does, to photograph the real hooked output. */
+    private static final class NameRows extends Screen {
+        private final java.util.List<net.minecraft.network.chat.Component> rows;
+        NameRows(java.util.List<net.minecraft.network.chat.Component> rows) { super(net.minecraft.network.chat.Component.literal("names")); this.rows = rows; }
+        @Override public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float delta) {
+            g.fill(0, 0, width, height, 0xFF3B7A3B);
+            int w = 140, x = (width - w) / 2, y = height / 2 - rows.size() * 5 - 4;
+            g.fill(x - 4, y - 4, x + w + 4, y + rows.size() * 10 + 2, 0x80000000);
+            for (int i = 0; i < rows.size(); i++) g.drawString(font, rows.get(i), x, y + i * 10, 0xFFFFFFFF);
+        }
+    }
+
+    /**
+     * Maple glyph checks on the real game. The verified-identity source is a test double installed only here: this client has no real
+     * source yet, so with nothing installed nobody is verified (also checked). Tab list: the real PlayerTabOverlay#getNameForDisplay runs
+     * through the mixin for crafted PlayerInfo entries. Name tag: the real EntityRenderer#getNameTag runs for real remote players in a world.
+     */
+    private static void verifyMapleGlyph(ClientGameTestContext context) {
+        String glyph = dev.cirrus.client.glyph.MapleGlyph.CHARACTER;
+        context.runOnClient(mc -> {
+            dev.cirrus.core.identity.MapleIdentity.setProvider(null);
+            var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
+            var verified = new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(VERIFIED_ID, "Maple_Verified"), false);
+            check("no glyph while nobody is verified", !tab.getNameForDisplay(verified).getString().contains(glyph));
+        });
+        context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(id -> id.equals(VERIFIED_ID) || id.version() == 3));
+        context.setScreen(() -> {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            var tab = new net.minecraft.client.gui.components.PlayerTabOverlay(mc, mc.gui);
+            var rows = new java.util.ArrayList<net.minecraft.network.chat.Component>();
+            var verified = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(VERIFIED_ID, "Maple_Verified"), false));
+            var plain = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(new com.mojang.authlib.GameProfile(PLAIN_ID, "Plain_Player"), false));
+            var offline = tab.getNameForDisplay(new net.minecraft.client.multiplayer.PlayerInfo(
+                new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Cracked_Player".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "Cracked_Player"), false));
+            check("a verified player's tab name carries the glyph", verified.getString().contains(glyph) && verified.getString().endsWith("Maple_Verified"));
+            check("an unverified player's tab name is untouched", plain.getString().equals("Plain_Player"));
+            check("an offline-mode player never gets the glyph, even if the source says yes", offline.getString().equals("Cracked_Player"));
+            rows.add(verified); rows.add(plain); rows.add(offline);
+            return new NameRows(rows);
+        });
+        context.waitTicks(10);
+        context.takeScreenshot("tab-names-glyph-1280x720-gui2");
+
+        try (var world = context.worldBuilder().create()) {
+            context.waitTicks(60);
+            context.takeScreenshot("world-hud-1280x720-gui2");
+            context.setScreen(() -> new HudEditorScreen(null, "fps"));
+            context.waitTicks(10);
+            context.takeScreenshot("world-hud-editor-1280x720-gui2");
+            clickGui(context, onEditor(context, e -> e.widgetCentre("fps")), 1);
+            context.waitTicks(3);
+            context.takeScreenshot("world-hud-editor-menu-1280x720-gui2");
+            context.getInput().pressKey(Keys.ESCAPE);
+            context.getInput().pressKey(Keys.ESCAPE);
+            context.setScreen(() -> null);
+            context.waitTicks(5);
+            context.runOnClient(mc -> {
+                spawnRemote(mc, VERIFIED_ID, "Maple_Verified", -0.9);
+                spawnRemote(mc, PLAIN_ID, "Plain_Player", 0.9);
+            });
+            context.waitTicks(20);
+            context.runOnClient(mc -> {
+                for (var p : mc.level.players()) {
+                    if (p == mc.player) continue;
+                    String tag = nameTagOf(mc, p);
+                    System.out.println("[maple-nametag] " + p.getName().getString() + " -> '" + tag + "'");
+                    if (p.getUUID().equals(VERIFIED_ID)) check("a verified player's name tag carries the glyph", tag.contains(glyph));
+                    else check("an unverified player's name tag is untouched", !tag.contains(glyph));
+                }
+            });
+            context.takeScreenshot("world-nametags-1280x720-gui2");
+        }
+        context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(null));
+    }
+
+    private static void spawnRemote(net.minecraft.client.Minecraft mc, java.util.UUID id, String name, double side) {
+        try {
+            var profile = new com.mojang.authlib.GameProfile(id, name);
+            Class<?> type = Class.forName("net.minecraft.client.player.RemotePlayer");
+            var remote = (net.minecraft.world.entity.Entity) type.getConstructor(net.minecraft.client.multiplayer.ClientLevel.class, com.mojang.authlib.GameProfile.class).newInstance(mc.level, profile);
+            var look = mc.player.getLookAngle();
+            var forward = new net.minecraft.world.phys.Vec3(look.x, 0, look.z).normalize();
+            var right = new net.minecraft.world.phys.Vec3(-forward.z, 0, forward.x);
+            var pos = mc.player.position().add(forward.scale(4)).add(right.scale(side * 1.5));
+            remote.setPos(pos.x, pos.y, pos.z);
+            boolean added = false;
+            for (var m : mc.level.getClass().getMethods()) {
+                var p = m.getParameterTypes();
+                if (!m.getName().equals("addEntity") && !m.getName().equals("addPlayer")) continue;
+                if (p.length == 1 && p[0].isAssignableFrom(remote.getClass())) { m.invoke(mc.level, remote); added = true; break; }
+                if (p.length == 2 && p[0] == int.class && p[1].isAssignableFrom(remote.getClass())) { m.invoke(mc.level, 9000 + (int) (side * 10), remote); added = true; break; }
+            }
+            check("a remote player could be added to the test world", added);
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
+    }
+
+    private static String nameTagOf(net.minecraft.client.Minecraft mc, net.minecraft.world.entity.Entity entity) {
+        try {
+            var renderer = mc.getEntityRenderDispatcher().getRenderer(entity);
+            var method = net.minecraft.client.renderer.entity.EntityRenderer.class.getDeclaredMethod("getNameTag", net.minecraft.world.entity.Entity.class);
+            method.setAccessible(true);
+            return ((net.minecraft.network.chat.Component) method.invoke(renderer, entity)).getString();
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
     }
 
     /**

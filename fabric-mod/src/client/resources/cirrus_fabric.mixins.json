@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "dev.cirrus.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "PlayerTabOverlayMixin",
+    "EntityRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
