@@ -497,13 +497,8 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             mc.options.simulationDistance().set(5);
             mc.options.framerateLimit().set(20);
         });
-        net.fabricmc.fabric.api.client.gametest.v1.world.TestSingleplayerContext world;
-        try {
-            world = context.worldBuilder().create();
-        } catch (AssertionError e) {
-            System.out.println("[maple-world] SKIPPED: the test world did not load in time on this runner (" + e.getMessage() + "); tab list and name tag hooks were not exercised in a world");
-            return;
-        }
+        var world = createWorldOrNull(() -> context.worldBuilder().create());
+        if (world == null) return;
         try (world) {
             context.waitTicks(60);
             context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(id -> id.equals(VERIFIED_ID) || id.version() == 3));
@@ -551,6 +546,15 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("world-nametags-1280x720-gui2");
         }
         context.runOnClient(mc -> dev.cirrus.core.identity.MapleIdentity.setProvider(null));
+    }
+
+    private static <T> T createWorldOrNull(java.util.function.Supplier<T> create) {
+        try {
+            return create.get();
+        } catch (AssertionError e) {
+            System.out.println("[maple-world] SKIPPED: the test world did not load in time on this runner (" + e.getMessage() + "); tab list and name tag hooks were not exercised in a world");
+            return null;
+        }
     }
 
     /** True when a mixin handler named maple$prefixVerified has been merged into the class (Mixin renames merged handlers). */
