@@ -154,6 +154,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot(shot + "-with-profiles-1280x720-gui2");
         }
         dumpSignatures(context);
+        dumpPvpSignatures(context);
         verifyArchitecture(context);
         verifyHudEditor(context, screens);
         verifyAppearance(context);
@@ -161,6 +162,43 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
         context.waitTicks(10);
+    }
+
+    /** Prints the method signatures of the vanilla classes the PvP modules hook, so mixin targets are taken from the real 1.21.11 jar. */
+    private static void dumpPvpSignatures(ClientGameTestContext context) {
+        context.runOnClient(mc -> {
+            String[] names = {"net.minecraft.client.renderer.GameRenderer", "net.minecraft.client.renderer.ScreenEffectRenderer", "net.minecraft.client.KeyMapping",
+                "net.minecraft.client.Options", "net.minecraft.client.renderer.entity.EntityRenderDispatcher", "net.minecraft.client.gui.Gui",
+                "net.minecraft.client.Camera", "net.minecraft.world.effect.MobEffectInstance", "net.minecraft.client.player.LocalPlayer",
+                "net.minecraft.client.renderer.debug.DebugRenderer", "net.minecraft.client.gui.components.debug.DebugScreenEntries",
+                "net.minecraft.client.gui.components.debug.DebugScreenEntryList", "net.minecraft.client.Minecraft"};
+            java.util.Set<String> keep = new java.util.HashSet<>(java.util.Arrays.asList("GameRenderer", "ScreenEffectRenderer", "KeyMapping", "Options", "EntityRenderDispatcher", "Gui",
+                "Camera", "MobEffectInstance", "LocalPlayer", "DebugRenderer", "DebugScreenEntries", "DebugScreenEntryList", "Minecraft"));
+            for (String n : names) {
+                try {
+                    Class<?> c = Class.forName(n);
+                    System.out.println("[maple-pvp] class " + n);
+                    for (var f : c.getDeclaredFields()) {
+                        String fn = f.getName().toLowerCase(java.util.Locale.ROOT);
+                        if (fn.contains("hitbox") || fn.contains("raw") || fn.contains("gamma") || fn.contains("particle") || fn.contains("fov") || fn.contains("sprint") || fn.contains("shift") || fn.contains("sneak") || fn.contains("crosshair") || fn.contains("debug"))
+                            System.out.println("[maple-pvp]   field " + f.getType().getName() + " " + f.getName());
+                    }
+                    for (var me : c.getDeclaredMethods()) {
+                        if (me.isSynthetic()) continue;
+                        String mn = me.getName().toLowerCase(java.util.Locale.ROOT);
+                        boolean all = !n.endsWith("Minecraft") && !n.endsWith("Options") && !n.endsWith("LocalPlayer");
+                        if (all || mn.contains("hitbox") || mn.contains("sprint") || mn.contains("shift") || mn.contains("sneak") || mn.contains("raw") || mn.contains("particle") || mn.contains("fov") || mn.contains("effect") || mn.contains("debug"))
+                            System.out.println("[maple-pvp]   method " + java.lang.reflect.Modifier.toString(me.getModifiers()) + " " + me.getReturnType().getName() + " " + me.getName() + java.util.Arrays.toString(me.getParameterTypes()));
+                    }
+                } catch (Throwable t) { System.out.println("[maple-pvp] missing " + n + " (" + t.getClass().getSimpleName() + ")"); }
+            }
+            try {
+                var src = net.minecraft.client.Minecraft.class.getProtectionDomain().getCodeSource().getLocation();
+                try (var zip = new java.util.zip.ZipFile(new java.io.File(src.toURI()))) {
+                    zip.stream().map(e -> e.getName()).filter(e -> e.toLowerCase(java.util.Locale.ROOT).contains("hitbox") && e.endsWith(".class")).forEach(e -> System.out.println("[maple-pvp] jar class " + e));
+                }
+            } catch (Throwable t) { System.out.println("[maple-pvp] jar scan failed " + t); }
+        });
     }
 
     /** Phase 2 integration checks on the real 1.21.11 game: Core input events, ModContext and the Core HUD model. */
