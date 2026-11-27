@@ -22,7 +22,10 @@ public final class MapleGlyph {
 
     /** The glyph followed by a thin gap. White text colour so the leaf keeps its own orange whatever colour the name has. */
     public static Component prefix() {
-        return Component.literal(CHARACTER).withStyle(Style.EMPTY.withFont(FONT).withColor(0xFFFFFF)).append(Component.literal(" "));
+        // Siblings under an unstyled parent: a child appended to the glyph would inherit its font, which has no space character (drawn as a box).
+        return Component.empty()
+                .append(Component.literal(CHARACTER).withStyle(Style.EMPTY.withFont(FONT).withColor(0xFFFFFF)))
+                .append(Component.literal(" "));
     }
 
     /** {@code name} with the glyph in front when {@code playerId} is a verified Maple player; {@code name} itself otherwise. */
