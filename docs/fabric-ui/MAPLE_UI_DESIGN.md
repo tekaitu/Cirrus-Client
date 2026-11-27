@@ -30,6 +30,19 @@ Both keep position and options, travel with profiles and share codes, and old co
   background on/off, background colour, background opacity, scale, format, plus Reset options / Reset position.
 * Esc closes the open popup first, then clears the selection, then leaves the editor. Delete removes the selected widget.
 
+## Appearance page (`ui/AppearancePage`, Core `theme/Appearance`)
+
+The Click GUI sidebar has an **Appearance** page. Its settings (theme, accent colour, text colour, font, menu opacity, dim, blur menus,
+blur HUD editor, ...) are stored with the normal mod settings and read through `Appearance.build(...)`, so changing one restyles the menus,
+widgets lists and editor immediately (`Look.refresh`). A small preview and "Reset appearance" sit above/below the list. These are our own
+settings; no other client's theme names or branding are used. Not implemented: pixel style, icon packs, screen transitions, UI sounds.
+
+## Backgrounds
+
+* Out of a world, every Maple screen (title, Click GUI, HUD editor) draws the **vanilla panorama**; there is no dark overlay on the title screen.
+* In a world, the Click GUI uses the theme backdrop; the HUD editor blurs the game behind it (`Screen.renderBlurredBackground`) plus a faint
+  tint. Blur follows the player's vanilla **Menu Background Blurriness** option, so it does nothing if that is 0. "All menus" blur is off by default.
+
 ## Transparency is per surface
 
 HUD widget background opacity is a per-widget setting (`mod.<id>.opacity`). Menu surfaces use fixed theme tokens and never read it.
