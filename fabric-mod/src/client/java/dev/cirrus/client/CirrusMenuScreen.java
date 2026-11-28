@@ -104,7 +104,9 @@ public final class CirrusMenuScreen extends CirrusScreen {
         layout = l;
         var s = l.search;
         search.setX(s.x() + 20);
-        search.setY(s.y() + (s.h() - 12) / 2);
+        // An unbordered EditBox draws its text from its top edge, so the box is as tall as the text and centred in the field.
+        search.setHeight(9);
+        search.setY(s.y() + (s.h() - 9) / 2);
         search.setWidth(Math.max(10, s.w() - 20 - 16));
         if (pane != null) layoutPane();
         profiles.layout(font, l.content.x(), l.content.y(), l.content.w(), l.content.h());

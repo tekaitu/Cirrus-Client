@@ -54,6 +54,8 @@ final class TestContext implements ModContext {
     /** Records what a widget draws. */
     static final class Rec implements Canvas {
         final List<String> texts = new ArrayList<String>();
+        /** Everything drawn as text, joined: a widget may draw one line in several coloured pieces. */
+        String line() { StringBuilder b = new StringBuilder(); for (String t : texts) b.append(t); return b.toString(); }
         final List<Integer> textColors = new ArrayList<Integer>();
         final List<String> transforms = new ArrayList<String>();
         int fills, masks, depth;

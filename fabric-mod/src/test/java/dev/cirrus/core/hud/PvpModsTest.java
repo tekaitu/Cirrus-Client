@@ -118,6 +118,22 @@ class PvpModsTest {
         assertEquals(3, m.shown(ctx).size(), "sample effects in menus");
     }
 
+    @Test void pingColoursTheNumberByLatencyAndFpsNamesItselfInTheAccentColour() {
+        assertEquals(0xFF5BE37D, PingMod.latencyColor(20));
+        assertEquals(0xFFFFE45C, PingMod.latencyColor(80));
+        assertEquals(0xFFFF9A3C, PingMod.latencyColor(150));
+        assertEquals(0xFFFF5C5C, PingMod.latencyColor(400));
+        assertEquals(0, PingMod.latencyColor(-1));
+        FpsMod fps = new FpsMod();
+        ModRegistry.register(fps);
+        TestContext.Rec rec = new TestContext.Rec();
+        ctx.fps = 144;
+        fps.render(rec, 0, 0, 0, ctx);
+        assertEquals("[FPS 144]", rec.line());
+        assertEquals(dev.cirrus.core.theme.CirrusTheme.current(ctx.config()).accent, (int) rec.textColors.get(rec.texts.indexOf("FPS")), "the name uses the accent colour");
+        assertEquals(0xFFFFFFFF, (int) rec.textColors.get(rec.texts.indexOf("144")), "the number is white");
+    }
+
     @Test void draggableHudModsAreRealHudElements() {
         for (HudMod m : new HudMod[] {new CpsMod(), new CoordinatesMod(), new PotionEffectsMod()}) {
             ModRegistry.register(m);

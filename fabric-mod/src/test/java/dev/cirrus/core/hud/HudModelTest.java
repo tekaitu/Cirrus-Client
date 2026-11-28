@@ -176,9 +176,9 @@ class HudModelTest {
         ctx.fps = 87;
         TestContext.Rec canvas = new TestContext.Rec();
         fps.render(canvas, 10, 10, 0, ctx);
-        assertEquals(Arrays.asList("(87)"), canvas.texts, "the default format has no forced label");
+        assertEquals("[FPS 87]", canvas.line(), "the default format is the Maple style");
         assertEquals(0, canvas.fills + canvas.masks, "plain text by default: no background drawn");
-        assertEquals(("(000)".length() * 5) + 10, fps.width());
+        assertEquals(("[FPS 000]".length() * 5) + 10, fps.width());
         assertEquals(16, fps.height());
     }
 
@@ -201,7 +201,7 @@ class HudModelTest {
         ping.render(canvas, 0, 0, 0, ctx);
         ctx.ping = 57;
         ping.render(canvas, 0, 0, 0, ctx);
-        assertEquals(Arrays.asList("(42)", "(--)", "(57)"), canvas.texts);
+        assertEquals("[Ping 42 ms][Ping -- ms][Ping 57 ms]", canvas.line());
     }
 
     @Test void scaleIsAppliedAsABalancedTransformAndChangesTheSize() {
