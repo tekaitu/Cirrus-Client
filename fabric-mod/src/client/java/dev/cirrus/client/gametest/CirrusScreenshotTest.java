@@ -554,6 +554,24 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             check("the font choice reaches the menus", dev.cirrus.client.ui.Look.MINECRAFT_FONT);
         });
         context.takeScreenshot("appearance-midnight-ocean-1280x720-gui2");
+        // Glass: translucent panels with a sheen and a rim; blur is the game's own and follows the vanilla blur option.
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            dev.cirrus.core.settings.ModSettings.reset(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.theme.Appearance.settings());
+            var all = dev.cirrus.core.theme.Appearance.settings();
+            dev.cirrus.core.settings.ModSettings.set(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.settings.ModSettings.find(all, "theme"), "Glass");
+            dev.cirrus.core.settings.ModSettings.set(cfg, dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.settings.ModSettings.find(all, "menuopacity"), "60");
+        });
+        context.waitTicks(5);
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            check("the Glass theme is live", dev.cirrus.core.theme.CirrusTheme.current(cfg).glass && dev.cirrus.client.ui.Look.GLASS);
+            check("Glass blurs behind menus by default", dev.cirrus.core.theme.Appearance.blurMenus(cfg));
+        });
+        context.takeScreenshot("appearance-glass-1280x720-gui2");
+        context.setScreen(() -> new CirrusMenuScreen(null));
+        context.waitTicks(10);
+        context.takeScreenshot("menu-glass-1280x720-gui2");
         context.setScreen(() -> null);
         context.runOnClient(mc -> dev.cirrus.core.settings.ModSettings.reset(dev.cirrus.client.mod.ClientModContext.INSTANCE.config(), dev.cirrus.core.theme.Appearance.ID, dev.cirrus.core.theme.Appearance.settings()));
     }

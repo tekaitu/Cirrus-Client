@@ -99,6 +99,31 @@ class AppearanceTest {
         assertTrue((t.panel >>> 24) <= 255);
     }
 
+    @Test void glassIsAirierBrighterRimmedAndBlursMenus() {
+        CirrusConfig c = config();
+        set(c, "theme", "Graphite");
+        CirrusTheme graphite = Appearance.theme(c);
+        assertFalse(graphite.glass);
+        assertFalse(Appearance.blurMenus(c), "only Glass blurs menus on its own");
+        set(c, "theme", "Glass");
+        CirrusTheme glass = Appearance.theme(c);
+        assertTrue(glass.glass && Appearance.glass(c));
+        assertTrue((glass.panel >>> 24) < (graphite.panel >>> 24), "more of the game shows through");
+        assertTrue((glass.border >>> 24) > (graphite.border >>> 24), "a visible rim");
+        assertTrue(Appearance.blurMenus(c), "Glass blurs behind menus by default");
+        set(c, "blur", "Off");
+        assertFalse(Appearance.blurMenus(c), "blur Off wins");
+        set(c, "blur", "All menus");
+        set(c, "theme", "Maple");
+        assertTrue(Appearance.blurMenus(c));
+    }
+
+    @Test void menuOpacityCanGoDownToFifteenPercent() {
+        CirrusConfig c = config();
+        set(c, "menuopacity", "5");
+        assertEquals(Math.round(255 * 0.15f), Appearance.theme(c).panel >>> 24);
+    }
+
     @Test void resetRestoresTheDefaultLook() {
         CirrusConfig c = config();
         set(c, "accent", "Rose");

@@ -20,8 +20,15 @@ public final class CirrusTheme {
 
     public final int overlay, panel, surface, border, accent, cyan, accentDark, text, muted, good, surfaceHover, field, fieldHover, popup;
     public final int accentLight;
+    /** True for the Glass theme: surfaces get a soft top sheen and a brighter rim, and menus blur the game behind them. */
+    public final boolean glass;
     public CirrusTheme(int overlay, int panel, int surface, int border, int accent, int accentLight, int accentDark, int text, int muted, int good,
                 int surfaceHover, int field, int fieldHover, int popup) {
+        this(overlay, panel, surface, border, accent, accentLight, accentDark, text, muted, good, surfaceHover, field, fieldHover, popup, false);
+    }
+    public CirrusTheme(int overlay, int panel, int surface, int border, int accent, int accentLight, int accentDark, int text, int muted, int good,
+                int surfaceHover, int field, int fieldHover, int popup, boolean glass) {
+        this.glass = glass;
         this.overlay = overlay; this.panel = panel; this.surface = surface; this.border = border;
         this.accent = accent; this.accentLight = accentLight; this.cyan = accentLight; this.accentDark = accentDark;
         this.text = text; this.muted = muted; this.good = good;

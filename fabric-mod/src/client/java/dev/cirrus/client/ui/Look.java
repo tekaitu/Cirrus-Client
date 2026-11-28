@@ -16,6 +16,8 @@ public final class Look {
     public static int TEXT = CirrusTheme.DARK.text;
     /** True when the Appearance font is the Minecraft font instead of Maple's UI font. */
     public static boolean MINECRAFT_FONT;
+    /** True while the Glass theme is chosen: panels and buttons draw a sheen and a rim. */
+    public static boolean GLASS;
 
     /** Applies the current Appearance to the shared tokens. Call at the start of every frame that draws Maple UI or HUD text. */
     public static void refresh(CirrusConfig config) {
@@ -23,6 +25,7 @@ public final class Look {
         SURFACE = t.surface; SURFACE_HOVER = t.surfaceHover; FIELD = t.field; FIELD_HOVER = t.fieldHover; POPUP = t.popup; BORDER = t.border;
         TEXT = t.text;
         MINECRAFT_FONT = Appearance.minecraftFont(config);
+        GLASS = t.glass;
     }
     /** A dark tint for panels that sit straight over a bright scene (title screen), where the white surface tints would wash out. */
     public static final int SCENE = 0x73000000;

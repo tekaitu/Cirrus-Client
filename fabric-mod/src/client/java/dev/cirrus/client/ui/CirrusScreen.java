@@ -126,9 +126,18 @@ public abstract class CirrusScreen extends Screen {
 
     /** The shared scenery for Maple screens: panorama out of a world, otherwise the (optionally blurred) game with the themed dim. */
     protected final void drawScenery(GuiGraphics g, float delta, boolean blur) {
-        if (minecraft.level == null) { renderPanorama(g, delta); return; }
-        if (blur) renderBlurredBackground(g);
+        if (minecraft.level == null) { renderPanorama(g, delta); if (blur) blurBehind(g); return; }
+        if (blur) blurBehind(g);
         CirrusUi.backdrop(g, width, height, theme());
+    }
+
+    private static boolean blurBroken;
+
+    /** The game's own background blur (it follows the player's Menu Background Blurriness option). A failure turns it off instead of breaking the menu. */
+    private void blurBehind(GuiGraphics g) {
+        if (blurBroken) return;
+        try { renderBlurredBackground(g); }
+        catch (RuntimeException e) { blurBroken = true; dev.cirrus.core.log.CoreLog.warn("Background blur is not available; menus are drawn without it", e); }
     }
 
     @Override public final void render(GuiGraphics g, int mx, int my, float delta) {

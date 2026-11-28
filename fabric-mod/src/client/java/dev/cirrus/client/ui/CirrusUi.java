@@ -47,13 +47,27 @@ public final class CirrusUi {
     public static void panel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
         if (w <= 0 || h <= 0) return;
         Gfx.fillRound(g, x, y, w, h, radius, t.panel);
+        if (t.glass) glassSheen(g, x, y, w, h, radius, 0x14);
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
+    }
+
+    /**
+     * The Glass look on a surface: a soft lighter band across the top (light falling on glass) and a thin bright line along the top
+     * edge. Only translucent fills and one line, so it stays cheap. {@code strength} is the band's alpha (0 to 255).
+     */
+    public static void glassSheen(GuiGraphics g, int x, int y, int w, int h, float radius, int strength) {
+        if (w < 8 || h < 8) return;
+        float r = Math.max(2f, radius - 1f);
+        Gfx.fillRound(g, x + 1, y + 1, w - 2, Math.max(4f, h * 0.45f), r, Gfx.withAlpha(0xFFFFFFFF, strength));
+        int inset = Math.max(3, Math.round(radius));
+        McCanvas.of(g).fill(x + inset, y + 1, x + w - inset, y + 2, Gfx.withAlpha(0xFFFFFFFF, Math.min(255, strength * 3)));
     }
 
     /** A small floating surface (context menu, popover, tooltip): near-opaque so text stays readable over the game. */
     public static void popup(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
         if (w <= 0 || h <= 0) return;
         Gfx.fillRound(g, x, y, w, h, radius, t.popup);
+        if (t.glass) glassSheen(g, x, y, w, h, radius, 0x10);
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 

@@ -69,6 +69,10 @@ public final class MenuButton extends Button {
 
         if (kind != Kind.QUIT || hover > 0.01f) {
             Gfx.fillRound(g, x, y, w, h, radius, fill);
+            if (Look.GLASS && active) {
+                CirrusUi.glassSheen(g, x, y, w, h, radius, 0x14 + Math.round(hover * 8));
+                if ((edge >>> 24) == 0) edge = Gfx.withAlpha(0xFFFFFFFF, 0x38);
+            }
             if ((edge >>> 24) != 0) Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, edge);
         }
 
