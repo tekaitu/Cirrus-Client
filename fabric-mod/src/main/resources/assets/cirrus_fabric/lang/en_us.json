@@ -5,5 +5,16 @@
   "key.cirrus.toggle.fps": "Toggle FPS",
   "key.cirrus.toggle.ping": "Toggle Ping",
   "key.cirrus.toggle.armor_status": "Toggle Armor Status",
-  "key.cirrus.toggle.keystrokes": "Toggle Keystrokes"
+  "key.cirrus.toggle.keystrokes": "Toggle Keystrokes",
+  "key.cirrus.toggle.cps": "Toggle CPS",
+  "key.cirrus.toggle.coordinates": "Toggle Coordinates",
+  "key.cirrus.toggle.potion_effects": "Toggle Potion Effects",
+  "key.cirrus.toggle.crosshair": "Toggle Custom Crosshair",
+  "key.cirrus.toggle.zoom": "Toggle Zoom",
+  "key.cirrus.toggle.damage_tilt": "Toggle Damage Tilt",
+  "key.cirrus.toggle.low_fire": "Toggle Low Fire",
+  "key.cirrus.toggle.toggle_sprint": "Toggle Toggle Sprint/Sneak",
+  "key.cirrus.toggle.raw_input": "Toggle Raw Mouse Input",
+  "key.cirrus.toggle.hitboxes": "Toggle Hitboxes",
+  "key.cirrus.zoom": "Zoom (hold)"
 }

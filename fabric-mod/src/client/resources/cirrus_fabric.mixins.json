@@ -5,7 +5,10 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "PlayerTabOverlayMixin",
-    "EntityRendererMixin"
+    "EntityRendererMixin",
+    "GameRendererMixin",
+    "ScreenEffectRendererMixin",
+    "GuiMixin"
   ],
   "injectors": {
     "defaultRequire": 0

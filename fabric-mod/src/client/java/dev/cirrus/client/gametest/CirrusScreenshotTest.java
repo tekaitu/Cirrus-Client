@@ -158,6 +158,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
         verifyArchitecture(context);
         verifyHudEditor(context, screens);
         verifyAppearance(context);
+        verifyPvpModules(context);
         verifyMapleGlyph(context);
         measurePerformance(context, screens);
         context.setScreen(CirrusTitleScreen::new);
@@ -199,6 +200,80 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
                 }
             } catch (Throwable t) { System.out.println("[maple-pvp] jar scan failed " + t); }
         });
+    }
+
+    /** The PvP modules on the real game: registered, hooks merged into the game's classes, vanilla options switched and restored, and a look at the drawing. */
+    private static void verifyPvpModules(ClientGameTestContext context) {
+        String[] ids = {"cps", "coordinates", "potion_effects", "crosshair", "zoom", "damage_tilt", "low_fire", "toggle_sprint", "raw_input", "hitboxes"};
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            for (String id : ids) {
+                var m = dev.cirrus.core.module.ModRegistry.find(id).orElseThrow(() -> new AssertionError("module not registered: " + id));
+                check(id + " is a real module, not a catalogue entry", m.available());
+                check(id + " is off by default", !m.enabled(cfg));
+            }
+            check("Zoom hook is merged into GameRenderer", hasHook("net.minecraft.client.renderer.GameRenderer", "maple$zoomFov"));
+            check("Damage Tilt hook is merged into GameRenderer", hasHook("net.minecraft.client.renderer.GameRenderer", "maple$noDamageTilt"));
+            check("Low Fire hooks are merged into ScreenEffectRenderer", hasHook("net.minecraft.client.renderer.ScreenEffectRenderer", "maple$fireDown") && hasHook("net.minecraft.client.renderer.ScreenEffectRenderer", "maple$fireBack"));
+            check("Custom Crosshair hook is merged into Gui", hasHook("net.minecraft.client.gui.Gui", "maple$customCrosshair"));
+            check("the game has a hitbox display Maple can drive", dev.cirrus.client.mod.PvpHooks.hitboxesShown(mc) != null);
+            check("hitboxes start hidden", Boolean.FALSE.equals(dev.cirrus.client.mod.PvpHooks.hitboxesShown(mc)));
+            for (String id : new String[] {"toggle_sprint", "raw_input", "hitboxes"}) dev.cirrus.core.module.ModRegistry.find(id).orElseThrow().setEnabled(cfg, true);
+        });
+        context.waitTicks(4);
+        boolean[] before = new boolean[1];
+        context.runOnClient(mc -> {
+            check("Toggle Sprint switches the game's own toggle-sprint option on", mc.options.toggleSprint().get());
+            check("Raw Mouse Input switches the game's raw input option on", mc.options.rawMouseInput().get());
+            check("Hitboxes turns the game's hitbox display on", Boolean.TRUE.equals(dev.cirrus.client.mod.PvpHooks.hitboxesShown(mc)));
+            check("Toggle Sneak stays the player's own choice by default", !mc.options.toggleCrouch().get());
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            for (String id : new String[] {"toggle_sprint", "raw_input", "hitboxes"}) dev.cirrus.core.module.ModRegistry.find(id).orElseThrow().setEnabled(cfg, false);
+        });
+        context.waitTicks(4);
+        context.runOnClient(mc -> {
+            check("switching Toggle Sprint off puts the player's own value back", !mc.options.toggleSprint().get());
+            check("switching Hitboxes off hides them again", Boolean.FALSE.equals(dev.cirrus.client.mod.PvpHooks.hitboxesShown(mc)));
+        });
+
+        // How the widgets and the crosshair look on the real renderer (sample values; there is no world here).
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            for (String id : new String[] {"cps", "coordinates", "potion_effects"}) dev.cirrus.core.module.ModRegistry.find(id).orElseThrow().setEnabled(cfg, true);
+        });
+        context.setScreen(PvpPreview::new);
+        context.waitTicks(10);
+        context.takeScreenshot("pvp-widgets-crosshairs-1280x720-gui2");
+        context.runOnClient(mc -> {
+            var cfg = dev.cirrus.client.mod.ClientModContext.INSTANCE.config();
+            for (String id : new String[] {"cps", "coordinates", "potion_effects"}) dev.cirrus.core.module.ModRegistry.find(id).orElseThrow().setEnabled(cfg, false);
+        });
+    }
+
+    /** Draws the new widgets and the four crosshair shapes with the real renderer. */
+    private static final class PvpPreview extends Screen {
+        PvpPreview() { super(net.minecraft.network.chat.Component.literal("pvp")); }
+        @Override public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float delta) {
+            g.fill(0, 0, width, height, 0xFF3B7A3B);
+            var ctx = dev.cirrus.client.mod.ClientModContext.INSTANCE;
+            var canvas = dev.cirrus.client.render.McCanvas.of(g);
+            int y = 10;
+            for (String id : new String[] {"cps", "coordinates", "potion_effects"}) {
+                var e = (dev.cirrus.core.hud.HudElement) dev.cirrus.core.module.ModRegistry.find(id).orElseThrow();
+                e.render(canvas, 10, y, 0f, ctx);
+                y += e.height() + 8;
+            }
+            var cfg = ctx.config();
+            var settings = dev.cirrus.client.mod.PvpHooks.CROSSHAIR.settings();
+            String[] styles = {dev.cirrus.core.pvp.CrosshairMod.CROSS, dev.cirrus.core.pvp.CrosshairMod.DOT, dev.cirrus.core.pvp.CrosshairMod.CIRCLE, dev.cirrus.core.pvp.CrosshairMod.CROSS_DOT};
+            for (int i = 0; i < styles.length; i++) {
+                dev.cirrus.core.settings.ModSettings.set(cfg, "crosshair", dev.cirrus.core.settings.ModSettings.find(settings, "style"), styles[i]);
+                int cx = width / 2 - 90 + i * 60, cy = height / 2;
+                dev.cirrus.core.pvp.CrosshairMod.draw(canvas, cx, cy, cfg);
+                g.drawCenteredString(font, styles[i], cx, cy + 22, 0xFFFFFFFF);
+            }
+            dev.cirrus.core.settings.ModSettings.reset(cfg, "crosshair", settings);
+        }
     }
 
     /** Phase 2 integration checks on the real 1.21.11 game: Core input events, ModContext and the Core HUD model. */
@@ -602,9 +677,11 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
     }
 
     /** True when a mixin handler named maple$prefixVerified has been merged into the class (Mixin renames merged handlers). */
-    private static boolean hasHook(String className) {
+    private static boolean hasHook(String className) { return hasHook(className, "maple$prefixVerified"); }
+
+    private static boolean hasHook(String className, String handler) {
         try {
-            for (var m : Class.forName(className).getDeclaredMethods()) if (m.getName().contains("maple$prefixVerified")) return true;
+            for (var m : Class.forName(className).getDeclaredMethods()) if (m.getName().contains(handler)) return true;
             return false;
         } catch (ClassNotFoundException e) { return false; }
     }

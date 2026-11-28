@@ -36,4 +36,15 @@ public interface ModContext {
 
     /** Whether the key currently bound to a game action is held (respects the player's own key bindings). */
     boolean isActionDown(GameAction action);
+
+    /** The player's position; zero when there is no world. Used by coordinate displays. */
+    default double playerX() { return 0; }
+    default double playerY() { return 0; }
+    default double playerZ() { return 0; }
+
+    /** The player's horizontal facing in degrees, as the game reports it (0 = south, 90 = west). */
+    default float playerYaw() { return 0; }
+
+    /** Active potion effects on the player; empty when there is no world. */
+    default java.util.List<EffectInfo> effects() { return java.util.Collections.emptyList(); }
 }
