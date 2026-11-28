@@ -22,6 +22,7 @@ final class CirrusHudSettings {
         ClientModContext ctx = ClientModContext.INSTANCE;
         CirrusConfig cfg = ctx.config();
         int w = ctx.screenWidth(), h = ctx.screenHeight();
+        dev.cirrus.client.ui.Look.refresh(cfg);
         Canvas canvas = McCanvas.of(g);
         PerfMeter.HUD.begin();
         List<HudElement> all = HudElementRegistry.all();

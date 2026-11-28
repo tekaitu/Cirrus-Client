@@ -44,6 +44,22 @@ public final class ClientModContext implements ModContext {
 
     @Override public boolean inWorld() { return Minecraft.getInstance().player != null; }
 
+    @Override public double playerX() { var p = Minecraft.getInstance().player; return p == null ? 0 : p.getX(); }
+    @Override public double playerY() { var p = Minecraft.getInstance().player; return p == null ? 0 : p.getY(); }
+    @Override public double playerZ() { var p = Minecraft.getInstance().player; return p == null ? 0 : p.getZ(); }
+    @Override public float playerYaw() { var p = Minecraft.getInstance().player; return p == null ? 0 : p.getYRot(); }
+
+    @Override public java.util.List<dev.cirrus.core.module.EffectInfo> effects() {
+        var p = Minecraft.getInstance().player;
+        if (p == null || p.getActiveEffects().isEmpty()) return java.util.Collections.emptyList();
+        java.util.List<dev.cirrus.core.module.EffectInfo> out = new java.util.ArrayList<>();
+        for (var e : p.getActiveEffects()) {
+            var effect = e.getEffect().value();
+            out.add(new dev.cirrus.core.module.EffectInfo(effect.getDisplayName().getString(), e.getAmplifier(), e.isInfiniteDuration() ? -1 : e.getDuration(), effect.isBeneficial()));
+        }
+        return out;
+    }
+
     @Override public boolean isActionDown(GameAction action) {
         var o = Minecraft.getInstance().options;
         KeyMapping key;

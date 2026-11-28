@@ -22,6 +22,9 @@ final class TestContext implements ModContext {
     final InputTracker input = new InputTracker();
     int fps = 144, ping = 30, screenW = 427, screenH = 240;
     boolean inWorld = true;
+    double px, py, pz;
+    float yaw;
+    List<dev.cirrus.core.module.EffectInfo> effects = new ArrayList<dev.cirrus.core.module.EffectInfo>();
     final Set<GameAction> down = EnumSet.noneOf(GameAction.class);
 
     TestContext() {
@@ -42,10 +45,17 @@ final class TestContext implements ModContext {
     @Override public int pingMillis() { return ping; }
     @Override public boolean inWorld() { return inWorld; }
     @Override public boolean isActionDown(GameAction action) { return down.contains(action); }
+    @Override public double playerX() { return px; }
+    @Override public double playerY() { return py; }
+    @Override public double playerZ() { return pz; }
+    @Override public float playerYaw() { return yaw; }
+    @Override public List<dev.cirrus.core.module.EffectInfo> effects() { return effects; }
 
     /** Records what a widget draws. */
     static final class Rec implements Canvas {
         final List<String> texts = new ArrayList<String>();
+        /** Everything drawn as text, joined: a widget may draw one line in several coloured pieces. */
+        String line() { StringBuilder b = new StringBuilder(); for (String t : texts) b.append(t); return b.toString(); }
         final List<Integer> textColors = new ArrayList<Integer>();
         final List<String> transforms = new ArrayList<String>();
         int fills, masks, depth;

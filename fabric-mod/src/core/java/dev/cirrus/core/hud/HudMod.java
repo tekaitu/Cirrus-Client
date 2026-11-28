@@ -1,5 +1,6 @@
 package dev.cirrus.core.hud;
 
+import dev.cirrus.core.text.TextStyle;
 import dev.cirrus.core.config.CirrusConfig;
 import dev.cirrus.core.module.CirrusMod;
 import dev.cirrus.core.module.ModContext;
@@ -74,6 +75,35 @@ public abstract class HudMod implements CirrusMod, HudElement {
     /** Simple elements have no shadow option: text gets a shadow when there is no background behind it. */
     protected final boolean shadowOn(CirrusConfig c) { return has("shadow") ? on(c, "shadow") : !on(c, "background"); }
     /** The chosen text colour, or white for widgets without the option. */
+    /**
+     * Draws an informational line: the template's text in the text colour, the number in {@code valueColor}, and (Maple style) the
+     * widget's name in the accent colour, e.g. a white "[", orange "FPS", then a white number and "]".
+     */
+    protected final void drawInfo(Canvas canvas, int x, int y, CirrusConfig c, ModContext m, String label, String unit, String value, int valueColor) {
+        String tpl = FormatTemplate.template(opt(c, "format"), label, unit);
+        if (!FormatTemplate.valid(tpl)) tpl = FormatTemplate.VALUE;
+        int at = tpl.indexOf(FormatTemplate.VALUE);
+        String pre = tpl.substring(0, at), post = tpl.substring(at + FormatTemplate.VALUE.length());
+        int base = textColor(c), cx = x;
+        boolean shadow = shadowOn(c);
+        int named = FormatTemplate.MAPLE.equals(opt(c, "format")) && !label.isEmpty() ? pre.indexOf(label) : -1;
+        if (named >= 0) {
+            String a = pre.substring(0, named), b = pre.substring(named + label.length());
+            int accent = CirrusTheme.current(c).accent;
+            cx = seg(canvas, m, a, cx, y, base, shadow);
+            cx = seg(canvas, m, label, cx, y, accent, shadow);
+            cx = seg(canvas, m, b, cx, y, base, shadow);
+        } else cx = seg(canvas, m, pre, cx, y, base, shadow);
+        cx = seg(canvas, m, value, cx, y, valueColor, shadow);
+        seg(canvas, m, post, cx, y, base, shadow);
+    }
+
+    private static int seg(Canvas canvas, ModContext m, String s, int x, int y, int color, boolean shadow) {
+        if (s.isEmpty()) return x;
+        canvas.text(s, TextStyle.BODY, x, y, color, shadow);
+        return x + m.text().width(s, TextStyle.BODY);
+    }
+
     protected final int textColor(CirrusConfig c) { return has("color") ? HudColors.argb(opt(c, "color")) : 0xFFFFFFFF; }
     protected final float scale(CirrusConfig c) { return num(c, "scale") / 100f; }
 

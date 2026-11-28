@@ -17,8 +17,9 @@ class PlannedCatalogTest {
         ModCategory.HUD, List.of("Armor Status", "Potion Timer", "Custom Crosshair", "FPS", "Ping", "Keystrokes", "CPS", "Coordinates", "Potion Effects"),
         ModCategory.UTILITY, List.of("Chat Tools", "Lightweight Clip System"),
         ModCategory.SOCIAL, List.of("Friends", "Private Chats", "Voice Chat", "3D Proximity Voice Chat"));
-    /** Modules that exist as real classes (see CirrusFabricClient); everything else must be in the catalogue. */
-    private static final Set<String> IMPLEMENTED = Set.of("Armor Status", "FPS", "Ping", "Keystrokes");
+    /** Modules that exist as real classes (Potion Timer is the compact style of Potion Effects) (see CirrusFabricClient); everything else must be in the catalogue. */
+    private static final Set<String> IMPLEMENTED = Set.of("Armor Status", "FPS", "Ping", "Keystrokes", "CPS", "Coordinates", "Potion Effects", "Potion Timer", "Custom Crosshair", "Hitboxes",
+        "Toggle Sprint/Sneak", "Zoom", "Low Fire", "Raw Mouse Input", "Damage Tilt");
 
     @Test void everyRequestedAddonIsAccountedForInItsCategory() {
         int total = 0;

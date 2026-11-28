@@ -34,10 +34,10 @@ public final class CirrusMenuScreen extends CirrusScreen {
     private static final int GRAY = 0xFF8C8C8C, WHITE = 0xFFFFFFFF, GAP = 4;
 
     private record Cell(String header, CirrusMod mod, int col, int y) { }
-    private record Side(ModCategory category, boolean favorites, boolean profiles, String label, int glyph, int count) { }
+    private record Side(ModCategory category, boolean favorites, boolean profiles, boolean appearance, String label, int glyph, int count) { }
 
     private ModCategory category;          // null = all modules
-    private boolean favoritesOnly, profilesPage, dirty = true, cellsDirty = true, resizing;
+    private boolean favoritesOnly, profilesPage, appearancePage, dirty = true, cellsDirty = true, resizing;
     private String query = "";
     private EditBox search;
     private ClickGuiLayout layout;
@@ -50,6 +50,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
     private CirrusMod selected;
     private ModPane pane;
     private final ProfilesPage profiles;
+    private final AppearancePage appearance = new AppearancePage();
     private String tooltip, pendingModule = "";
     private boolean profileMenu;
     private String toast = "";
@@ -103,10 +104,13 @@ public final class CirrusMenuScreen extends CirrusScreen {
         layout = l;
         var s = l.search;
         search.setX(s.x() + 20);
-        search.setY(s.y() + (s.h() - 12) / 2);
+        // An unbordered EditBox draws its text from its top edge, so the box is as tall as the text and centred in the field.
+        search.setHeight(9);
+        search.setY(s.y() + (s.h() - 9) / 2);
         search.setWidth(Math.max(10, s.w() - 20 - 16));
         if (pane != null) layoutPane();
         profiles.layout(font, l.content.x(), l.content.y(), l.content.w(), l.content.h());
+        appearance.layout(font, l.content.x(), l.content.y(), l.content.w(), l.content.h());
         sideScroll = Math.max(0, Math.min(sideScroll, maxSideScroll()));
         cellsDirty = true;
     }
@@ -114,7 +118,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
     private void layoutPane() { pane.layout(font, layout.pane.x(), layout.pane.y(), layout.pane.w(), layout.pane.h(), true); }
 
     private void syncWidgets() {
-        boolean list = !profilesPage && pane == null;
+        boolean list = !profilesPage && !appearancePage && pane == null;
         search.visible = list; search.active = list;
         var box = profiles.nameBox();
         box.visible = profilesPage; box.active = profilesPage;
@@ -125,16 +129,24 @@ public final class CirrusMenuScreen extends CirrusScreen {
     private void select(CirrusMod mod) {
         selected = mod;
         profilesPage = false;
+        appearancePage = false;
         pane = new ModPane(mod, () -> minecraft.setScreen(new HudEditorScreen(this, mod.id())), this::closePane);
         layoutPane();
         syncWidgets();
     }
 
+    /** Opens the Appearance page (used by the in-game check). */
+    public void showAppearance() {
+        pane = null; selected = null; profilesPage = false; appearancePage = true;
+        appearance.layout(font, layout.content.x(), layout.content.y(), layout.content.w(), layout.content.h());
+        syncWidgets();
+    }
+
     private void closePane() { pane = null; syncWidgets(); }
 
-    private void openProfiles() { pane = null; selected = null; profilesPage = true; profiles.refresh(); profiles.layout(font, layout.content.x(), layout.content.y(), layout.content.w(), layout.content.h()); syncWidgets(); }
+    private void openProfiles() { pane = null; selected = null; appearancePage = false; profilesPage = true; profiles.refresh(); profiles.layout(font, layout.content.x(), layout.content.y(), layout.content.w(), layout.content.h()); syncWidgets(); }
 
-    private boolean listVisible() { return !profilesPage && pane == null; }
+    private boolean listVisible() { return !profilesPage && !appearancePage && pane == null; }
 
     // ---- data --------------------------------------------------------------------------------------------------------
 
@@ -186,13 +198,14 @@ public final class CirrusMenuScreen extends CirrusScreen {
         List<Side> out = new ArrayList<>();
         int fav = 0;
         for (CirrusMod m : ModRegistry.all()) if (m.favorite(cfg)) fav++;
-        out.add(new Side(null, false, false, "All", Icons.GRID, ModRegistry.all().size()));
-        out.add(new Side(null, true, false, "Favorites", Icons.STAR, fav));
-        out.add(new Side(null, false, true, "Profiles", Icons.BOX, -1));
+        out.add(new Side(null, false, false, false, "All", Icons.GRID, ModRegistry.all().size()));
+        out.add(new Side(null, true, false, false, "Favorites", Icons.STAR, fav));
+        out.add(new Side(null, false, true, false, "Profiles", Icons.BOX, -1));
+        out.add(new Side(null, false, false, true, "Appearance", Icons.SETTINGS, -1));
         for (ModCategory c : ModCategory.values()) {
             int n = 0;
             for (CirrusMod m : ModRegistry.all()) if (m.category() == c) n++;
-            if (n > 0) out.add(new Side(c, false, false, c.label, c.glyph, n));
+            if (n > 0) out.add(new Side(c, false, false, false, c.label, c.glyph, n));
         }
         return out;
     }
@@ -200,17 +213,20 @@ public final class CirrusMenuScreen extends CirrusScreen {
     private int sideItemH() { return layout.sidebar.h() >= 200 ? 22 : 18; }
     private int sideContentH() { return sides().size() * (sideItemH() + 2) + 18; }
     private int maxSideScroll() { return Math.max(0, sideContentH() - (layout.sidebar.h() - 8)); }
-    private int sideY(int index, int count) { return layout.sidebar.y() + 6 + index * (sideItemH() + 2) + (index >= 2 ? 6 : 0) + (index >= 3 ? 6 : 0) - sideScroll; }
+    private int sideY(int index, int count) { return layout.sidebar.y() + 6 + index * (sideItemH() + 2) + (index >= 2 ? 6 : 0) + (index >= 4 ? 6 : 0) - sideScroll; }
 
     private boolean sideSelected(Side s) {
         if (s.profiles()) return profilesPage;
-        if (profilesPage || searching() || pane != null) return false;
+        if (s.appearance()) return appearancePage;
+        if (profilesPage || appearancePage || searching() || pane != null) return false;
         return s.favorites() ? favoritesOnly : (!favoritesOnly && s.category() == category);
     }
 
     private void setView(Side s) {
         pane = null; selected = null;
         profilesPage = s.profiles();
+        appearancePage = s.appearance();
+        if (appearancePage) { appearance.layout(font, layout.content.x(), layout.content.y(), layout.content.w(), layout.content.h()); syncWidgets(); return; }
         if (profilesPage) { profiles.refresh(); profiles.layout(font, layout.content.x(), layout.content.y(), layout.content.w(), layout.content.h()); syncWidgets(); return; }
         category = s.category(); favoritesOnly = s.favorites();
         query = ""; search.setValue("");
@@ -245,6 +261,9 @@ public final class CirrusMenuScreen extends CirrusScreen {
         if (profilesPage) {
             profiles.render(g, mx, my, t);
             if (layout.content.contains(mx, my)) tooltip = profiles.tooltip(mx, my);
+        } else if (appearancePage) {
+            appearance.render(g, mx, my, t);
+            if (layout.content.contains(mx, my)) tooltip = appearance.tooltip(mx, my);
         } else if (pane != null) {
             pane.render(g, mx, my, dt, t);
             if (pane.contains(mx, my)) tooltip = pane.tooltip(mx, my);
@@ -318,7 +337,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
         for (int i = 0; i < sides.size(); i++) {
             Side s = sides.get(i);
             int y = sideY(i, sides.size());
-            if (i == 2 || i == 3) McCanvas.of(g).fill(sb.x() + 10, y - 5, sb.right() - 10, y - 4, t.border);
+            if (i == 2 || i == 4) McCanvas.of(g).fill(sb.x() + 10, y - 5, sb.right() - 10, y - 4, t.border);
             int x = sb.x() + 6, w = sb.w() - 12;
             boolean on = sideSelected(s), hover = mx >= x && mx < x + w && my >= y && my < y + ih && sb.contains(mx, my);
             if (on || hover) Gfx.fillRound(g, x, y, w, ih, 6, on ? dev.cirrus.client.ui.Look.SURFACE_HOVER : dev.cirrus.client.ui.Look.SURFACE);
@@ -498,6 +517,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
             return true;
         }
         if (profilesPage) { profiles.nameBox().setFocused(false); return profiles.mouseClicked(mx, my); }
+        if (appearancePage) return appearance.mouseClicked(mx, my, event.button());
         if (pane != null) return pane.mouseClicked(mx, my, event.button());
         if (layout.hudButton.contains(mx, my)) { minecraft.setScreen(new HudEditorScreen(this, "")); return true; }
         if (layout.profileButton.contains(mx, my)) { profiles.refresh(); profileMenu = true; return true; }
@@ -528,12 +548,14 @@ public final class CirrusMenuScreen extends CirrusScreen {
             prefW = layout.window.w(); prefH = layout.window.h();   // keep the stored size equal to what the layout allowed
             return true;
         }
+        if (appearancePage && appearance.mouseDragged(event.x())) return true;
         if (pane != null && pane.mouseDragged(event.x())) return true;
         return super.onMouseDragged(event, dx, dy);
     }
 
     @Override protected boolean onMouseReleased(MouseButtonEvent event) {
         if (resizing) { resizing = false; saveSize(); }
+        if (appearancePage) appearance.mouseReleased();
         if (pane != null) pane.mouseReleased();
         return super.onMouseReleased(event);
     }
@@ -543,6 +565,7 @@ public final class CirrusMenuScreen extends CirrusScreen {
     @Override protected boolean onMouseScrolled(double x, double y, double h, double v) {
         if (layout.sidebar.contains(x, y)) { sideScroll = Math.max(0, Math.min(maxSideScroll(), sideScroll - (int) (v * 20))); return true; }
         if (profilesPage) return profiles.mouseScrolled(x, y, v) || super.onMouseScrolled(x, y, h, v);
+        if (appearancePage) return appearance.mouseScrolled(x, y, v) || super.onMouseScrolled(x, y, h, v);
         if (pane != null) { if (pane.mouseScrolled(x, y, v)) return true; }
         else if (layout.list.contains(x, y)) { scrollTarget = Math.max(0, Math.min(maxScroll(), scrollTarget - (float) (v * (rowH() + GAP) * 1.5))); return true; }
         return super.onMouseScrolled(x, y, h, v);
@@ -561,8 +584,10 @@ public final class CirrusMenuScreen extends CirrusScreen {
             if (typing) { search.setFocused(false); nameBox.setFocused(false); return true; }
             if (pane != null) { closePane(); return true; }
             if (profilesPage) { profilesPage = false; syncWidgets(); return true; }
+            if (appearancePage) { appearancePage = false; syncWidgets(); return true; }
         }
         if (!typing) {
+            if (appearancePage && appearance.keyPressed(key)) return true;
             if (pane != null && pane.focused() && pane.keyPressed(key)) return true;
             if (listVisible() && (key == Keys.UP || key == Keys.DOWN)) { moveSelection(key == Keys.UP ? -1 : 1); return true; }
             if (listVisible() && selected != null && key == Keys.ENTER && selected.available()) {

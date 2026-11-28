@@ -47,13 +47,36 @@ public final class CirrusUi {
     public static void panel(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
         if (w <= 0 || h <= 0) return;
         Gfx.fillRound(g, x, y, w, h, radius, t.panel);
+        if (t.glass) glassSheen(g, x, y, w, h, radius, 0x14);
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
+    }
+
+    /**
+     * The Glass look on a surface: light falling on glass, as a band across the top that fades out smoothly (a few thin strips with
+     * falling alpha, so there is no hard edge), plus a thin bright line along the top edge. Only translucent fills and one line, so it
+     * stays cheap. {@code strength} is the brightest strip's alpha (0 to 255).
+     */
+    public static void glassSheen(GuiGraphics g, int x, int y, int w, int h, float radius, int strength) {
+        if (w < 8 || h < 8) return;
+        int inset = Math.max(3, Math.round(radius));
+        int reach = Math.min(Math.round(h * 0.4f), 56);
+        int strips = Math.max(2, Math.min(10, reach / 3));
+        int step = Math.max(1, reach / strips);
+        var c = McCanvas.of(g);
+        for (int i = 0; i < strips; i++) {
+            float fade = 1f - (float) i / strips;
+            int a = Math.round(strength * fade * fade);
+            if (a <= 0) break;
+            c.fill(x + inset, y + 1 + i * step, x + w - inset, y + 1 + (i + 1) * step, Gfx.withAlpha(0xFFFFFFFF, a));
+        }
+        c.fill(x + inset, y + 1, x + w - inset, y + 2, Gfx.withAlpha(0xFFFFFFFF, Math.min(255, strength * 3)));
     }
 
     /** A small floating surface (context menu, popover, tooltip): near-opaque so text stays readable over the game. */
     public static void popup(GuiGraphics g, int x, int y, int w, int h, int radius, CirrusTheme t) {
         if (w <= 0 || h <= 0) return;
         Gfx.fillRound(g, x, y, w, h, radius, t.popup);
+        if (t.glass) glassSheen(g, x, y, w, h, radius, 0x10);
         Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, t.border);
     }
 
@@ -101,9 +124,12 @@ public final class CirrusUi {
 
     // ---- typography -----------------------------------------------------------------------------------------------
 
-    public static Component body(String value) { return Component.literal(value).withStyle(s -> s.withFont(UI_FONT_DESC)); }
-    public static Component small(String value) { return Component.literal(value).withStyle(s -> s.withFont(UI_SMALL_DESC)); }
-    public static Component heading(String value) { return Component.literal(value).withStyle(s -> s.withFont(UI_DISPLAY_DESC)); }
+    // With the Minecraft font chosen on the Appearance page, text is plain (default font); measuring uses the same call, so layouts adapt.
+    public static Component body(String value) { return Look.MINECRAFT_FONT ? Component.literal(value) : Component.literal(value).withStyle(s -> s.withFont(UI_FONT_DESC)); }
+    public static Component small(String value) { return Look.MINECRAFT_FONT ? Component.literal(value) : Component.literal(value).withStyle(s -> s.withFont(UI_SMALL_DESC)); }
+    public static Component heading(String value) { return Look.MINECRAFT_FONT ? Component.literal(value) : Component.literal(value).withStyle(s -> s.withFont(UI_DISPLAY_DESC)); }
+    /** Plain white text follows the Appearance text colour; every other colour is left alone. */
+    private static int tc(int color) { return color == 0xFFFFFFFF ? Look.TEXT : color; }
     public static FormattedCharSequence formatSearch(String value) { return Language.getInstance().getVisualOrder(body(value)); }
 
     public static int bodyWidth(Font f, String v) { return f.width(body(v)); }
@@ -126,11 +152,11 @@ public final class CirrusUi {
     public static String fitSmall(Font f, String v, int w) { return TextFit.fit(McTextMetrics.INSTANCE, v, w, TextStyle.SMALL); }
 
     // Text is drawn by the Canvas (McCanvas owns the font calls); these keep the original static API for existing screens.
-    public static void text(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { McCanvas.of(g).text(value, TextStyle.BODY, x, y, color, shadow); }
-    public static void smallText(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { McCanvas.of(g).text(value, TextStyle.SMALL, x, y, color, shadow); }
+    public static void text(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { McCanvas.of(g).text(value, TextStyle.BODY, x, y, tc(color), shadow); }
+    public static void smallText(GuiGraphics g, Font f, String value, int x, int y, int color, boolean shadow) { McCanvas.of(g).text(value, TextStyle.SMALL, x, y, tc(color), shadow); }
     public static void headingText(GuiGraphics g, Font f, String value, int x, int y, int color) { McCanvas.of(g).text(value, TextStyle.HEADING, x, y, color, false); }
-    public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { McCanvas.of(g).text(value, TextStyle.BODY, x - bodyWidth(f, value) / 2, y, color, false); }
-    public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { McCanvas.of(g).text(value, TextStyle.SMALL, x - smallWidth(f, value) / 2, y, color, false); }
+    public static void centered(GuiGraphics g, Font f, String value, int x, int y, int color) { McCanvas.of(g).text(value, TextStyle.BODY, x - bodyWidth(f, value) / 2, y, tc(color), false); }
+    public static void centeredSmall(GuiGraphics g, Font f, String value, int x, int y, int color) { McCanvas.of(g).text(value, TextStyle.SMALL, x - smallWidth(f, value) / 2, y, tc(color), false); }
     public static void centeredHeading(GuiGraphics g, Font f, String value, int x, int y, int color) { McCanvas.of(g).text(value, TextStyle.HEADING, x - headingWidth(f, value) / 2, y, color, false); }
     /** Draws short text centred on (cx, cy) in the largest of heading/body/small that fits maxW (monograms in small tiles). */
     public static void centeredFit(GuiGraphics g, Font f, String value, int cx, int cy, int maxW, int color) {
@@ -138,7 +164,7 @@ public final class CirrusUi {
         else if (bodyWidth(f, value) <= maxW) centered(g, f, value, cx, cy - LINE / 2, color);
         else centeredSmall(g, f, value, cx, cy - LINE / 2, color);
     }
-    public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { McCanvas.of(g).text(value, TextStyle.SMALL, right - smallWidth(f, value), y, color, false); }
+    public static void rightSmall(GuiGraphics g, Font f, String value, int right, int y, int color) { McCanvas.of(g).text(value, TextStyle.SMALL, right - smallWidth(f, value), y, tc(color), false); }
 
     // ---- icons and brand ------------------------------------------------------------------------------------------
 

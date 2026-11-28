@@ -39,6 +39,13 @@ provider exists only in `CirrusScreenshotTest`.
 
 ## Verifying
 
-`CirrusScreenshotTest#verifyMapleGlyph` (run by the "Fabric in-game check" workflow) checks on the real 1.21.11 client that: nothing is
-decorated with no provider; with a test provider the real `getNameForDisplay` and `getNameTag` return the glyph for a verified player
-and not for an unverified or offline-UUID player; and it photographs the result (`tab-names-glyph`, `world-nametags`).
+`CirrusScreenshotTest#verifyMapleGlyph` (run by the "Fabric in-game check" workflow) has two parts.
+
+**Part A (runs by default, no world needed)**: on the real 1.21.11 client it checks that the mixin handlers are merged into
+`PlayerTabOverlay` and `EntityRenderer`, that nothing is decorated with no provider, and that with a test provider the glyph appears for a
+verified UUID and not for an unverified or offline-UUID one. It photographs the glyph beside sample names (`tab-names-glyph-preview`).
+
+**Part B (opt-in, `-Dmaple.worldTests=true`)**: joins a test world, spawns remote players and checks the real `getNameForDisplay` and
+`getNameTag`. On the GitHub runner (software GL) the world load times out and the timeout leaves a server running, which fails the whole
+client gametest, so this part is skipped by default. **The glyph has therefore not been seen on a real tab list or above a real
+nametag in a world.**

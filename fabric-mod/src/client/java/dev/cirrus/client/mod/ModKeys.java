@@ -21,7 +21,7 @@ import java.util.Map;
  * Add a "key.cirrus.toggle.<id>" entry to the language file so vanilla Controls shows a readable name.
  */
 public final class ModKeys {
-    private static final KeyMapping.Category CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath("cirrus_fabric", "modules"));
+    static final KeyMapping.Category CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath("cirrus_fabric", "modules"));
     private static final Map<String, KeyMapping> KEYS = new LinkedHashMap<>();
     private ModKeys() { }
 

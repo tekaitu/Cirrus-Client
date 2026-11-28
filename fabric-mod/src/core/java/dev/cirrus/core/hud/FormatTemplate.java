@@ -15,10 +15,16 @@ public final class FormatTemplate {
     private FormatTemplate() { }
 
     public static final String VALUE = "{value}";
-    public static final String PARENTHESES = "Parentheses", PLAIN = "Plain", LABEL = "Label", SUFFIX = "Suffix", BRACKETS = "Brackets";
-    public static final List<String> STYLES = Collections.unmodifiableList(Arrays.asList(PARENTHESES, PLAIN, LABEL, SUFFIX, BRACKETS));
+    public static final String PARENTHESES = "Parentheses", PLAIN = "Plain", LABEL = "Label", SUFFIX = "Suffix", BRACKETS = "Brackets", MAPLE = "Maple";
+    public static final List<String> STYLES = Collections.unmodifiableList(Arrays.asList(PARENTHESES, PLAIN, LABEL, SUFFIX, BRACKETS, MAPLE));
     public static final String DEFAULT = PARENTHESES;
     private static final int MAX_LENGTH = 40;
+
+    /** The "Format" option with another default (FPS and Ping start with the Maple style). */
+    public static Setting setting(String defaultStyle) {
+        return Setting.choice("format", "Format", "How the value is written, for example (400), 400, FPS: 400, 400 FPS, or [FPS 400] with the name in the accent colour.", defaultStyle,
+            STYLES.toArray(new String[0])).group("Text");
+    }
 
     /** The shared "Format" option for informational widgets; the widget supplies its label and unit when it draws. */
     public static Setting setting() {
@@ -36,6 +42,7 @@ public final class FormatTemplate {
         if (LABEL.equals(style)) return l + ": " + VALUE + (u.isEmpty() ? "" : " " + u);
         if (SUFFIX.equals(style)) return VALUE + " " + (u.isEmpty() ? l : u);
         if (BRACKETS.equals(style)) return "[" + VALUE + "]";
+        if (MAPLE.equals(style)) return "[" + l + " " + VALUE + (u.isEmpty() ? "" : " " + u) + "]";
         return "(" + VALUE + ")";
     }
 

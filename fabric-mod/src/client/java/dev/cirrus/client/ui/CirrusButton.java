@@ -55,6 +55,10 @@ public final class CirrusButton extends Button {
         if (!active) fill = Gfx.scaleAlpha(t.surface, 0.6f);
 
         Gfx.fillRound(g, x, y, w, h, radius, fill);
+        if (t.glass && active && style != Style.TAB) {
+            CirrusUi.glassSheen(g, x, y, w, h, radius, primary ? 0x30 : 0x12 + Math.round(hover * 8));
+            Gfx.strokeRound(g, x, y, w, h, radius, 0.5f, primary ? Gfx.withAlpha(0xFFFFFFFF, 0x55) : t.border);
+        }
         if (style == Style.TAB && selectedBlend > 0.01f) Gfx.fillRound(g, x + 8, y + h - 3, w - 16, 2, 1, Gfx.scaleAlpha(t.accent, selectedBlend));
 
         Font font = mc.font;

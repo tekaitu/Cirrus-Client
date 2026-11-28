@@ -152,12 +152,12 @@ class HudEditingTest {
         ModRegistry.register(fps);
         ctx.fps = 400;
         int base = fps.width();
-        String[][] expected = {{"Parentheses", "(400)"}, {"Plain", "400"}, {"Label", "FPS: 400"}, {"Suffix", "400 FPS"}, {"Brackets", "[400]"}};
+        String[][] expected = {{"Parentheses", "(400)"}, {"Plain", "400"}, {"Label", "FPS: 400"}, {"Suffix", "400 FPS"}, {"Brackets", "[400]"}, {"Maple", "[FPS 400]"}};
         for (String[] pair : expected) {
             ctx.config().put("mod.fps.format", pair[0]);
             TestContext.Rec canvas = new TestContext.Rec();
             fps.render(canvas, 0, 0, 0, ctx);
-            assertEquals(Arrays.asList(pair[1]), canvas.texts, pair[0]);
+            assertEquals(pair[1], canvas.line(), pair[0]);
             assertEquals(pair[1].replace("400", "000").length() * 5 + 10, fps.width(), pair[0] + " width fits the longest value");
         }
         ctx.config().put("mod.fps.format", "Plain");
@@ -173,7 +173,7 @@ class HudEditingTest {
             ctx.config().put("mod.ping.format", pair[0]);
             TestContext.Rec canvas = new TestContext.Rec();
             ping.render(canvas, 0, 0, 0, ctx);
-            assertEquals(Arrays.asList(pair[1]), canvas.texts, pair[0]);
+            assertEquals(pair[1], canvas.line(), pair[0]);
         }
     }
 
@@ -184,23 +184,26 @@ class HudEditingTest {
         ctx.config().put("mod.fps.format", "{value} injected");
         TestContext.Rec canvas = new TestContext.Rec();
         fps.render(canvas, 0, 0, 0, ctx);
-        assertEquals(Arrays.asList("(60)"), canvas.texts);
+        assertEquals("[FPS 60]", canvas.line(), "an invalid format falls back to the default (Maple style)");
     }
 
     @Test void fpsAndPingOfferFormatAndColourBeforeTheAppearanceOptions() {
         for (HudMod m : new HudMod[] {new FpsMod(), new PingMod()}) {
+            int o = m instanceof PingMod ? 1 : 0; // Ping adds "Colour by latency" after the colour
             assertEquals("format", m.settings().get(0).key());
             assertEquals("color", m.settings().get(1).key());
-            assertEquals("background", m.settings().get(2).key());
-            assertEquals("bgcolor", m.settings().get(3).key());
-            assertEquals("opacity", m.settings().get(4).key());
-            assertEquals("scale", m.settings().get(5).key());
+            if (o == 1) assertEquals("latencycolor", m.settings().get(2).key());
+            assertEquals("background", m.settings().get(2 + o).key());
+            assertEquals("bgcolor", m.settings().get(3 + o).key());
+            assertEquals("opacity", m.settings().get(4 + o).key());
+            assertEquals("scale", m.settings().get(5 + o).key());
         }
     }
 
     @Test void textColourIsAppliedToTheDrawnText() {
         FpsMod fps = new FpsMod();
         ModRegistry.register(fps);
+        ctx.config().put("mod.fps.format", "Plain");
         TestContext.Rec canvas = new TestContext.Rec();
         fps.render(canvas, 0, 0, 0, ctx);
         ctx.config().put("mod.fps.color", "Green");

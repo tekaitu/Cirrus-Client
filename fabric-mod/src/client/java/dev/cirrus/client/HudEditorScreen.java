@@ -200,10 +200,14 @@ public final class HudEditorScreen extends CirrusScreen {
 
     // ---- drawing --------------------------------------------------------------------------------------------------------
 
-    /** The world stays visible under a very light veil, so widgets are placed against the real picture. */
+    /**
+     * The game behind the editor is blurred (unless turned off on the Appearance page) under a very light veil, so the widgets stand
+     * out and the scene is still recognisable. Out of a world the vanilla panorama is shown instead.
+     */
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {
-        if (minecraft.level != null) McCanvas.of(g).fill(0, 0, width, height, 0x1C000000);
-        else CirrusUi.backdrop(g, width, height, theme());
+        if (minecraft.level == null) { renderPanorama(g, delta); return; }
+        if (dev.cirrus.core.theme.Appearance.blurHudEditor(config())) renderBlurredBackground(g);
+        McCanvas.of(g).fill(0, 0, width, height, 0x1C000000);
     }
 
     @Override protected void drawSurfaces(GuiGraphics g, int mx, int my, float delta, CirrusTheme t) {

@@ -53,6 +53,23 @@ jobs:
           echo "#### ClientGameTestContext"
           javap -public -cp "$GT" net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext 2>&1 | cut -c1-200
           javap -public -cp "$GT" net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotCommonOptions 2>&1 | cut -c1-200
+      - name: Dump vanilla internals the PvP modules hook (javap)
+        continue-on-error: true
+        run: |
+          MC=$(find ~/.gradle -name '*.jar' | grep -iE 'minecraft-clientonly-1' | grep -v sources | head -1)
+          echo "#### GameRenderer callers of fov/projection"
+          javap -c -p -cp "$MC" net.minecraft.client.renderer.GameRenderer 2>&1 | grep -E "^  [a-z].*\(|getFov|getProjectionMatrix|fovModifier" | grep -E "^  [a-z]|getFov|getProjectionMatrix" | cut -c1-200
+          echo "#### classes that read ENTITY_HITBOXES"
+          mkdir -p "$RUNNER_TEMP/mc" && (cd "$RUNNER_TEMP/mc" && unzip -qo "$MC" 'net/minecraft/client/*' 2>/dev/null; grep -rl "ENTITY_HITBOXES" net | head -20)
+          echo "#### EntityHitboxDebugRenderer"
+          javap -p -cp "$MC" net.minecraft.client.renderer.debug.EntityHitboxDebugRenderer 2>&1 | cut -c1-200
+          for c in net.minecraft.client.renderer.texture.OverlayTexture net.minecraft.client.renderer.entity.LivingEntityRenderer net.minecraft.client.resources.MobEffectTextureManager net.minecraft.client.renderer.GameRenderer; do echo "#### $c"; javap -p -cp "$MC" $c 2>&1 | grep -iE "overlay|class|MobEffect|getOverlayCoords|DynamicTexture" | cut -c1-200; done
+          echo "#### Minecraft effect textures"
+          javap -p -cp "$MC" net.minecraft.client.Minecraft 2>&1 | grep -iE "mobEffect|debugEntries|DebugScreenEntryList" | cut -c1-200
+          echo "#### GuiGraphics sprite methods"
+          javap -public -cp "$MC" net.minecraft.client.gui.GuiGraphics 2>&1 | grep -E "blitSprite|blit\(" | cut -c1-260
+          echo "#### OptionInstance/Options crouch"
+          javap -p -cp "$MC" net.minecraft.client.Options 2>&1 | grep -iE "toggleCrouch|toggleSprint|rawMouse" | cut -c1-160
       - name: Run the real Minecraft client and take screenshots
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"

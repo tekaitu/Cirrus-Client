@@ -30,13 +30,18 @@ public final class CirrusFabricClient implements ClientModInitializer {
         ModRegistry.register(new dev.cirrus.core.hud.PingMod());
         ModRegistry.register(new dev.cirrus.client.mod.ArmorStatusMod());
         ModRegistry.register(new dev.cirrus.core.hud.KeystrokesMod());
+        ModRegistry.register(new dev.cirrus.core.hud.CpsMod());
+        ModRegistry.register(new dev.cirrus.core.hud.CoordinatesMod());
+        ModRegistry.register(new dev.cirrus.core.hud.PotionEffectsMod());
+        for (var pvp : dev.cirrus.client.mod.PvpHooks.modules()) ModRegistry.register(pvp);
         dev.cirrus.core.module.PlannedCatalog.registerAll();
         dev.cirrus.client.mod.ModKeys.registerAll();
+        dev.cirrus.client.mod.PvpHooks.register();
         ModRegistry.initialize(CirrusConfig.get(Minecraft.getInstance().gameDirectory.toPath()));
         AssetManager assets = AssetManager.get(Minecraft.getInstance().gameDirectory.toPath());
         assets.initialize();
         CirrusKeyBindings.register();
-        for (String id : new String[] {"fps", "ping", "armor_status", "keystrokes"})
+        for (String id : new String[] {"fps", "ping", "armor_status", "keystrokes", "cps", "coordinates", "potion_effects"})
             dev.cirrus.core.hud.HudElementRegistry.register((dev.cirrus.core.hud.HudElement) ModRegistry.find(id).orElseThrow());
         HudElementRegistry.attachElementAfter(
             VanillaHudElements.MISC_OVERLAYS,
