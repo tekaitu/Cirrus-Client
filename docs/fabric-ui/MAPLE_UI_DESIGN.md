@@ -37,6 +37,14 @@ blur HUD editor, ...) are stored with the normal mod settings and read through `
 widgets lists and editor immediately (`Look.refresh`). A small preview and "Reset appearance" sit above/below the list. These are our own
 settings; no other client's theme names or branding are used. Not implemented: pixel style, icon packs, screen transitions, UI sounds.
 
+## Glass theme
+
+Choose **Appearance > Theme > Glass**. Panels, popups and buttons become translucent (about 60% of the chosen *Menu opacity*, which now goes
+down to 15%), get a soft sheen that fades out from the top edge and a brighter rim. Menus blur the game behind them using the game's own blur
+(it follows *Video Settings > Menu Background Blurriness*; set blur to Off on the Appearance page to disable it). It is drawn with Maple's own
+renderer: no shader, no extra dependency. ReGlass (MIT) was reviewed as a reference for the look; none of its code is used. A real
+refraction/liquid shader like ReGlass's would need a custom GPU pipeline and is not part of this.
+
 ## Backgrounds
 
 * Out of a world, every Maple screen (title, Click GUI, HUD editor) draws the **vanilla panorama**; there is no dark overlay on the title screen.
