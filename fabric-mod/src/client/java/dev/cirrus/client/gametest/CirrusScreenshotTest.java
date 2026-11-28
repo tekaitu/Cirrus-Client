@@ -210,7 +210,7 @@ public final class CirrusScreenshotTest implements FabricClientGameTest {
             for (String id : ids) {
                 var m = dev.cirrus.core.module.ModRegistry.find(id).orElseThrow(() -> new AssertionError("module not registered: " + id));
                 check(id + " is a real module, not a catalogue entry", m.available());
-                check(id + " is off by default", !m.enabled(cfg));
+                check(id + " starts off for a new player", !m.defaultEnabled());
             }
             check("Zoom hook is merged into GameRenderer", hasHook("net.minecraft.client.renderer.GameRenderer", "maple$zoomFov"));
             check("Damage Tilt hook is merged into GameRenderer", hasHook("net.minecraft.client.renderer.GameRenderer", "maple$noDamageTilt"));
