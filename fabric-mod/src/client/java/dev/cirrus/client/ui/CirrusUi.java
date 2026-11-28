@@ -52,15 +52,24 @@ public final class CirrusUi {
     }
 
     /**
-     * The Glass look on a surface: a soft lighter band across the top (light falling on glass) and a thin bright line along the top
-     * edge. Only translucent fills and one line, so it stays cheap. {@code strength} is the band's alpha (0 to 255).
+     * The Glass look on a surface: light falling on glass, as a band across the top that fades out smoothly (a few thin strips with
+     * falling alpha, so there is no hard edge), plus a thin bright line along the top edge. Only translucent fills and one line, so it
+     * stays cheap. {@code strength} is the brightest strip's alpha (0 to 255).
      */
     public static void glassSheen(GuiGraphics g, int x, int y, int w, int h, float radius, int strength) {
         if (w < 8 || h < 8) return;
-        float r = Math.max(2f, radius - 1f);
-        Gfx.fillRound(g, x + 1, y + 1, w - 2, Math.max(4f, h * 0.45f), r, Gfx.withAlpha(0xFFFFFFFF, strength));
         int inset = Math.max(3, Math.round(radius));
-        McCanvas.of(g).fill(x + inset, y + 1, x + w - inset, y + 2, Gfx.withAlpha(0xFFFFFFFF, Math.min(255, strength * 3)));
+        int reach = Math.min(Math.round(h * 0.4f), 56);
+        int strips = Math.max(2, Math.min(10, reach / 3));
+        int step = Math.max(1, reach / strips);
+        var c = McCanvas.of(g);
+        for (int i = 0; i < strips; i++) {
+            float fade = 1f - (float) i / strips;
+            int a = Math.round(strength * fade * fade);
+            if (a <= 0) break;
+            c.fill(x + inset, y + 1 + i * step, x + w - inset, y + 1 + (i + 1) * step, Gfx.withAlpha(0xFFFFFFFF, a));
+        }
+        c.fill(x + inset, y + 1, x + w - inset, y + 2, Gfx.withAlpha(0xFFFFFFFF, Math.min(255, strength * 3)));
     }
 
     /** A small floating surface (context menu, popover, tooltip): near-opaque so text stays readable over the game. */
